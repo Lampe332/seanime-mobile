@@ -1,7 +1,7 @@
 // geschrieben nach: settings-account.tsx (Anmeldeformular, PasswordField) und settings-more.tsx (Nakama, Host-Warnung)
 
 import { API_ENDPOINTS } from "@/api/generated/endpoints"
-import { type MediaServerStatus, useMediaServerLogin, useMediaServerLogout, useMediaServerRefresh, useMediaServerStatus } from "@/api/hooks/mediaserver.hooks"
+import { type MediaServerStatus, readingFinished, useMediaServerLogin, useMediaServerLogout, useMediaServerRefresh, useMediaServerStatus } from "@/api/hooks/mediaserver.hooks"
 import { Notice } from "@/components/shared/phone-kit"
 import { Button } from "@/components/ui/button/button"
 import { useReleaseFocusOnLeave } from "@/components/ui/core/page-focus"
@@ -182,6 +182,12 @@ function SignedIn({ t, status }: { t: Translate, status: MediaServerStatus }) {
     // The time "last read" is counted from; it moves on with each answer
     const [now, setNow] = React.useState(() => Date.now())
     const reading = refresh.isPending || status.reading
+    // a reading in the background (after signing in, or due) ends: the library and an open anime page show its series
+    const wasReading = React.useRef(status.reading)
+    React.useEffect(() => {
+        if (readingFinished(wasReading.current, status.reading)) reloadLibrary()
+        wasReading.current = status.reading
+    }, [status.reading, reloadLibrary])
     const failure = refresh.error ? failureText(t, refresh.error) : status.problem ? problemText(t, status.problem) : ""
 
     function readAgain() {

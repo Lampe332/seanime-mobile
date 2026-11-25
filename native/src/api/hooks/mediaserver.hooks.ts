@@ -40,12 +40,26 @@ export type MediaServerLogin_Variables = { url: string, username: string, passwo
 
 const E = MEDIASERVER_ENDPOINTS
 
+/** How often the status is asked again while it is being read */
+export const STATUS_READING_POLL_MS = 2000
+
+/** Asks again while the core reads the server, and stops once it is done */
+export function statusRefetchInterval(status: MediaServerStatus | undefined): number | false {
+    return status?.reading ? STATUS_READING_POLL_MS : false
+}
+
+/** A reading that was running is over: the library shows the newly read series */
+export function readingFinished(before: boolean, now: boolean): boolean {
+    return before && !now
+}
+
 export function useMediaServerStatus() {
     return useServerQuery<MediaServerStatus>({
         endpoint: E.GetMediaServerStatus.endpoint,
         method: E.GetMediaServerStatus.methods[0],
         queryKey: [E.GetMediaServerStatus.key],
         enabled: true,
+        refetchInterval: query => statusRefetchInterval(query.state.data),
     })
 }
 

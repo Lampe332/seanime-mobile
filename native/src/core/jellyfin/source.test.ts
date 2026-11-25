@@ -1,5 +1,6 @@
 // geschrieben nach: Seanime_Jellyfin_Plan.md §2, §3 und §5 Punkt 2 und dem Aufbau von core/nakama/guest.test.ts; der Server ist hier ein Test-Double, alle Titel, Kennungen und das Token sind erfunden
 
+import { eq } from "drizzle-orm"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { sqlDriverFor } from "@/api/client/core-database"
 import { forgetDatabases, openDatabaseSync } from "../../../test/expo-sqlite"
@@ -7,6 +8,7 @@ import type { HttpFetch } from "../anilist/client"
 import { type CoreDatabase, openCoreDatabase } from "../database/database"
 import { anilistListEntries, anilistMedia, mediaserverMappings, mediaserverSeries, settingsSections } from "../database/schema"
 import { type CoreEvent, onCoreEvent } from "../events"
+import { libraryEntry } from "../library/library"
 import { type CoreEnvironment, matchCoreRoute } from "../registry"
 import {
     MEDIASERVER_TOKEN_SECRET,
@@ -20,6 +22,7 @@ import {
     saveServerMapping,
     saveServerSettings,
     serverFileOfPath,
+    serverOverview,
     serverSettingsOf,
     serverStreamAddress,
     unassignedServerShows,
@@ -50,6 +53,8 @@ let stuck: (() => void)[] | null = null
 /** The readings started in the background (the host's `unasked`), so that a test can wait for them instead of a timer */
 let background: Promise<unknown>[] = []
 let secretReads = 0
+/** The `IndexNumber`s of each series' episodes on the server */
+let serverEpisodeNumbers = [1, 2]
 const readingsDone = () => Promise.all(background.map(work => work.catch(() => undefined)))
 
 const media = (id: number) => ({ id, status: "FINISHED", episodes: 2, format: "TV", title: { userPreferred: NAMES[id], romaji: NAMES[id] }, startDate: { year: 2020 } })
@@ -69,7 +74,7 @@ const httpFetch = (async (url: string, init: { headers?: Record<string, string>,
         const [, id, kind] = /^\/Shows\/([^/]+)\/(Seasons|Episodes)$/.exec(path) ?? []
         if (kind === "Seasons") return answer(200, { Items: [{ Id: `${id}-s1`, SeriesId: id, IndexNumber: 1, Name: "Season 1", ProductionYear: 2020, ProviderIds: {} }] })
         if (kind === "Episodes") {
-            return answer(200, { Items: [1, 2].map(number => ({
+            return answer(200, { Items: serverEpisodeNumbers.map(number => ({
                 Id: `${id}-e${number}`, SeriesId: id, SeasonId: `${id}-s1`, ParentIndexNumber: 1, IndexNumber: number, Name: `Made ${number}`, ProviderIds: {},
                 MediaSources: [{ Id: `${id}-m${number}`, Container: "mkv", MediaStreams: [] }],
             })) })
@@ -116,6 +121,7 @@ beforeEach(async () => {
     calls = []
     stuck = null
     background = []
+    serverEpisodeNumbers = [1, 2]
     secrets.clear()
     now = Date.UTC(2026, 10, 25)
     const opened = await environment.database()
@@ -213,6 +219,49 @@ describe("the media server in the library", () => {
         const paths = (page.localFiles as Json[]).map(file => file.path as string)
         expect(paths.map(serverFileOfPath)).toEqual([{ serverId: "srv-1", episodeId: "sA-e1" }, { serverId: "srv-1", episodeId: "sA-e2" }])
         expect(JSON.stringify(page)).not.toContain(TOKEN)
+    })
+})
+
+describe("the anime page of a title the server has only in part", () => {
+    it("lists the server's episodes as there, and not among those missing; without the server the page stays as it was", async () => {
+        serverEpisodeNumbers = [1, 3]
+        const opened = await environment.database()
+        await opened.update(anilistMedia).set({ content: { ...media(SERVER_ONLY), episodes: 26 } }).where(eq(anilistMedia.anilistId, SERVER_ONLY))
+        await opened.update(anilistListEntries).set({ content: { id: SERVER_ONLY, progress: 0, status: "CURRENT", score: 0, repeat: 0, startedAt: {}, completedAt: {}, createdAt: 1, updatedAt: 2 } })
+            .where(eq(anilistListEntries.anilistId, SERVER_ONLY))
+        forgetServerSource()
+        await readServer()
+        const base = await libraryEntry({ path: { id: String(SERVER_ONLY) }, query: null, body: null } as never, environment) as Json
+        const missing = (page: Json) => ((page.downloadInfo as Json).episodesToDownload as Json[] | undefined ?? []).map(item => item.episodeNumber)
+        const all = Array.from({ length: 26 }, (_, at) => at + 1)
+        expect(missing(base)).toEqual(all)
+        const page = await withServerFiles(base, environment) as Json
+        expect(page._isMediaServerEntry).toBe(true)
+        expect((page.episodes as Json[]).map(episode => episode.episodeNumber)).toEqual([1, 3])
+        expect(missing(page)).toEqual(all.filter(number => number !== 1 && number !== 3))
+        expect({ ...(page.downloadInfo as Json), episodesToDownload: undefined }).toEqual({ ...(base.downloadInfo as Json), episodesToDownload: undefined })
+        expect((page.nextEpisode as Json).episodeNumber).toBe(1)
+        expect(page.libraryData).toMatchObject({ mainFileCount: 2, unwatchedCount: 2 })
+        await saveServerSettings({ token: null }, environment)
+        expect(await withServerFiles(base, environment)).toBe(base)
+        expect(missing(base)).toEqual(all)
+    })
+})
+
+describe("reading the server, as the settings page sees it", () => {
+    it("says it reads while a reading runs, and no more after it worked or failed", async () => {
+        const held: (() => void)[] = []
+        stuck = held
+        const running = readServer()
+        await vi.waitFor(() => expect(held.length).toBeGreaterThan(0))
+        expect((await serverOverview(environment)).reading).toBe(true)
+        stuck = null
+        for (const go of held) go()
+        await running
+        expect(await serverOverview(environment)).toMatchObject({ reading: false, series: 4, problem: "" })
+        silent = true
+        await expect(readServer()).rejects.toThrow()
+        expect(await serverOverview(environment)).toMatchObject({ reading: false, series: 4, problem: "unreachable" })
     })
 })
 

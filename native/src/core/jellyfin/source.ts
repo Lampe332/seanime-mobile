@@ -487,6 +487,14 @@ async function certainMatch(environment: Environment, session: JellyfinSession, 
     return match?.certain && match.episodes.length > 0 ? { match, shows: state.shows } : null
 }
 
+/** The episodes still to get without those the server has, as library.ts leaves out the episodes with an own file */
+function withoutServerEpisodes(downloadInfo: Json, rows: LocalFileRow[]): Json {
+    const { episodesToDownload, ...rest } = downloadInfo
+    const owned = new Set(rows.filter(row => row.type === "main").map(row => row.episode))
+    const left = Array.isArray(episodesToDownload) ? episodesToDownload.filter(item => !isRecord(item) || !owned.has(item.episodeNumber as number)) : []
+    return left.length > 0 ? { ...rest, episodesToDownload: left } : rest
+}
+
 /**
  * GET /api/v1/library/anime-entry/{id}: an anime that neither the device nor a Nakama host has files of and that the
  * server has for certain becomes the server's (`_isMediaServerEntry`, its episodes with `_isMediaServerEpisode`).
@@ -517,6 +525,7 @@ export async function withServerFiles(entry: unknown, environment: Environment):
     }))
     return {
         ...entry,
+        ...(isRecord(entry.downloadInfo) ? { downloadInfo: withoutServerEpisodes(entry.downloadInfo, rows) } : {}),
         libraryData: libraryDataOf(rows, progress),
         mediaServerLibraryData: serverData(match, rows, progress),
         episodes: serverEpisodes,
