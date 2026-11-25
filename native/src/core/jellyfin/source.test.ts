@@ -184,7 +184,7 @@ describe("the media server in the library", () => {
         const page = { mediaId: UNSURE, media: media(UNSURE) }
         expect(await withServerFiles(page, environment)).toBe(page)
         const unassigned = await unassignedServerShows(environment)
-        expect(unassigned).toEqual([{ serverId: "srv-1", seriesId: "sB", name: NAMES[UNSURE], year: 2020, type: "Series", suggestion: { anilistId: UNSURE, rule: "S4", episodes: 2 } }])
+        expect(unassigned).toEqual([{ serverId: "srv-1", seriesId: "sB", name: NAMES[UNSURE], year: 2020, type: "Series", seasons: [{ id: "sB-s1", name: "Season 1", index: 1, episodes: 2 }], suggestion: { anilistId: UNSURE, rule: "S4", episodes: 2 } }])
     })
 
     it("lets a row made by hand beat the automatic match, and gives it back when the row is taken away", async () => {
@@ -445,5 +445,119 @@ describe("playing a server episode", () => {
         const noAddress = await reason(playServerFile({ path: "/api/v1/mediaserver/play", query: null, body: { path: PATH, mediaId: SERVER_ONLY } } as never, environment))
         expect(noAddress).toBe("The media server's address is missing")
         expect(signedOut + noAddress).not.toContain(TOKEN)
+    })
+})
+
+describe("matching by hand", () => {
+    const route = async (method: "GET" | "POST" | "DELETE", address: string, body: unknown = null) => {
+        const matched = matchCoreRoute(method, address)
+        if (!matched) throw new Error(`no route ${method} ${address}`)
+        return matched.route.answer({ path: matched.path, query: null, body }, environment)
+    }
+    const failure = async (work: Promise<unknown>) => {
+        try {
+            await work
+        }
+        catch (error) {
+            return { message: (error as Error).message, status: (error as { status?: number }).status }
+        }
+        throw new Error("did not fail")
+    }
+    const libraryIds = async () => entriesOf(await withServerLibrary(collection(), environment)).map(item => item.mediaId as number).sort()
+    const pageNumbers = async (id: number) => {
+        const page = await withServerFiles({ mediaId: id, media: { ...media(id), episodes: 24 } }, environment) as Json
+        return ((page.episodes ?? []) as Json[]).map(episode => episode.episodeNumber)
+    }
+
+    it("tells the dialog which series a title has now, by which rule, and with which rows made by hand", async () => {
+        await readServer()
+        expect(await route("GET", `/api/v1/mediaserver/mapping/${SERVER_ONLY}`)).toEqual({
+            anilistId: SERVER_ONLY, serverId: "srv-1", seriesId: "sA", name: NAMES[SERVER_ONLY], year: 2020, rule: "S1", certain: true, episodes: 2,
+            seasons: [{ id: "sA-s1", name: "Season 1", index: 1, episodes: 2 }], mappings: [],
+        })
+        expect(await route("GET", `/api/v1/mediaserver/mapping/${UNSURE}`)).toMatchObject({ seriesId: "sB", rule: "S4", certain: false })
+        expect(await route("GET", `/api/v1/mediaserver/mapping/${ABSENT}`)).toBeNull()
+        await route("POST", "/api/v1/mediaserver/mapping", { itemId: "sA-s1", mediaId: ABSENT, episodeOffset: -12 })
+        expect(await route("GET", `/api/v1/mediaserver/mapping/${ABSENT}`)).toMatchObject({ seriesId: "sA", rule: "manual", certain: true, mappings: [{ itemId: "sA-s1", episodeOffset: -12 }] })
+        expect(await failure(route("GET", "/api/v1/mediaserver/mapping/abc"))).toEqual({ message: "The AniList id must be a whole number", status: 400 })
+        const status = await serverOverview(environment)
+        expect(status.unmatched).toEqual([{ seriesId: "sB", name: NAMES[UNSURE], year: 2020, seasons: [{ id: "sB-s1", name: "Season 1", index: 1, episodes: 2 }], suggestion: { anilistId: UNSURE, title: NAMES[UNSURE] } }])
+    })
+
+    it("subtracts the offset from the server's numbers: episodes 1..12 with -12 are 13..24", async () => {
+        serverEpisodeNumbers = Array.from({ length: 12 }, (_, at) => at + 1)
+        await readServer()
+        await route("POST", "/api/v1/mediaserver/mapping", { itemId: "sB", mediaId: UNSURE, episodeOffset: -12 })
+        expect(await pageNumbers(UNSURE)).toEqual(Array.from({ length: 12 }, (_, at) => at + 13))
+        await route("POST", "/api/v1/mediaserver/mapping", { itemId: "sB", mediaId: UNSURE, episodeOffset: 2 })
+        expect(await pageNumbers(UNSURE)).toEqual(Array.from({ length: 10 }, (_, at) => at + 1))
+    })
+
+    it("never gives one server episode to two titles: the row saved last wins", async () => {
+        await readServer()
+        await route("POST", "/api/v1/mediaserver/mapping", { itemId: "sA", mediaId: ABSENT })
+        now += 1000
+        await route("POST", "/api/v1/mediaserver/mapping", { itemId: "sA-s1", mediaId: UNSURE })
+        expect(await pageNumbers(UNSURE)).toEqual([1, 2])
+        expect(await pageNumbers(ABSENT)).toEqual([])
+        expect(await pageNumbers(SERVER_ONLY)).toEqual([])
+        now += 1000
+        await route("POST", "/api/v1/mediaserver/mapping", { itemId: "sA", mediaId: ABSENT, episodeOffset: 0 })
+        expect(await pageNumbers(ABSENT)).toEqual([1, 2])
+        expect(await pageNumbers(UNSURE)).toEqual([])
+        const owners = new Map<string, number[]>()
+        for (const id of [SERVER_ONLY, UNSURE, OWN, NAKAMA, ABSENT]) {
+            const page = await withServerFiles({ mediaId: id, media: media(id) }, environment) as Json
+            for (const episode of (page.episodes ?? []) as Json[]) {
+                const key = (episode.mediaServerEpisode as Json).episodeId as string
+                owners.set(key, [...owners.get(key) ?? [], id])
+            }
+        }
+        for (const [episode, ids] of owners) expect(ids, episode).toHaveLength(1)
+    })
+
+    it("takes a series given to no title out of the library and out of the list of series not matched", async () => {
+        await readServer()
+        expect(await libraryIds()).toContain(SERVER_ONLY)
+        const status = await route("POST", "/api/v1/mediaserver/mapping", { itemId: "sA", mediaId: 0 }) as Json
+        expect(await libraryIds()).not.toContain(SERVER_ONLY)
+        expect((status.unmatched as Json[]).map(show => show.seriesId)).toEqual(["sB"])
+        await route("POST", "/api/v1/mediaserver/mapping", { itemId: "sB-s1", mediaId: 0 })
+        expect((await serverOverview(environment)).unmatched).toEqual([])
+        expect(await unassignedServerShows(environment)).toEqual([])
+    })
+
+    it("shows the library as it is now right after a change, from the kept series, without asking the server", async () => {
+        await readServer()
+        await withServerLibrary(collection(), environment)
+        calls = []
+        silent = true
+        await route("POST", "/api/v1/mediaserver/mapping", { itemId: "sA", mediaId: ABSENT })
+        expect(await libraryIds()).toEqual(expect.arrayContaining([ABSENT]))
+        expect(await libraryIds()).not.toContain(SERVER_ONLY)
+        const status = await route("DELETE", "/api/v1/mediaserver/mapping", { itemId: "sA" }) as Json
+        expect(status.matched).toBe(3)
+        expect(await libraryIds()).toContain(SERVER_ONLY)
+        expect(await libraryIds()).not.toContain(ABSENT)
+        expect(calls).toEqual([])
+    })
+
+    it("says what is wrong with an input and changes nothing", async () => {
+        await readServer()
+        const rows = async () => (await environment.database()).select().from(mediaserverMappings)
+        const save = (body: unknown) => failure(route("POST", "/api/v1/mediaserver/mapping", body))
+        expect(await save({ itemId: "nowhere", mediaId: ABSENT })).toEqual({ message: "The series or season is not among the media server's series", status: 404 })
+        expect(await save({ itemId: "sA", mediaId: "205" })).toEqual({ message: "mediaId must be an AniList id (a whole number), or 0 for no title", status: 400 })
+        expect(await save({ itemId: "sA", mediaId: 2.5 })).toMatchObject({ status: 400 })
+        expect(await save({ itemId: "sA", mediaId: -1 })).toMatchObject({ status: 400 })
+        expect(await save({ itemId: "sA", mediaId: ABSENT, episodeOffset: "12" })).toEqual({ message: "episodeOffset must be a whole number", status: 400 })
+        expect(await save({ mediaId: ABSENT })).toMatchObject({ status: 400 })
+        expect(await rows()).toEqual([])
+        expect(await failure(route("DELETE", "/api/v1/mediaserver/mapping", { itemId: "sA" }))).toEqual({ message: "There is no match made by hand for this series or season", status: 404 })
+        expect(await libraryIds()).toContain(SERVER_ONLY)
+        // signed out, the kept series are gone: nothing to give
+        await saveServerSettings({ token: "" }, environment)
+        expect(await save({ itemId: "sA", mediaId: ABSENT })).toMatchObject({ status: 404 })
+        expect(await rows()).toEqual([])
     })
 })

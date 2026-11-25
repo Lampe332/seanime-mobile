@@ -3,7 +3,7 @@
 import { CoreError } from "../errors"
 import type { CoreEnvironment } from "../registry"
 import { JellyfinFailure, authenticateByName, publicServerInfo } from "./client"
-import { type ServerOverview, refreshServerLibrary, saveServerSettings, serverOverview, serverSettingsOf } from "./source"
+import { type ServerOverview, refreshServerLibrary, removeServerMapping, saveServerMapping, saveServerSettings, serverOverview, serverSettingsOf } from "./source"
 
 /*
  * The routes of the "Media server" settings page: sign in, sign out, the status, read again and the progress switch.
@@ -75,6 +75,18 @@ export async function readServerAgain(environment: CoreEnvironment): Promise<Ser
     catch (error) {
         throw failureOf(error)
     }
+    return serverOverview(environment)
+}
+
+/** POST /api/v1/mediaserver/mapping {itemId, mediaId, episodeOffset?}: a series or season given by hand; the new status */
+export async function saveServerMatch(body: unknown, environment: CoreEnvironment): Promise<ServerOverview> {
+    await saveServerMapping(body, environment)
+    return serverOverview(environment)
+}
+
+/** DELETE /api/v1/mediaserver/mapping {itemId}: back to the automatic match; the new status */
+export async function removeServerMatch(body: unknown, environment: CoreEnvironment): Promise<ServerOverview> {
+    await removeServerMapping(field(body, "itemId"), environment)
     return serverOverview(environment)
 }
 

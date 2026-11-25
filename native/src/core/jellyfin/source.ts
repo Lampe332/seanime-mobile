@@ -81,6 +81,7 @@ export interface UnassignedShow {
     name: string
     year: number
     type: string
+    seasons: ServerSeasonInfo[]
     suggestion: { anilistId: number, rule: ServerMatchRule, episodes: number } | null
 }
 
@@ -338,11 +339,16 @@ async function metadataFor(environment: Environment, id: number): Promise<Json |
     }
 }
 
+type ShowSeason = ServerShow["seasons"][number]
+type ShowEpisode = ServerShow["episodes"][number]
+
+const inSeason = (episode: ShowEpisode, season: ShowSeason) => episode.seasonId === season.id || (season.index !== null && episode.season === season.index)
+
 /** The server episodes a hand-made row gives: a season by its numbers, a series counted through its regular seasons */
 function manualPairs(show: ServerShow, row: MappingRow): EpisodeMatch[] {
     const season = show.seasons.find(item => item.id === row.itemId)
     const episodes = show.episodes
-        .filter(episode => episode.index !== null && (season ? episode.seasonId === season.id || (season.index !== null && episode.season === season.index) : episode.season !== 0))
+        .filter(episode => episode.index !== null && (season ? inSeason(episode, season) : episode.season !== 0))
         .sort((a, b) => (a.season ?? 0) - (b.season ?? 0) || (a.index ?? 0) - (b.index ?? 0))
     const counted = !season && new Set(episodes.map(episode => episode.season)).size > 1
     return episodes
@@ -350,11 +356,15 @@ function manualPairs(show: ServerShow, row: MappingRow): EpisodeMatch[] {
         .filter(pair => pair.episode >= 1)
 }
 
-/** Hand-made rows first, then the automatic rules over what they left (rule above) */
+/**
+ * Hand-made rows first, then the automatic rules over what they left (rule above). Two rows that reach the same
+ * episode (a series and one of its seasons) do not both get it: the row saved last does, as the user's latest word.
+ */
 function allMatches(titles: AnilistTitle[], shows: ServerShow[], mappings: MappingRow[]): ServerMatch[] {
     const manual = new Map<number, ServerMatch>()
     const taken = new Set<string>()
-    for (const row of mappings) {
+    const latestFirst = [...mappings].sort((a, b) => b.changedAt - a.changedAt || a.itemId.localeCompare(b.itemId))
+    for (const row of latestFirst) {
         const show = shows.find(item => item.series.id === row.itemId || item.seasons.some(season => season.id === row.itemId))
         if (!show) continue
         const pairs = manualPairs(show, row).filter(pair => !taken.has(pair.serverEpisodeId))
@@ -606,29 +616,113 @@ export async function playServerFile(request: CoreRequest, environment: Environm
 
 /* ── Not assigned, and assigning by hand ──────────────────────────────── */
 
-/** The server's series that are not in the library: without a match, or with an uncertain one (named as suggestion) */
+/** A season of a server series with the number of its episodes */
+export interface ServerSeasonInfo {
+    id: string
+    name: string
+    index: number | null
+    episodes: number
+}
+
+function seasonsOf(show: ServerShow): ServerSeasonInfo[] {
+    return show.seasons.map(season => ({ id: season.id, name: season.name, index: season.index, episodes: show.episodes.filter(episode => inSeason(episode, season)).length }))
+}
+
+/** Whether rows made by hand (to a title or to none) take every regular episode of the series */
+function coveredByHand(show: ServerShow, mappings: MappingRow[]): boolean {
+    if (mappings.some(row => row.itemId === show.series.id)) return true
+    const seasons = show.seasons.filter(season => mappings.some(row => row.itemId === season.id))
+    if (seasons.length === 0) return false
+    return show.episodes.filter(episode => episode.season !== 0).every(episode => seasons.some(season => inSeason(episode, season)))
+}
+
+/**
+ * The server's series that are not in the library: without a match, or with an uncertain one (named as suggestion).
+ * A series given by hand, to a title or to none, is not among them.
+ */
 export async function unassignedServerShows(environment: Environment): Promise<UnassignedShow[]> {
     const session = await serverSession(environment)
     if (!session) return []
     const state = await libraryState(environment, session)
     const assigned = new Set(state.matches.filter(match => match.certain).map(match => match.seriesId))
-    return state.shows.filter(show => !assigned.has(show.series.id)).map(show => {
+    return state.shows.filter(show => !assigned.has(show.series.id) && !coveredByHand(show, state.mappings)).map(show => {
         const guess = state.matches.find(match => !match.certain && match.seriesId === show.series.id)
         return {
             serverId: show.series.serverId, seriesId: show.series.id, name: show.series.name, year: show.series.year, type: show.series.type,
+            seasons: seasonsOf(show),
             suggestion: guess ? { anilistId: guess.anilistId, rule: guess.rule, episodes: guess.episodes.length } : null,
         }
     })
 }
 
-/** Gives a series or a season of the server to a title by hand (`mediaId` 0: to no title) */
+/** What the anime page's dialog shows of a title: the server series it has now, how, and the hand-made rows for it */
+export interface ServerTitleMatch {
+    anilistId: number
+    serverId: string
+    seriesId: string
+    /** The series' name on the server */
+    name: string
+    year: number
+    rule: ServerMatchRule
+    /** false: rule S4, not shown in the library */
+    certain: boolean
+    /** Server episodes given to the title */
+    episodes: number
+    seasons: ServerSeasonInfo[]
+    /** The rows made by hand that give this title episodes (`itemId`: a series or a season), with their offsets */
+    mappings: { itemId: string, episodeOffset: number }[]
+}
+
+/** GET /api/v1/mediaserver/mapping/{id}: the server series a title has now, or null; asks only the kept data */
+export async function serverTitleMatch(mediaId: unknown, environment: Environment): Promise<ServerTitleMatch | null> {
+    const id = typeof mediaId === "string" && /^\d+$/.test(mediaId) ? Number(mediaId) : whole(mediaId)
+    if (!id) throw new CoreError("The AniList id must be a whole number", 400)
+    const session = await serverSession(environment)
+    if (!session) return null
+    const state = await libraryState(environment, session)
+    let match = state.matches.find(candidate => candidate.anilistId === id)
+    if (!match && !state.listed.has(id)) {
+        const database = await environment.database()
+        const [row] = await inOrder(database, () => database.select({ content: anilistMedia.content }).from(anilistMedia)
+            .where(and(eq(anilistMedia.anilistId, id), eq(anilistMedia.kind, "ANIME"))))
+        if (row && isRecord(row.content)) {
+            const title = titleOf({ ...row.content, id }, (await keptMetadata(environment, [id])).get(id) ?? null, environment.now())
+            match = allMatches([...state.titles, title], state.shows, state.mappings).find(candidate => candidate.anilistId === id)
+        }
+    }
+    if (!match || match.episodes.length === 0) return null
+    const found = match
+    const show = state.shows.find(item => item.series.id === found.seriesId)
+    return {
+        anilistId: id, serverId: found.serverId, seriesId: found.seriesId, name: show?.series.name ?? "", year: show?.series.year ?? 0,
+        rule: found.rule, certain: found.certain, episodes: found.episodes.length, seasons: show ? seasonsOf(show) : [],
+        mappings: state.mappings.filter(row => row.mediaId === id).map(row => ({ itemId: row.itemId, episodeOffset: row.episodeOffset })),
+    }
+}
+
+/** The kept series of the signed-in server with the given series or season id, read without asking the server */
+async function keptShowOf(environment: Environment, serverId: string, itemId: string): Promise<ServerShow | null> {
+    const database = await environment.database()
+    const rows = await inOrder(database, () => database.select().from(mediaserverSeries).where(eq(mediaserverSeries.serverId, serverId)))
+    return rows.map(row => row.content).find(show => show.series.id === itemId || show.seasons.some(season => season.id === itemId)) ?? null
+}
+
+/**
+ * Gives a series or a season of the server to a title by hand (`mediaId` 0: to no title). The title's episode is the
+ * server's number minus `episodeOffset` (-12: server episode 1 is episode 13). Fails with 400 and changes nothing when
+ * the input is wrong, with 404 when the item is not among the kept series.
+ */
 export async function saveServerMapping(input: unknown, environment: Environment): Promise<void> {
     const body = isRecord(input) ? input : {}
     const itemId = text(body.itemId)
-    const mediaId = typeof body.mediaId === "number" && Number.isInteger(body.mediaId) && body.mediaId >= 0 ? body.mediaId : -1
-    const episodeOffset = typeof body.episodeOffset === "number" && Number.isInteger(body.episodeOffset) ? body.episodeOffset : 0
-    if (!itemId || mediaId < 0) throw new CoreError("itemId and mediaId are needed", 400)
+    if (!itemId) throw new CoreError("itemId must name a series or a season of the media server", 400)
+    if (typeof body.mediaId !== "number" || !Number.isInteger(body.mediaId) || body.mediaId < 0) throw new CoreError("mediaId must be an AniList id (a whole number), or 0 for no title", 400)
+    if (body.episodeOffset !== undefined && (typeof body.episodeOffset !== "number" || !Number.isInteger(body.episodeOffset))) throw new CoreError("episodeOffset must be a whole number", 400)
+    const mediaId = body.mediaId
+    const episodeOffset = typeof body.episodeOffset === "number" ? body.episodeOffset : 0
     const { serverId } = await serverSettingsOf(environment)
+    if (!serverId) throw new CoreError("No media server is signed in", 400)
+    if (!(await keptShowOf(environment, serverId, itemId))) throw new CoreError("The series or season is not among the media server's series", 404)
     const database = await environment.database()
     const changedAt = environment.now()
     await inOrder(database, () => database.insert(mediaserverMappings).values({ serverId, itemId, mediaId, episodeOffset, origin: "manual", changedAt })
@@ -636,11 +730,15 @@ export async function saveServerMapping(input: unknown, environment: Environment
     forgetServerSource()
 }
 
-/** Takes a hand-made row back: the automatic match counts again */
+/** Takes a hand-made row back: the automatic match counts again. Fails with 404 when there is no such row */
 export async function removeServerMapping(itemId: string, environment: Environment): Promise<void> {
+    if (!itemId) throw new CoreError("itemId must name a series or a season of the media server", 400)
     const { serverId } = await serverSettingsOf(environment)
     const database = await environment.database()
-    await inOrder(database, () => database.delete(mediaserverMappings).where(and(eq(mediaserverMappings.serverId, serverId), eq(mediaserverMappings.itemId, itemId))))
+    const which = and(eq(mediaserverMappings.serverId, serverId), eq(mediaserverMappings.itemId, itemId))
+    const [row] = await inOrder(database, () => database.select({ itemId: mediaserverMappings.itemId }).from(mediaserverMappings).where(which))
+    if (!row) throw new CoreError("There is no match made by hand for this series or season", 404)
+    await inOrder(database, () => database.delete(mediaserverMappings).where(which))
     forgetServerSource()
 }
 
@@ -658,7 +756,7 @@ export interface ServerOverview {
     /** Series of the server with a certain match */
     matched: number
     /** Series without a certain match, with the uncertain suggestion if there is one */
-    unmatched: { seriesId: string, name: string, year: number, suggestion: { anilistId: number, title: string } | null }[]
+    unmatched: { seriesId: string, name: string, year: number, seasons: ServerSeasonInfo[], suggestion: { anilistId: number, title: string } | null }[]
     /** When the kept series were read last, null when none are kept */
     lastReadAt: number | null
     /** Why the last reading failed ("unreachable", "rejected", "failed"), empty when it did not */
@@ -687,7 +785,7 @@ export async function serverOverview(environment: Environment): Promise<ServerOv
         series: state.shows.length,
         matched: new Set(state.matches.filter(match => match.certain).map(match => match.seriesId)).size,
         unmatched: unassigned.map(show => ({
-            seriesId: show.seriesId, name: show.name, year: show.year,
+            seriesId: show.seriesId, name: show.name, year: show.year, seasons: show.seasons,
             suggestion: show.suggestion ? { anilistId: show.suggestion.anilistId, title: titleOfId(show.suggestion.anilistId) } : null,
         })),
         lastReadAt: rows.length ? Math.max(...rows.map(row => row.fetchedAt)) : null,

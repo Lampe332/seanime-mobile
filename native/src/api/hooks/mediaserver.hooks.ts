@@ -1,6 +1,7 @@
 // geschrieben nach: nakama.hooks.ts und app-switches.hooks.ts; die Routen sind core/jellyfin/server-settings.ts
 
-import { useQueryClient } from "@tanstack/react-query"
+import { type QueryClient, useQueryClient } from "@tanstack/react-query"
+import { API_ENDPOINTS } from "@/api/generated/endpoints"
 import { type SeaError, useServerMutation, useServerQuery } from "../client/requests"
 
 /*
@@ -16,7 +17,37 @@ export const MEDIASERVER_ENDPOINTS = {
     SaveMediaServerSettings: { key: "MEDIASERVER-save-settings", methods: ["PATCH"] as const, endpoint: "/api/v1/mediaserver/settings" },
     MediaServerPlay: { key: "MEDIASERVER-play", methods: ["POST"] as const, endpoint: "/api/v1/mediaserver/play" },
     MediaServerPlayback: { key: "MEDIASERVER-playback", methods: ["POST"] as const, endpoint: "/api/v1/mediaserver/playback" },
+    GetMediaServerMapping: { key: "MEDIASERVER-get-mapping", methods: ["GET"] as const, endpoint: "/api/v1/mediaserver/mapping/{id}" },
+    SaveMediaServerMapping: { key: "MEDIASERVER-save-mapping", methods: ["POST"] as const, endpoint: "/api/v1/mediaserver/mapping" },
+    RemoveMediaServerMapping: { key: "MEDIASERVER-remove-mapping", methods: ["DELETE"] as const, endpoint: "/api/v1/mediaserver/mapping" },
 }
+
+/** A season of a server series with the number of its episodes */
+export type MediaServerSeason = { id: string, name: string, index: number | null, episodes: number }
+
+/** The server series a title has now (core/jellyfin/source.ts `ServerTitleMatch`) */
+export type MediaServerMapping = {
+    anilistId: number
+    serverId: string
+    seriesId: string
+    name: string
+    year: number
+    /** "S1".."S4" automatic, "manual" by hand */
+    rule: "S1" | "S2" | "S3" | "S4" | "manual"
+    /** false: rule S4, not shown in the library */
+    certain: boolean
+    episodes: number
+    seasons: MediaServerSeason[]
+    /** The rows made by hand for this title (`itemId`: a series or a season) */
+    mappings: { itemId: string, episodeOffset: number }[]
+}
+
+/**
+ * A series or season given by hand. `mediaId` 0: it belongs to no title. The title's episode is the server's number
+ * minus `episodeOffset` (-12: server episodes 1..12 become 13..24).
+ */
+export type SaveMediaServerMapping_Variables = { itemId: string, mediaId: number, episodeOffset?: number }
+export type RemoveMediaServerMapping_Variables = { itemId: string }
 
 /** One report of a playing server episode to its server (core/jellyfin/playback.ts `PlaybackReport`) */
 export type MediaServerPlayback_Variables = {
@@ -42,7 +73,7 @@ export type MediaServerStatus = {
     reading: boolean
     series: number
     matched: number
-    unmatched: { seriesId: string, name: string, year: number, suggestion: { anilistId: number, title: string } | null }[]
+    unmatched: { seriesId: string, name: string, year: number, seasons: MediaServerSeason[], suggestion: { anilistId: number, title: string } | null }[]
     lastReadAt: number | null
     /** "unreachable", "rejected", "failed" or empty */
     problem: string
@@ -125,6 +156,47 @@ export function useSaveMediaServerSettings() {
         method: E.SaveMediaServerSettings.methods[0],
         mutationKey: [E.SaveMediaServerSettings.key],
         onSuccess: async data => keep(data),
+    })
+}
+
+/** The queries a match made or taken back by hand changes: the status, the matches, the library and the anime pages */
+export function forgetMatchedQueries(queryClient: QueryClient): void {
+    for (const key of [E.GetMediaServerStatus.key, E.GetMediaServerMapping.key, API_ENDPOINTS.ANIME_COLLECTION.GetLibraryCollection.key, API_ENDPOINTS.ANIME_ENTRIES.GetAnimeEntry.key]) {
+        void queryClient.invalidateQueries({ queryKey: [key] })
+    }
+}
+
+/** The server series a title has now, or null (no server, or none of its series fits) */
+export function useMediaServerMapping(mediaId: number | null | undefined, enabled = true) {
+    return useServerQuery<MediaServerMapping | null>({
+        endpoint: E.GetMediaServerMapping.endpoint.replace("{id}", String(mediaId)),
+        method: E.GetMediaServerMapping.methods[0],
+        queryKey: [E.GetMediaServerMapping.key, mediaId],
+        enabled: enabled && !!mediaId,
+    })
+}
+
+/** Gives a series or season to a title by hand (or to none); the answer is the new status, the library follows at once */
+export function useSaveMediaServerMapping(onError?: (error: SeaError) => void) {
+    const queryClient = useQueryClient()
+    return useServerMutation<MediaServerStatus, SaveMediaServerMapping_Variables>({
+        endpoint: E.SaveMediaServerMapping.endpoint,
+        method: E.SaveMediaServerMapping.methods[0],
+        mutationKey: [E.SaveMediaServerMapping.key],
+        onSuccess: async () => forgetMatchedQueries(queryClient),
+        ...(onError ? { onError } : {}),
+    })
+}
+
+/** Takes a match made by hand back: the automatic match counts again */
+export function useRemoveMediaServerMapping(onError?: (error: SeaError) => void) {
+    const queryClient = useQueryClient()
+    return useServerMutation<MediaServerStatus, RemoveMediaServerMapping_Variables>({
+        endpoint: E.RemoveMediaServerMapping.endpoint,
+        method: E.RemoveMediaServerMapping.methods[0],
+        mutationKey: [E.RemoveMediaServerMapping.key],
+        onSuccess: async () => forgetMatchedQueries(queryClient),
+        ...(onError ? { onError } : {}),
     })
 }
 

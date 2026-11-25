@@ -65,8 +65,8 @@ import {
 } from "./settings/settings"
 import { startStatus, statusAfterSave } from "./start/start"
 import { reportServerPlayback } from "./jellyfin/playback"
-import { readServerAgain, setServerSendProgress, signInToServer, signOutOfServer } from "./jellyfin/server-settings"
-import { keepServerToken, playServerFile, serverOverview, withServerFiles, withServerLibrary } from "./jellyfin/source"
+import { readServerAgain, removeServerMatch, saveServerMatch, setServerSendProgress, signInToServer, signOutOfServer } from "./jellyfin/server-settings"
+import { keepServerToken, playServerFile, serverOverview, serverTitleMatch, withServerFiles, withServerLibrary } from "./jellyfin/source"
 import { animeWithEpisodes, episodeCollection, libraryEntry } from "./library/library"
 import { bulkLocalFiles, deleteLocalFiles, entryBulkAction, manualMatch, updateLocalFileData, updateLocalFiles } from "./library/local-files"
 import { fileTree, folderSuggestions, refreshFileTree, removeEmptyDirectories, scanAtStart, scanWhenBack } from "./library/folders"
@@ -431,6 +431,10 @@ export const CORE_ROUTES: CoreRoute[] = [
     { area: "settings", method: "GET", endpoint: "/api/v1/mediaserver/status", answer: (_request, environment) => serverOverview(environment) },
     { area: "settings", method: "POST", endpoint: "/api/v1/mediaserver/refresh", answer: (_request, environment) => readServerAgain(environment) },
     { area: "settings", method: "PATCH", endpoint: "/api/v1/mediaserver/settings", answer: (request, environment) => setServerSendProgress(request.body, environment) },
+    // matching by hand: the dialog of the anime page and the list "Not matched"
+    { area: "settings", method: "GET", endpoint: "/api/v1/mediaserver/mapping/{id}", answer: (request, environment) => serverTitleMatch(request.path?.id, environment) },
+    { area: "settings", method: "POST", endpoint: "/api/v1/mediaserver/mapping", answer: (request, environment) => saveServerMatch(request.body, environment) },
+    { area: "settings", method: "DELETE", endpoint: "/api/v1/mediaserver/mapping", answer: (request, environment) => removeServerMatch(request.body, environment) },
     // a server episode straight from the server into the player (like the Nakama host's above)
     { area: "anilist", method: "POST", endpoint: "/api/v1/mediaserver/play", answer: playServerFile },
     // start, progress, end and "watched" of a playing server episode, told to its server (never fails for the player)
