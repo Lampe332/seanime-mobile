@@ -243,26 +243,21 @@ export function contrastRatio(a: RGB, b: RGB): number {
 
 /* The palette in use. appearance.ts swaps it; tokens.ts reads it through getters; useThemeColors re-renders on a swap. */
 let current: Palette = buildPalette(DEFAULT_ACCENT, false)
-let version = 0
 const listeners = new Set<() => void>()
 
+/** Also the snapshot of usePalette(): a new object on every swap, the same one in between */
 export function currentPalette(): Palette {
     return current
 }
 
 export function setCurrentPalette(next: Palette) {
     current = next
-    version++
     listeners.forEach(listener => listener())
 }
 
 export function subscribePalette(listener: () => void) {
     listeners.add(listener)
     return () => void listeners.delete(listener)
-}
-
-export function paletteVersion() {
-    return version
 }
 
 /* Accent tints drawn in script (gradients, glows), in the compact form they were written in: rgba(97,82,223,0.16) */

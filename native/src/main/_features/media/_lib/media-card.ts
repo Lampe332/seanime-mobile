@@ -41,6 +41,33 @@ export function cardProgressLabel(type: "anime" | "manga", progress: Nullish<num
     return `${progress}/${total || "-"}`
 }
 
+/** The pill's measures (media-entry-card.tsx CardPill), dp at font scale 1: 11dp tabular digits, a 14dp icon, a hairline. */
+export const CARD_PILL = { inset: 6, font: 11, charEm: 0.6, icon: 14, iconGap: 4, divider: 1 } as const
+export type CardPillFit = { top: boolean, label: string | null, pad: number, gap: number }
+
+/** Width of a pill (`top` the unwatched / unread count beside its icon, `label` the progress) at `fontScale`. */
+export function cardPillWidth(top: string | null, label: string | null, fontScale = 1, pad = 7, gap = 6) {
+    const char = CARD_PILL.font * CARD_PILL.charEm * Math.max(1, fontScale)
+    const topWidth = top ? CARD_PILL.icon + CARD_PILL.iconGap + top.length * char : 0
+    const labelWidth = label ? label.length * char : 0
+    return 2 * pad + topWidth + (top && label ? 2 * gap + CARD_PILL.divider : 0) + labelWidth
+}
+
+/**
+ * What of the pill a card `cardWidth` wide shows, on one line and inside the card: all of it; all of it with tighter
+ * spacing; the progress alone ("31/170", the count goes); the episodes done alone ("31"). Never a cut digit.
+ */
+export function cardPillFit(cardWidth: number, top: string | null, label: string | null, fontScale = 1): CardPillFit {
+    const room = cardWidth - 2 * CARD_PILL.inset
+    const done = label?.split("/")[0] ?? null
+    const tries: CardPillFit[] = [
+        { top: !!top, label, pad: 7, gap: 6 },
+        { top: !!top, label, pad: 5, gap: 4 },
+        ...(label ? [{ top: false, label, pad: 7, gap: 6 }, { top: false, label, pad: 5, gap: 4 }, { top: false, label: done, pad: 5, gap: 4 }] : []),
+    ]
+    return tries.find(fit => cardPillWidth(fit.top ? top : null, fit.label, fontScale, fit.pad, fit.gap) <= room) ?? tries[tries.length - 1]!
+}
+
 /** Unwatched episodes of a series being watched: from the local files when it is in the library, else from AniList. */
 export function cardUnwatchedCount(media: Nullish<AL_BaseAnime>, progress: Nullish<number>,
     libraryData?: Nullish<Anime_EntryLibraryData>, nakamaLibraryData?: Nullish<Anime_NakamaEntryLibraryData>) {

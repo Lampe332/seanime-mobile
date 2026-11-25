@@ -81,6 +81,25 @@ export function fitRowWidth(desired: number, viewport: number, gutter = ROW_GUTT
 }
 
 /**
+ * A snapping row on whole device pixels. Android takes `snapToInterval` as `(int)(dp × density)`: a step of 177dp at 3.5
+ * is 619.5px, snaps every 619px and drifts half a pixel per card (the card before shows on the left after a few swipes).
+ * So the step is rounded to whole pixels (the card gives up less than a pixel) and the interval sent is nudged a quarter
+ * pixel up, so the cut lands on that pixel. `step` is the layout distance card to card, `snapInterval` goes to the list.
+ */
+export function snapRow(width: number, density: number, gap = ROW_GAP) {
+    if (!(density > 0) || width <= 0) return { width: Math.max(0, width), step: Math.max(0, width) + gap, snapInterval: Math.max(0, width) + gap }
+    const px = Math.max(1, Math.round((width + gap) * density))
+    const step = px / density
+    return { width: step - gap, step, snapInterval: (px + 0.25) / density }
+}
+
+/** The card a row stands on (`offset`, dp) with cards `step` apart: where to put it back when the step changes. */
+export function snappedOffset(offset: number, oldStep: number, newStep: number) {
+    if (!(offset > 0) || !(oldStep > 0) || !(newStep > 0)) return 0
+    return Math.round(offset / oldStep) * newStep
+}
+
+/**
  * Width the grid's cards take when they do not fill one row (fewer results than columns): the end-of-list note centres
  * under them instead of under the empty cells. A full row (or none) takes the content width.
  */

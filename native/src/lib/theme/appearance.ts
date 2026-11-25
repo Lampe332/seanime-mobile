@@ -8,7 +8,6 @@ import {
     currentPalette,
     DEFAULT_ACCENT,
     isAccentId,
-    paletteVersion,
     setCurrentPalette,
     subscribePalette,
 } from "./palette"
@@ -63,8 +62,11 @@ export function useThemeColors() {
     return themeColorsOf(usePalette())
 }
 
-/** The whole current palette (for accentGlow, navHighlight … of palette.ts), rendering again when it changes */
+/**
+ * The whole current palette (for accentGlow, navHighlight … of palette.ts), rendering again when it changes.
+ * The palette has to be the store's snapshot itself: React Compiler keeps a plain `currentPalette()` call for the
+ * life of the component (no reactive input), so mounted screens stayed on the colour the app started with.
+ */
 export function usePalette() {
-    useSyncExternalStore(subscribePalette, paletteVersion, paletteVersion)
-    return currentPalette()
+    return useSyncExternalStore(subscribePalette, currentPalette, currentPalette)
 }

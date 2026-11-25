@@ -42,7 +42,8 @@ import Puzzle from "lucide-react-native/icons/puzzle"
 import Unlink from "lucide-react-native/icons/unlink"
 import { successFeedback } from "@/lib/feedback"
 import React from "react"
-import { Pressable, TextInput, useWindowDimensions, View } from "react-native"
+import { PixelRatio, Pressable, TextInput, useWindowDimensions, View } from "react-native"
+import { snapRow } from "@/components/shared/cover-layout"
 import { formatDate } from "@/lib/i18n/format"
 
 /*
@@ -143,9 +144,10 @@ export function UpNextRow({ episodes, entry, watchHistory, onPlay }: {
 }) {
     const t = useTr()
     const { width } = useWindowDimensions()
-    const cardWidth = Math.round(Math.min(width * 0.72, 300))
+    // the step on whole device pixels, so the row snaps without drift (snapRow)
+    const { width: cardWidth, snapInterval } = snapRow(Math.round(Math.min(width * 0.72, 300)), PixelRatio.get(), 12)
     return <FlashList horizontal data={episodes} keyExtractor={(episode, i) => episode.localFile?.path || String(i)} showsHorizontalScrollIndicator={false}
-        ItemSeparatorComponent={() => <View style={{ width: 12 }} />} snapToInterval={cardWidth + 12} snapToAlignment="start" decelerationRate="fast"
+        ItemSeparatorComponent={() => <View style={{ width: 12 }} />} snapToInterval={snapInterval} snapToAlignment="start" decelerationRate="fast"
         renderItem={({ item: episode }) => {
             const image = episode.episodeMetadata?.image || episode.baseAnime?.bannerImage || episode.baseAnime?.coverImage?.extraLarge
             const percent = getEpisodePercentageComplete(watchHistory, entry.mediaId, episode.episodeNumber)

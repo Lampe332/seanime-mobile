@@ -1,4 +1,5 @@
 import { readdirSync, readFileSync } from "node:fs"
+import { createRequire } from "node:module"
 import { join, relative } from "node:path"
 import ts from "typescript"
 import { describe, expect, it } from "vitest"
@@ -192,5 +193,34 @@ describe("every accent-coloured element follows the palette at once", () => {
             }`
         expect(check("x.tsx", source(""))).toHaveLength(2)
         expect(check("x.tsx", source(", [smAccentStrong]"))).toHaveLength(1)
+    })
+})
+
+/*
+ * The hooks themselves, as the app runs them: built with React Compiler (app.json reactCompiler). The compiler keeps the
+ * result of a call without reactive input for the life of the component, so a hook that subscribed and then returned
+ * `currentPalette()` handed every mounted screen the palette of its first render (accent changed only "half").
+ */
+describe("the palette hooks after React Compiler", () => {
+    it("usePalette returns the store's snapshot, nothing the compiler can keep", () => {
+        // @babel/core ships no types here; only this one call is needed
+        const { transformSync } = createRequire(__filename)("@babel/core") as {
+            transformSync: (code: string, options: object) => { code?: string | null } | null
+        }
+        const file = join(__dirname, "appearance.ts")
+        const compiled = transformSync(readFileSync(file, "utf8"), {
+            filename: file,
+            babelrc: false,
+            configFile: false,
+            presets: ["@babel/preset-typescript"],
+            plugins: ["babel-plugin-react-compiler"],
+        })?.code ?? ""
+        const hook = /export function usePalette\(\) \{[\s\S]*?\n\}/.exec(compiled)?.[0] ?? ""
+        expect(hook).toContain("return useSyncExternalStore(subscribePalette, currentPalette, currentPalette)")
+        expect(hook).not.toContain("memo_cache_sentinel")
+        // themeColorsOf may be kept, but only per palette: its cache has to be keyed by the hook's value
+        const colorsHook = /export function useThemeColors\(\) \{[\s\S]*?\n\}/.exec(compiled)?.[0] ?? ""
+        expect(colorsHook).toMatch(/usePalette\(\)/)
+        expect(colorsHook).not.toContain("memo_cache_sentinel")
     })
 })

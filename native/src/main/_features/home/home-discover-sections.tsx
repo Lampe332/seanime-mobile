@@ -19,7 +19,8 @@ import { Image } from "expo-image"
 import { useImageFade } from "@/components/ui/core/image-fade"
 import { useIsFocused } from "expo-router"
 import React from "react"
-import { Pressable, useWindowDimensions, View } from "react-native"
+import { PixelRatio, Pressable, useWindowDimensions, View } from "react-native"
+import { snapRow } from "@/components/shared/cover-layout"
 import { useReducedMotion } from "react-native-reanimated"
 
 /** The trending title the header shows changes every 12 s, among the first 12 that are out (discover-trending.tsx). */
@@ -108,10 +109,10 @@ export function LibraryUpcomingEpisodes({ hasEntries }: { hasEntries: boolean })
     const spoilerActive = useMissingEpisodeSpoilers(ts)
     const episodes = data?.episodes ?? []
     // "Smaller episode cards" (settings → Appearance): about three quarters wide, so the next card shows beside it
-    const cardWidth = ts.smallerEpisodeCarouselSize ? (rail ? 264 : Math.round((width - 32) * 0.72)) : (rail ? 352 : width - 32)
+    // the step on whole device pixels, so the carousel snaps without drift (snapRow)
+    const { width: cardWidth, step, snapInterval } = snapRow(ts.smallerEpisodeCarouselSize ? (rail ? 264 : Math.round((width - 32) * 0.72)) : (rail ? 352 : width - 32), PixelRatio.get(), 16)
     const list = React.useRef<FlashListRef<Anime_UpcomingEpisode>>(null)
     const [listWidth, setListWidth] = React.useState(0)
-    const step = cardWidth + 16
     // snap places: the last one shows the last card at the row's end
     const visible = listWidth > 0 ? Math.max(1, Math.floor((listWidth - 32 + 16) / step)) : 1
     const autoplay = useCarouselAutoplay(hasEntries && !ts.disableCarouselAutoScroll ? Math.max(0, episodes.length - visible + 1) : 0,
@@ -150,7 +151,7 @@ export function LibraryUpcomingEpisodes({ hasEntries }: { hasEntries: boolean })
                 onLayout={event => setListWidth(event.nativeEvent.layout.width)}
                 onScrollBeginDrag={autoplay.onTouch}
                 onMomentumScrollEnd={event => autoplay.onSettled(Math.round(event.nativeEvent.contentOffset.x / step))}
-                snapToInterval={step}
+                snapToInterval={snapInterval}
                 snapToAlignment="start"
                 decelerationRate="fast"
                 style={{ marginHorizontal: -16 }}

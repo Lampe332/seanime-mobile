@@ -66,15 +66,14 @@ import { __discord_pageTypeAtom } from "@/main/discover/_lib/discover.atoms"
 import { DiscoverPhoneSchedule, scheduleFactsLine } from "@/main/discover/_screens/discover-phone-schedule"
 import { tabPaneProps } from "@/main/extensions/_screens/extensions-phone-marketplace"
 import { ADVANCED_SEARCH_MEDIA_GENRES } from "@/main/search/_lib/advanced-search-constants"
-import { FlashList, type FlashListRef } from "@shopify/flash-list"
-import { ROW_GAP, ROW_GUTTER } from "@/components/shared/cover-layout"
-import { useRowFit } from "@/main/_features/media/_components/media-card-row"
+import { snapRow } from "@/components/shared/cover-layout"
+import { MediaCardRow } from "@/main/_features/media/_components/media-card-row"
 import { Image } from "expo-image"
 import { useLocalSearchParams } from "expo-router"
 import { atom, useAtom } from "jotai"
 import Eye from "lucide-react-native/icons/eye"
 import React from "react"
-import { Pressable, ScrollView, useWindowDimensions, View } from "react-native"
+import { PixelRatio, Pressable, ScrollView, useWindowDimensions, View } from "react-native"
 import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated"
 import { scheduleOnRN } from "react-native-worklets"
 
@@ -432,15 +431,9 @@ function DiscoverRow<T>({ title, qualifier, note, seeAll, row, empty, genre, onC
     const t = useTr()
     const offlineAware = useOfflineAware()
     const openSeeAll = useSeeAll()
-    const { width, onLayout } = useRowFit(useRowCoverWidth())
-    const list = React.useRef<FlashListRef<T>>(null)
-    // A new genre starts the row at its first cover again; the covers stay mounted (no new mount of every card per tap).
-    React.useEffect(() => {
-        list.current?.scrollToOffset({ offset: 0, animated: false })
-    }, [qualifier])
+    const coverWidth = useRowCoverWidth()
     // the last genre's covers dim while the next ones load, then the new ones rise in (usePhoneSwap)
     const swapStyle = useSwapStyle(qualifier ?? "", { dimmed: row.stale })
-    const renderItem = React.useCallback(({ item }: { item: T }) => renderCard(item, width), [renderCard, width])
     return (
         <PhoneSection title={title} count={qualifier} note={note}
             action={!!seeAll && <TextAction label={t("See all", "Alle anzeigen")} onPress={() => openSeeAll(seeAll)} />}>
@@ -457,30 +450,12 @@ function DiscoverRow<T>({ title, qualifier, note, seeAll, row, empty, genre, onC
                 genre && onClearGenre ? <GenreEmpty onClear={onClearGenre} /> : <Text className="text-sm leading-[21px] text-sm-text-muted">{empty}</Text>
             ) : (
                 <Animated.View accessibilityState={{ busy: row.stale }} style={swapStyle}>
-                    <View onLayout={onLayout} style={{ marginHorizontal: -ROW_GUTTER }}>
-                    <FlashList
-                        ref={list}
-                        horizontal
-                        data={row.items}
-                        renderItem={renderItem}
-                        ItemSeparatorComponent={RowGap}
-                        showsHorizontalScrollIndicator={false}
-                        snapToInterval={width + ROW_GAP}
-                        snapToAlignment="start"
-                        decelerationRate="fast"
-                        // a new genre's covers start at the first one (see above), not where an old cover was
-                        maintainVisibleContentPosition={{ disabled: true }}
-                        contentContainerStyle={{ paddingHorizontal: ROW_GUTTER, paddingBottom: 4 }}
-                    />
-                    </View>
+                    {/* Home's row: snaps on whole pixels; a new genre starts at its first cover, the covers stay mounted */}
+                    <MediaCardRow data={row.items} renderCard={renderCard} desired={coverWidth} restartKey={qualifier} bottom={4} />
                 </Animated.View>
             )}
         </PhoneSection>
     )
-}
-
-function RowGap() {
-    return <View style={{ width: ROW_GAP }} />
 }
 
 /** A genre hides every title of a row: say so and offer all genres again, right where the user looks. */
@@ -522,10 +497,11 @@ function Spotlight({ items, type, loading, stale }: { items: Media[], type: Medi
     if (!items.length) return null
     const gutter = 16
     // .ps-feature: min(86vw, 22rem); a single card takes the whole row
-    const cardWidth = items.length === 1 ? Math.min(width - gutter * 2, 1152) : Math.min(Math.round(width * 0.86), 352)
+    // the step on whole device pixels, so the spotlight snaps without drift (snapRow)
+    const { width: cardWidth, snapInterval } = snapRow(items.length === 1 ? Math.min(width - gutter * 2, 1152) : Math.min(Math.round(width * 0.86), 352), PixelRatio.get(), 12)
     return (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} accessibilityLabel={t("Spotlight", "Im Fokus")} accessibilityState={{ busy: stale }}
-            snapToInterval={cardWidth + 12} snapToAlignment="start" decelerationRate="fast"
+            snapToInterval={snapInterval} snapToAlignment="start" decelerationRate="fast"
             style={{ marginHorizontal: -gutter, opacity: stale ? 0.5 : 1 }} contentContainerStyle={{ paddingHorizontal: gutter, gap: 12 }}>
             {items.map(media => <FeatureCard key={media.id} media={media} type={type} width={cardWidth} />)}
         </ScrollView>

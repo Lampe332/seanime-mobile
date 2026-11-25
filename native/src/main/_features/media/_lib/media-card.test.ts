@@ -1,6 +1,7 @@
 import type { AL_BaseAnime, AL_BaseManga } from "@/api/generated/types"
 import { describe, expect, it } from "vitest"
-import { cardProgressBar, cardProgressLabel, cardSeasonLine, cardUnwatchedCount, mediaEntryHref, userScoreColor } from "./media-card"
+import { CARD_SIZE_FACTORS, fitRowWidth, gridLayout, rowCardWidth } from "@/components/shared/cover-layout"
+import { CARD_PILL, cardPillFit, cardPillWidth, cardProgressBar, cardProgressLabel, cardSeasonLine, cardUnwatchedCount, mediaEntryHref, userScoreColor } from "./media-card"
 
 describe("card link", () => {
     it("opens the anime page or the manga page at the web paths", () => {
@@ -32,6 +33,29 @@ describe("progress pill", () => {
         expect(cardProgressLabel("manga", 7, undefined)).toBe("7/-")
         expect(cardProgressLabel("anime", 3, undefined)).toBe("3")
         expect(cardProgressLabel("anime", 0, 12)).toBeNull()
+    })
+
+    // the narrowest card: a 360dp phone's grid at the small card size; the widest common one: Home's row at large
+    const smallest = gridLayout(360 - 32, false, 1, CARD_SIZE_FACTORS.small).width
+    const room = (width: number) => width - 2 * CARD_PILL.inset
+    const shown = (fit: ReturnType<typeof cardPillFit>, top: string | null, fontScale = 1) => cardPillWidth(fit.top ? top : null, fit.label, fontScale, fit.pad, fit.gap)
+
+    it("fits on one line inside the smallest card, every digit kept", () => {
+        for (const fontScale of [1, 1.15, 1.3])
+            for (const [top, label] of [["139", "31/170"], ["12", "1234/1500"], [null, "7/-"], ["3", null], ["139", "999"]] as const) {
+                const fit = cardPillFit(smallest, top, label, fontScale)
+                expect(shown(fit, top, fontScale)).toBeLessThanOrEqual(room(smallest))
+                expect(fit.label === null || label?.startsWith(fit.label)).toBe(true)
+                expect(fit.top || fit.label).toBeTruthy()
+            }
+    })
+
+    it("keeps the whole pill where it fits and gives up the count before the progress", () => {
+        expect(cardPillFit(rowCardWidth(411), "139", "31/170")).toEqual({ top: true, label: "31/170", pad: 7, gap: 6 })
+        expect(cardPillFit(fitRowWidth(rowCardWidth(411, CARD_SIZE_FACTORS.small), 411), "139", "31/170")).toMatchObject({ label: "31/170" })
+        expect(cardPillFit(110, "139", "31/170")).toMatchObject({ top: true, label: "31/170", pad: 5 })
+        expect(cardPillFit(smallest, "139", "31/170")).toMatchObject({ top: false, label: "31/170" })
+        expect(cardPillFit(smallest, "12", "1234/1500")).toMatchObject({ top: false, label: "1234" })
     })
 })
 

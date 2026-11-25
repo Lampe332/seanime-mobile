@@ -13,7 +13,8 @@ import { Image } from "expo-image"
 import { useImageFade } from "@/components/ui/core/image-fade"
 import { CirclePlayFilledIcon } from "@/components/shared/legacy-icons"
 import React from "react"
-import { Pressable, useWindowDimensions, View } from "react-native"
+import { PixelRatio, Pressable, useWindowDimensions, View } from "react-native"
+import { snapRow } from "@/components/shared/cover-layout"
 import { useRouter } from "@/lib/navigation"
 import { usePlayNext } from "@/main/_atoms/playback.atoms"
 import { resumeHomeEpisode } from "@/main/_features/home/home-playback"
@@ -34,7 +35,8 @@ export function ContinueWatching({ episodes }: { episodes: Anime_Episode[] }) {
     const { data: watchHistory } = useGetContinuityWatchHistory()
     const { width } = useWindowDimensions()
     // "Smaller episode cards" (settings → Appearance): 72 % of the usual width, so more tiles show at once
-    const tileWidth = Math.round(Math.min(width * 0.86, 352) * (ts.smallerEpisodeCarouselSize ? 0.72 : 1))
+    // the step on whole device pixels, so the row snaps without drift (snapRow)
+    const { width: tileWidth, snapInterval } = snapRow(Math.round(Math.min(width * 0.86, 352) * (ts.smallerEpisodeCarouselSize ? 0.72 : 1)), PixelRatio.get(), 12)
     const router = useRouter()
 
     return (
@@ -50,7 +52,7 @@ export function ContinueWatching({ episodes }: { episodes: Anime_Episode[] }) {
                     renderItem={({ item }) => <ResumeTile episode={item} width={tileWidth} spoilerActive={spoilerActive} watchHistory={watchHistory} />}
                     ItemSeparatorComponent={() => <View style={{ width: 12 }} />}
                     showsHorizontalScrollIndicator={false}
-                    snapToInterval={tileWidth + 12}
+                    snapToInterval={snapInterval}
                     snapToAlignment="start"
                     decelerationRate="fast"
                     style={{ marginHorizontal: -16 }}

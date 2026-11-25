@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { CARD_SIZE_FACTORS, cardSizeFactor, coverColumns, fitRowWidth, gridLayout, gridRowWidth, listColumns, ROW_GAP, ROW_GUTTER, ROW_PEEK_MAX, ROW_PEEK_MIN, rowCardWidth, rowCoverWidth, scaleRowWidth } from "./cover-layout"
+import { CARD_SIZE_FACTORS, cardSizeFactor, coverColumns, fitRowWidth, gridLayout, gridRowWidth, listColumns, ROW_GAP, ROW_GUTTER, ROW_PEEK_MAX, ROW_PEEK_MIN, rowCardWidth, rowCoverWidth, scaleRowWidth, snappedOffset, snapRow } from "./cover-layout"
 
 const CARD_GAP = 12
 
@@ -150,5 +150,52 @@ describe("card size", () => {
     it("reads an unknown stored size as normal", () => {
         expect(cardSizeFactor(undefined)).toBe(1)
         expect(cardSizeFactor("huge" as never)).toBe(1)
+    })
+})
+
+describe("snapping rows on device pixels", () => {
+    // ReactHorizontalScrollViewManager.setSnapToInterval: (snapToInterval: Float × density).toInt()
+    const androidSnapPx = (interval: number, density: number) => Math.trunc(Math.fround(Math.fround(interval) * Math.fround(density)))
+    const densities = [2.625, 3, 3.5]
+    const sizes = Object.values(CARD_SIZE_FACTORS)
+    const rows = (window: number, factor: number) => ({
+        home: fitRowWidth(rowCardWidth(window, factor), window),
+        discover: fitRowWidth(rowCoverWidth(window, false, 1, factor), window),
+    })
+
+    it("snaps every card to the gutter, ten swipes on, at every density and card size", () => {
+        for (const window of [360, 393, 411, 412])
+            for (const density of densities)
+                for (const factor of sizes)
+                    for (const desired of Object.values(rows(window, factor))) {
+                        const { width, step, snapInterval } = snapRow(desired, density)
+                        const intervalPx = androidSnapPx(snapInterval, density)
+                        expect(Math.abs(step * density - Math.round(step * density))).toBeLessThan(1e-9)
+                        expect(Math.abs(width - desired)).toBeLessThan(1 / density)
+                        const start = Math.round(ROW_GUTTER * density)
+                        for (let n = 0; n <= 10; n++) {
+                            // the card's laid-out left edge (Yoga rounds to pixels) less the n-th snap's scroll offset
+                            expect(Math.round((ROW_GUTTER + n * step) * density) - n * intervalPx).toBe(start)
+                        }
+                    }
+    })
+
+    it("shows the drift the plain dp interval had (Discover, large, S22 Ultra)", () => {
+        const width = rows(411, CARD_SIZE_FACTORS.large).discover
+        const intervalPx = androidSnapPx(width + ROW_GAP, 3.5)
+        expect(Math.round((ROW_GUTTER + 10 * (width + ROW_GAP)) * 3.5) - 10 * intervalPx).not.toBe(Math.round(ROW_GUTTER * 3.5))
+    })
+
+    it("leaves an unknown density or an empty row as it was", () => {
+        expect(snapRow(160, 0)).toEqual({ width: 160, step: 160 + ROW_GAP, snapInterval: 160 + ROW_GAP })
+        expect(snapRow(0, 3).width).toBe(0)
+    })
+
+    it("puts a row back on the card it stood on when the card size changes", () => {
+        expect(snappedOffset(0, 177, 120)).toBe(0)
+        expect(snappedOffset(177 * 3, 177, 120)).toBe(360)
+        expect(snappedOffset(177 * 3 + 60, 177, 120)).toBe(360)
+        expect(snappedOffset(177 * 3 + 100, 177, 120)).toBe(480)
+        expect(snappedOffset(500, 0, 120)).toBe(0)
     })
 })

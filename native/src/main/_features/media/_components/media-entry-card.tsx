@@ -17,7 +17,7 @@ import Library from "lucide-react-native/icons/library"
 import Star from "lucide-react-native/icons/star"
 import { SignalTowerIcon } from "@/components/shared/legacy-icons"
 import React from "react"
-import { Pressable, View } from "react-native"
+import { Pressable, useWindowDimensions, View } from "react-native"
 import Animated from "react-native-reanimated"
 import { CardMenu, type CardMenuAnchor } from "@/components/shared/card-menu"
 import { useCoverFlightSource } from "@/components/shared/cover-flight"
@@ -29,7 +29,7 @@ import { useMediaPreviewModal } from "@/main/_features/media/_containers/media-p
 import { useLibraryExplorer } from "@/main/_features/library-explorer/library-explorer.atoms"
 import { usePlaylistMenuItem } from "@/main/_features/playlists/_components/playlist-menu-item"
 import { usePluginCardMenuItems } from "@/main/_features/plugin/plugin-actions"
-import { cardProgressBar, cardProgressLabel, cardProgressTotal, cardSeasonLine, cardUnwatchedCount, mediaEntryHref, userScoreColor } from "../_lib/media-card"
+import { cardPillFit, cardProgressBar, cardProgressLabel, cardProgressTotal, cardSeasonLine, cardUnwatchedCount, mediaEntryHref, userScoreColor } from "../_lib/media-card"
 
 /*
  * A cover card as on Android Home (media-entry-card.tsx + home-mobile.css): the 3:4 cover with 12dp corners, a faint
@@ -136,7 +136,7 @@ export const MediaEntryCard = React.memo(function MediaEntryCard({ media, type, 
                 )}
                 {overlay}
                 {(!!label || unwatched > 0 || type === "manga") && (
-                    <CardPill type={type} mediaId={media.id} label={label} unwatched={unwatched} progress={listData?.progress} />
+                    <CardPill type={type} mediaId={media.id} label={label} unwatched={unwatched} progress={listData?.progress} width={width} />
                 )}
                 {!!score && (
                     <View style={{ backgroundColor: userScoreColor(score) }} className="absolute bottom-0 right-0 h-7 w-14 flex-row items-center justify-center gap-1 rounded-tl-ui">
@@ -155,23 +155,24 @@ export const MediaEntryCard = React.memo(function MediaEntryCard({ media, type, 
 })
 
 /** The dark pill bottom left: the unwatched / unread count, then the progress, on one line (never broken into "1" over "3"). */
-function CardPill({ type, mediaId, label, unwatched, progress }: { type: "anime" | "manga", mediaId: number, label: string | null, unwatched: number, progress?: number }) {
+function CardPill({ type, mediaId, label, unwatched, progress, width }: { type: "anime" | "manga", mediaId: number, label: string | null, unwatched: number, progress?: number, width: number }) {
     const ts = useThemeSettings()
     const mangaData = useAtomValue(__mangaLibrary_latestChapterNumbersAtom)
     const unread = type === "manga" && ts.showMangaUnreadCount
         ? getMangaEntryUnreadState(mediaId, progress || 0, mangaData.latestChapterNumbers, mangaData.storedProviders, mangaData.storedFilters)
         : null
-    const top = unwatched > 0
-        ? <View className="flex-row items-center gap-1"><CirclePlay size={14} color={colors.smText} /><Text numberOfLines={1} className="text-[11px] font-normal leading-[14px]" style={{ fontVariant: ["tabular-nums"] }}>{unwatched}</Text></View>
-        : unread?.known && unread.unread > 0
-            ? <View className="flex-row items-center gap-1"><BookOpen size={12} color={colors.smText} /><Text numberOfLines={1} className="text-[11px] font-normal leading-[14px]" style={{ fontVariant: ["tabular-nums"] }}>{unread.unread}</Text></View>
-            : null
-    if (!top && !label) return null
+    const count = unwatched > 0 ? unwatched : unread?.known && unread.unread > 0 ? unread.unread : 0
+    // a narrow card (small card size) tightens the pill, then lets the count go, then the total (cardPillFit)
+    const fit = cardPillFit(width, count ? String(count) : null, label, useWindowDimensions().fontScale)
+    const top = fit.top && count
+        ? <View className="flex-row items-center gap-1">{unwatched > 0 ? <CirclePlay size={14} color={colors.smText} /> : <BookOpen size={12} color={colors.smText} />}<Text numberOfLines={1} className="text-[11px] font-normal leading-[14px]" style={{ fontVariant: ["tabular-nums"] }}>{count}</Text></View>
+        : null
+    if (!top && !fit.label) return null
     return (
-        <View className="absolute bottom-1.5 left-1.5 flex-row items-center gap-1.5 rounded-full bg-[rgba(12,12,14,0.82)] px-[7px] py-[3px]">
+        <View style={{ paddingHorizontal: fit.pad, columnGap: fit.gap }} className="absolute bottom-1.5 left-1.5 flex-row items-center rounded-full bg-[rgba(12,12,14,0.82)] py-[3px]">
             {top}
-            {!!top && !!label && <View className="h-2.5 w-px bg-sm-text-muted opacity-60" />}
-            {!!label && <PillLabel label={label} />}
+            {!!top && !!fit.label && <View className="h-2.5 w-px bg-sm-text-muted opacity-60" />}
+            {!!fit.label && <PillLabel label={fit.label} />}
         </View>
     )
 }
