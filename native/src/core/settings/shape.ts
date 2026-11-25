@@ -207,6 +207,18 @@ export const APPEARANCE_SHAPE: Fields = {
     hideAnimeSpoilerSkipNextEpisode: false,
 }
 
+/**
+ * What a fresh installation shows while the look was never saved, where the app's own default is not the empty value
+ * (the same values as THEME_DEFAULT_VALUES in lib/theme/theme-hooks.ts). The status has to carry them: the first save
+ * of any field sends the whole look back, so a default that only the screens knew would be stored as "off".
+ */
+export const APPEARANCE_FIRST_START: Fields = {
+    showMangaUnreadCount: true,
+    hideAnimeSpoilerThumbnails: true,
+    hideAnimeSpoilerTitles: true,
+    hideAnimeSpoilerDescriptions: true,
+}
+
 /** The fields of the look that stand before `unpinnedMenuItems` and `homeItems` in the answer */
 export const APPEARANCE_FIELDS_BEFORE_LISTS = Object.keys(APPEARANCE_SHAPE).indexOf("mobileCustomCSS") + 1
 

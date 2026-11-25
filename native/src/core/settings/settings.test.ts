@@ -5,6 +5,7 @@ import { type CoreDatabase, openCoreDatabase } from "../database/database"
 import { CoreError } from "../errors"
 import { type CoreEnvironment, matchCoreRoute } from "../registry"
 import recorded from "./settings.recorded.json"
+import { APPEARANCE_FIRST_START } from "./shape"
 import { SERVER_PART_WITHOUT_SERVER, USER_WITHOUT_ACCOUNT } from "../start/without-server"
 
 /*
@@ -47,11 +48,14 @@ function ask(method: string, endpoint: string, body?: unknown): Promise<unknown>
 const status = () => ask("GET", "/api/v1/status") as Promise<Json & OwnPart>
 const time = (milliseconds: number) => new Date(milliseconds).toISOString()
 
-/** The recorded state with the times of this run: settings changed at `settingsAt`, look saved first at `lookFrom`. */
+/**
+ * The recorded state with the times of this run: settings changed at `settingsAt`, look saved first at `lookFrom`.
+ * A look nobody saved carries the app's own first-start values, which the recording has off (APPEARANCE_FIRST_START).
+ */
 function withTimes(own: OwnPart, settingsAt: number, look: { from: number, changed: number } | null): OwnPart {
     return {
         settings: own.settings && { ...own.settings, updatedAt: time(settingsAt) },
-        themeSettings: look ? { ...own.themeSettings, createdAt: time(look.from), updatedAt: time(look.changed) } : own.themeSettings,
+        themeSettings: look ? { ...own.themeSettings, createdAt: time(look.from), updatedAt: time(look.changed) } : { ...own.themeSettings, ...APPEARANCE_FIRST_START },
     }
 }
 
@@ -97,7 +101,10 @@ beforeEach(() => {
 describe("an empty database", () => {
     it("is the first start: no settings, the look nobody has touched, no home items", async () => {
         const answer = await status()
-        expect(answer).toEqual({ ...serverStatus, ...recorded.firstStart })
+        // The recording has every yes/no value off; the app starts four of them on (APPEARANCE_FIRST_START)
+        const untouched = { ...recorded.firstStart.themeSettings, ...APPEARANCE_FIRST_START }
+        expect(answer).toEqual({ ...serverStatus, ...recorded.firstStart, themeSettings: untouched })
+        expect(untouched).toMatchObject({ showMangaUnreadCount: true, hideAnimeSpoilers: false, hideAnimeSpoilerThumbnails: true, hideAnimeSpoilerTitles: true, hideAnimeSpoilerDescriptions: true })
         expect(answer.settings).toBeNull()
         expect(answer.themeSettings.id).toBe(0)
         expectSameFieldOrder(answer.themeSettings, recorded.firstStart.themeSettings, "themeSettings")
@@ -269,6 +276,16 @@ describe("what no recording shows (the core's own decisions)", () => {
         const answer = await ask("PATCH", "/api/v1/theme", { theme }) as Json
         expect(answer).toEqual({ ...steps[4].after.themeSettings, createdAt: time(firstSaved), updatedAt: time(clock), accentColor: "#112233", unpinnedMenuItems: ["schedule"] })
         expect(answer.homeItems).toBeNull()
+    })
+
+    it("keeps the first-start values on when the first save changes another field, and stores a value the user turned off", async () => {
+        // What the settings screen does: the whole look from the status, plus the one changed field
+        const fresh = (await status()).themeSettings
+        const saved = await ask("PATCH", "/api/v1/theme", { theme: { ...fresh, accentColor: "#112233" } }) as Json
+        expect(saved).toMatchObject({ id: 1, accentColor: "#112233", ...APPEARANCE_FIRST_START })
+        const changed = await ask("PATCH", "/api/v1/theme", { theme: { ...saved, showMangaUnreadCount: false } }) as Json
+        expect(changed).toMatchObject({ ...APPEARANCE_FIRST_START, showMangaUnreadCount: false })
+        expect((await status()).themeSettings).toMatchObject({ showMangaUnreadCount: false, hideAnimeSpoilerTitles: true })
     })
 
     it("replaces the home items as a whole, keeps their order and options, and is an emptied Home after an empty list", async () => {

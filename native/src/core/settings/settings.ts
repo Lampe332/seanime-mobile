@@ -8,6 +8,7 @@ import type { CoreEnvironment } from "../registry"
 import { statusWithoutServer } from "../start/without-server"
 import {
     APPEARANCE_FIELDS_BEFORE_LISTS,
+    APPEARANCE_FIRST_START,
     APPEARANCE_SHAPE,
     type Fields,
     type FieldValue,
@@ -123,7 +124,7 @@ function unpinnedMenuItems(value: unknown): string[] | null {
 /** The look as the status carries it: id 0 and no times while nothing was saved. */
 async function readAppearance(database: Reader): Promise<Record<string, unknown>> {
     const row = (await database.select().from(appearance))[0]
-    const fields = Object.entries(fitted(APPEARANCE_SHAPE, row?.content, "theme"))
+    const fields = Object.entries(fitted(APPEARANCE_SHAPE, row ? row.content : APPEARANCE_FIRST_START, "theme"))
     return {
         id: row ? 1 : 0,
         createdAt: row ? isoTime(row.createdAt) : NO_TIME,
