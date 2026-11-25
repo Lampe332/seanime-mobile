@@ -1,5 +1,6 @@
 import type { Anime_Episode } from "@/api/generated/types"
 import { useDirectstreamPlayLocalFile } from "@/api/hooks/directstream.hooks"
+import { useMediaServerPlay } from "@/api/hooks/mediaserver.hooks"
 import { useNakamaPlayVideo } from "@/api/hooks/nakama.hooks"
 import { usePlaybackPlayVideo } from "@/api/hooks/playback_manager.hooks"
 import { toast } from "@/components/ui/toast/toast-store"
@@ -15,6 +16,7 @@ import { useSetTorrentstreamAutoplayInfo } from "@/main/_features/autoplay/autop
 import { streamStartError } from "@/main/_features/native-player/stream-start-error"
 import { __mpt_currentExternalPlayerLinkAtom } from "@/main/_features/progress-tracking/progress-tracking.atoms"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
+import { mediaServerPlayError, playRouteOf } from "@/main/entry/_lib/media-server-play"
 import { useMediastreamActiveOnDevice, useMediastreamCurrentFile } from "@/main/mediastream/_lib/mediastream.atoms"
 import { clientIdAtom } from "@/main/websocket-provider"
 import { useAtomValue, useSetAtom } from "jotai"
@@ -45,6 +47,9 @@ export function useHandlePlayMedia() {
     const { mutate: playNakamaVideo } = useNakamaPlayVideo(
         error => toast.error(streamStartError(String(error.response?.data?.error ?? error.message ?? ""), tr)))
 
+    const { mutate: playServerVideo } = useMediaServerPlay(
+        error => toast.error(mediaServerPlayError(String(error.response?.data?.error ?? error.message ?? ""), tr)))
+
     const { mutate: directstreamPlayLocalFile } = useDirectstreamPlayLocalFile()
 
     const setTorrentstreamAutoplayInfo = useSetTorrentstreamAutoplayInfo()
@@ -59,7 +64,13 @@ export function useHandlePlayMedia() {
 
         setTorrentstreamAutoplayInfo(null)
 
-        if (episode._isNakamaEpisode) {
+        const route = playRouteOf(episode)
+        if (route === "mediaserver") {
+            // the core opens the app's player with the server's file; no external player can carry its header
+            return playServerVideo({ path, mediaId })
+        }
+
+        if (route === "nakama") {
             // If external player link is set, open the media file in the external player
             if ((!forcePlaybackMethod && downloadedMediaPlayback === PlaybackDownloadedMedia.ExternalPlayerLink) ||
                 (forcePlaybackMethod && forcePlaybackMethod === "externalPlayerLink")

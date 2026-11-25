@@ -27,6 +27,8 @@ import { EntryFacts } from "@/main/entry/_components/entry-facts"
 import { EntryCredits } from "@/main/entry/_components/entry-credits"
 import type { TagInput } from "@/main/entry/_lib/entry-credits"
 import { airingPeriod } from "@/main/entry/_lib/anime-meta"
+import { isMediaServerEntry } from "@/main/entry/_lib/media-server-play"
+import { useMediaServerStatus } from "@/api/hooks/mediaserver.hooks"
 import { isTvmazeId } from "@/core/tvmaze/tvmaze"
 import { AnimeEntryPhoneMenu } from "@/main/entry/_containers/entry-actions/anime-entry-phone-menu"
 import { PluginPageButtons } from "@/main/_features/plugin/plugin-actions"
@@ -74,6 +76,7 @@ import ChevronRight from "lucide-react-native/icons/chevron-right"
 import EllipsisVertical from "lucide-react-native/icons/ellipsis-vertical"
 import Info from "lucide-react-native/icons/info"
 import LockOpen from "lucide-react-native/icons/lock-open"
+import Server from "lucide-react-native/icons/server"
 import Share2 from "lucide-react-native/icons/share-2"
 import Star from "lucide-react-native/icons/star"
 import React from "react"
@@ -111,6 +114,20 @@ function SharedByChip() {
             className="min-h-12 flex-row items-center gap-2 rounded-full bg-sm-accent-softer pl-3.5 pr-4">
             <Share2 size={20} color={colors.smAccent} />
             <Text numberOfLines={1} className="text-sm font-semibold">{t("Shared by", "Geteilt von")} {host}</Text>
+        </View>
+    )
+}
+
+/** The same chip for an anime of the media server: "From <server>" */
+function FromServerChip() {
+    const colors = useThemeColors()
+    const t = useTr()
+    const server = useMediaServerStatus().data?.serverName || t("media server", "Medienserver")
+    const label = t("From {server}", "Von {server}").replace("{server}", server)
+    return (
+        <View accessibilityLabel={label} className="min-h-12 flex-row items-center gap-2 rounded-full bg-sm-accent-softer pl-3.5 pr-4">
+            <Server size={20} color={colors.smAccent} />
+            <Text numberOfLines={1} className="text-sm font-semibold">{label}</Text>
         </View>
     )
 }
@@ -274,11 +291,12 @@ export function AnimeEntryPage() {
         actions={<View className="flex-row flex-wrap items-center gap-2">
             {!foreign && <MoreButton tablet={rail} onPress={() => setMoreOpen(true)} />}
             {!foreign && <PluginPageButtons kind="anime" media={entry.media} />}
-            {pageView === "library" && !entry._isNakamaEntry && !!entry.libraryData && <>
+            {pageView === "library" && !entry._isNakamaEntry && !isMediaServerEntry(entry) && !!entry.libraryData && <>
                 <SilenceToggle mediaId={entry.mediaId} />
                 <LockFilesToggle mediaId={entry.mediaId} allFilesLocked={entry.libraryData.allFilesLocked} />
             </>}
             {pageView === "library" && entry._isNakamaEntry && <SharedByChip />}
+            {pageView === "library" && isMediaServerEntry(entry) && <FromServerChip />}
             {/* no top bar strip: the puzzle joins the actions */}
             <PluginTrayButton variant="bar" />
         </View>}

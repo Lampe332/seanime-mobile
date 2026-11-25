@@ -65,7 +65,7 @@ import {
 } from "./settings/settings"
 import { startStatus, statusAfterSave } from "./start/start"
 import { readServerAgain, setServerSendProgress, signInToServer, signOutOfServer } from "./jellyfin/server-settings"
-import { keepServerToken, serverOverview, withServerFiles, withServerLibrary } from "./jellyfin/source"
+import { keepServerToken, playServerFile, serverOverview, withServerFiles, withServerLibrary } from "./jellyfin/source"
 import { animeWithEpisodes, episodeCollection, libraryEntry } from "./library/library"
 import { bulkLocalFiles, deleteLocalFiles, entryBulkAction, manualMatch, updateLocalFileData, updateLocalFiles } from "./library/local-files"
 import { fileTree, folderSuggestions, refreshFileTree, removeEmptyDirectories, scanAtStart, scanWhenBack } from "./library/folders"
@@ -430,6 +430,8 @@ export const CORE_ROUTES: CoreRoute[] = [
     { area: "settings", method: "GET", endpoint: "/api/v1/mediaserver/status", answer: (_request, environment) => serverOverview(environment) },
     { area: "settings", method: "POST", endpoint: "/api/v1/mediaserver/refresh", answer: (_request, environment) => readServerAgain(environment) },
     { area: "settings", method: "PATCH", endpoint: "/api/v1/mediaserver/settings", answer: (request, environment) => setServerSendProgress(request.body, environment) },
+    // a server episode straight from the server into the player (like the Nakama host's above)
+    { area: "anilist", method: "POST", endpoint: "/api/v1/mediaserver/play", answer: playServerFile },
     // library (phase 5a-1): with the area on, the page above is built by the core as well (library/library.ts)
     { area: "library", method: "GET", endpoint: "/api/v1/anime/episode-collection/{id}", answer: episodeCollection },
     // library (phase 5a-3): home and schedule from the core's own lists, the marks of an anime's page in core.db (library/home.ts, marks.ts)

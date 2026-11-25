@@ -16,6 +16,7 @@ import { isCustomSource } from "@/lib/server/utils"
 import { colors, accentInput } from "@/lib/theme/tokens"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
 import { __anime_hiddenEntryViewsAtom, getEntryTabSettings } from "@/main/entry/_lib/anime-entry-view"
+import { isMediaServerEntry } from "@/main/entry/_lib/media-server-play"
 import { shareEntry } from "@/main/entry/_lib/share-entry"
 import { useAnimeListTorrentProviderExtensions } from "@/api/hooks/extensions.hooks"
 import { __torrentSearch_selectionAtom } from "@/main/entry/_containers/torrent-search/torrent-search.atoms"
@@ -69,7 +70,8 @@ export function AnimeEntryPhoneMenu({ entry, details, open, onOpenChange, isLibr
     const serverStatus = useServerStatus()
     const [view, setView] = React.useState<MenuView>(null)
     const [hiddenViews, setHiddenViews] = useAtom(__anime_hiddenEntryViewsAtom)
-    const hasFiles = isLibraryView && !!entry.libraryData && !entry._isNakamaEntry && !!entry.localFiles?.length
+    // the file actions (open folder, bulk lock, unmatch) are for this device's files only, not Nakama's or the media server's
+    const hasFiles = isLibraryView && !!entry.libraryData && !entry._isNakamaEntry && !isMediaServerEntry(entry) && !!entry.localFiles?.length
     const files = entry.localFiles?.length ?? 0
     const settingsReady = MENU_ENTRIES.some(e => e.id === "settings" && e.ready)
     const tabs = getEntryTabSettings(t, serverStatus)

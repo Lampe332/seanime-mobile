@@ -20,6 +20,7 @@ import { IN_APP_PLAYER_READY } from "@/main/_features/player/player-availability
 import { useHasTorrentProvider, useServerStatus } from "@/main/_hooks/use-server-status"
 import { useHandleEpisodeSection } from "@/main/entry/_lib/handle-episode-section"
 import { useHandlePlayMedia } from "@/main/entry/_lib/handle-play-media"
+import { isMediaServerEpisode } from "@/main/entry/_lib/media-server-play"
 import { PhoneDownloadedEpisodes } from "./phone-downloaded-episodes"
 import { useOfflineEpisodes } from "@/main/android-downloads/_lib/use-offline"
 import { __torrentSearch_selectionAtom, __torrentSearch_selectionEpisodeAtom } from "@/main/entry/_containers/torrent-search/torrent-search.atoms"
@@ -277,6 +278,9 @@ function EpisodeItem({ episode, media, isWatched, watchedProgress, onPlay, perce
         toast.error(withoutServerError("The stream address").message)
     }
 
+    // Nakama's and the media server's files are not this device's: no metadata, unmatching, locking or plugin items
+    const ownFile = !episode._isNakamaEpisode && !isMediaServerEpisode(episode)
+
     const items = [
         // Sets the list progress to this episode, as the player's "Update progress" does
         ...(!isWatched && episode.progressNumber > 0 ? [{
@@ -288,12 +292,12 @@ function EpisodeItem({ episode, media, isWatched, watchedProgress, onPlay, perce
                 } }),
         }] : []),
         ...(episode.localFile ? [{ id: "info", label: t("File info", "Dateiinfo"), icon: Info, onPress: () => setSheet("info") }] : []),
-        ...(!episode._isNakamaEpisode ? [{ id: "metadata", label: t("Update metadata", "Metadaten ändern"), icon: PencilLine, onPress: () => setSheet("metadata") }] : []),
+        ...(ownFile ? [{ id: "metadata", label: t("Update metadata", "Metadaten ändern"), icon: PencilLine, onPress: () => setSheet("metadata") }] : []),
         ...(episode.localFile ? [{ id: "stream-url", label: t("Copy stream URL", "Stream-URL kopieren"), icon: FileVideo, onPress: () => void copyStreamUrl() }] : []),
-        ...(!episode._isNakamaEpisode && episode.localFile ? [{ id: "unmatch", label: t("Unmatch", "Zuordnung lösen"), icon: Unlink,
+        ...(ownFile && episode.localFile ? [{ id: "unmatch", label: t("Unmatch", "Zuordnung lösen"), icon: Unlink,
             onPress: () => updateLocalFile(episode.localFile!, { mediaId: 0, locked: false, ignored: false }) }] : []),
         // the plugins' items for library episodes (PluginEpisodeGridItemMenuItems type "library")
-        ...(!episode._isNakamaEpisode ? pluginItems.map(item => ({ id: `plugin:${item.extensionId}:${item.id}`, label: item.label || "???", icon: Puzzle,
+        ...(ownFile ? pluginItems.map(item => ({ id: `plugin:${item.extensionId}:${item.id}`, label: item.label || "???", icon: Puzzle,
             onPress: () => runPlugin(item, { episode, type: "library" }) })) : []),
     ]
 
@@ -303,7 +307,7 @@ function EpisodeItem({ episode, media, isWatched, watchedProgress, onPlay, perce
             length={episode.episodeMetadata?.length} percentageComplete={percentageComplete} episodeNumber={episode.episodeNumber} watchedProgress={watchedProgress}
             mobileEntry={mobileEntry} onPress={onPlay ? () => onPlay(episode) : undefined}
             action={<>
-                {!episode._isNakamaEpisode && <IconAction icon={episode.localFile?.locked ? BadgeCheck : LockOpen} disabled={isPending}
+                {ownFile && <IconAction icon={episode.localFile?.locked ? BadgeCheck : LockOpen} disabled={isPending}
                     label={episode.localFile?.locked ? t("Unlock file", "Datei entsperren") : t("Lock file", "Datei sperren")}
                     color={episode.localFile?.locked ? colors.smSuccess : colors.smWarning}
                     onPress={() => episode.localFile && updateLocalFile(episode.localFile, { locked: !episode.localFile.locked })} />}

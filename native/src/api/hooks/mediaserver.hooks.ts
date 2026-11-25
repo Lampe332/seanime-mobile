@@ -1,7 +1,7 @@
 // geschrieben nach: nakama.hooks.ts und app-switches.hooks.ts; die Routen sind core/jellyfin/server-settings.ts
 
 import { useQueryClient } from "@tanstack/react-query"
-import { useServerMutation, useServerQuery } from "../client/requests"
+import { type SeaError, useServerMutation, useServerQuery } from "../client/requests"
 
 /*
  * The media server (Jellyfin) of the settings page. Its routes are the app's own, so they have their own list here
@@ -14,7 +14,11 @@ export const MEDIASERVER_ENDPOINTS = {
     MediaServerLogout: { key: "MEDIASERVER-logout", methods: ["POST"] as const, endpoint: "/api/v1/mediaserver/logout" },
     MediaServerRefresh: { key: "MEDIASERVER-refresh", methods: ["POST"] as const, endpoint: "/api/v1/mediaserver/refresh" },
     SaveMediaServerSettings: { key: "MEDIASERVER-save-settings", methods: ["PATCH"] as const, endpoint: "/api/v1/mediaserver/settings" },
+    MediaServerPlay: { key: "MEDIASERVER-play", methods: ["POST"] as const, endpoint: "/api/v1/mediaserver/play" },
 }
+
+/** A server episode by its file path (`mediaserver://<server>/<episode>`) */
+export type MediaServerPlay_Variables = { path: string, mediaId: number }
 
 /** What the settings page shows (core/jellyfin/source.ts `ServerOverview`); never carries token or password */
 export type MediaServerStatus = {
@@ -95,5 +99,15 @@ export function useSaveMediaServerSettings() {
         method: E.SaveMediaServerSettings.methods[0],
         mutationKey: [E.SaveMediaServerSettings.key],
         onSuccess: async data => keep(data),
+    })
+}
+
+/** Opens a server episode in the app's player (core/jellyfin/source.ts `playServerFile`); the core starts the player */
+export function useMediaServerPlay(onError?: (error: SeaError) => void) {
+    return useServerMutation<boolean, MediaServerPlay_Variables>({
+        endpoint: E.MediaServerPlay.endpoint,
+        method: E.MediaServerPlay.methods[0],
+        mutationKey: [E.MediaServerPlay.key],
+        ...(onError ? { onError } : {}),
     })
 }

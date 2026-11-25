@@ -1,11 +1,12 @@
 // geschrieben nach: Seanime_Jellyfin_Plan.md §2, §3 und §5 Punkt 2 und dem Aufbau von core/nakama/guest.test.ts; der Server ist hier ein Test-Double, alle Titel, Kennungen und das Token sind erfunden
 
-import { beforeEach, describe, expect, it } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import { sqlDriverFor } from "@/api/client/core-database"
 import { forgetDatabases, openDatabaseSync } from "../../../test/expo-sqlite"
 import type { HttpFetch } from "../anilist/client"
 import { type CoreDatabase, openCoreDatabase } from "../database/database"
 import { anilistListEntries, anilistMedia, mediaserverMappings, mediaserverSeries, settingsSections } from "../database/schema"
+import { type CoreEvent, onCoreEvent } from "../events"
 import { type CoreEnvironment, matchCoreRoute } from "../registry"
 import {
     MEDIASERVER_TOKEN_SECRET,
@@ -13,12 +14,14 @@ import {
     SERIES_FRESH_MS,
     forgetServerSource,
     keepServerToken,
+    playServerFile,
     refreshServerLibrary,
     removeServerMapping,
     saveServerMapping,
     saveServerSettings,
     serverFileOfPath,
     serverSettingsOf,
+    serverStreamAddress,
     unassignedServerShows,
     withServerFiles,
     withServerLibrary,
@@ -328,5 +331,70 @@ describe("the library never waits for the media server", () => {
         expect(calls).toEqual([])
         expect(background).toEqual([])
         expect(secretReads).toBe(0)
+    })
+})
+
+describe("playing a server episode", () => {
+    const PATH = "mediaserver://srv-1/sA-e1"
+    const play = (body: unknown) => matchCoreRoute("POST", "/api/v1/mediaserver/play")!.route.answer({ path: "/api/v1/mediaserver/play", query: null, body } as never, environment)
+    const reason = (work: Promise<unknown>) => work.then(() => "", (error: Error) => error.message)
+
+    async function watched(body: unknown): Promise<Json> {
+        const events: CoreEvent[] = []
+        const stop = onCoreEvent(event => void events.push(event))
+        try {
+            expect(await play(body)).toBe(true)
+            // the core hands events on after a tick
+            await vi.waitFor(() => expect(events.some(event => event.type === "native-player")).toBe(true))
+        } finally {
+            stop()
+        }
+        const player = events.find(event => event.type === "native-player")?.payload as { type: string, payload: Json } | undefined
+        expect(player?.type).toBe("watch")
+        return player!.payload
+    }
+
+    it("opens the player with the original file: static, with source, device and play session, and no token in the address", async () => {
+        await readServer()
+        const watch = await watched({ path: PATH, mediaId: SERVER_ONLY })
+        const address = new URL(String(watch.streamUrl))
+        expect(`${address.origin}${address.pathname}`).toBe(`${BASE}/Videos/sA-e1/stream`)
+        expect(address.searchParams.get("static")).toBe("true")
+        expect(address.searchParams.get("mediaSourceId")).toBe("sA-m1")
+        expect(address.searchParams.get("deviceId")).toBe("dev-1")
+        expect(address.searchParams.get("playSessionId")).toMatch(/^[0-9a-f]{32}$/)
+        expect(String(watch.streamUrl)).not.toContain(TOKEN)
+        expect(String(watch.streamUrl).toLowerCase()).not.toContain("api_key")
+        expect(watch).toMatchObject({ streamType: "localfile", streamPath: PATH, mimeType: "video/x-matroska", media: { id: SERVER_ONLY } })
+        expect(watch.episode).toMatchObject({ _isMediaServerEpisode: true, mediaServerEpisode: { serverId: "srv-1", seriesId: "sA", episodeId: "sA-e1" } })
+    })
+
+    it("carries the token only in the Authorization header, with all five fields", async () => {
+        await readServer()
+        const watch = await watched({ path: PATH, mediaId: SERVER_ONLY })
+        const header = String((watch.requestHeaders as Record<string, string>).Authorization)
+        expect(header.startsWith("MediaBrowser ")).toBe(true)
+        for (const field of ["Client=", "Device=\"Pixel\"", "DeviceId=\"dev-1\"", "Version=\"4.2.0\"", `Token="${TOKEN}"`]) expect(header).toContain(field)
+        expect(JSON.stringify({ ...watch, requestHeaders: null })).not.toContain(TOKEN)
+    })
+
+    it("builds the address from the session alone", () => {
+        const session = { serverId: "srv-1", url: BASE, userId: "u1", token: TOKEN, identity: { device: "Pixel", deviceId: "dev-1", version: "4.2.0" } }
+        const address = serverStreamAddress(session as Parameters<typeof serverStreamAddress>[0], "e 1", "m1", "abc")
+        expect(address).toBe(`${BASE}/Videos/e%201/stream?static=true&mediaSourceId=m1&deviceId=dev-1&playSessionId=abc`)
+    })
+
+    it("says why it cannot start: not signed in, no address, an episode not in the kept data", async () => {
+        await readServer()
+        expect(await reason(play({ path: "mediaserver://srv-1/sA-e9", mediaId: SERVER_ONLY }))).toBe("The episode is not in the media server's library")
+        expect(await reason(play({ path: PATH, mediaId: OWN }))).toBe("The episode is not in the media server's library")
+        expect(await reason(play({ path: "/made/file.mkv", mediaId: SERVER_ONLY }))).toBe("path and mediaId are needed")
+        await saveServerSettings({ token: "" }, environment)
+        const signedOut = await reason(play({ path: PATH, mediaId: SERVER_ONLY }))
+        expect(signedOut).toBe("Not signed in to a media server")
+        await saveServerSettings({ url: "" }, environment)
+        const noAddress = await reason(playServerFile({ path: "/api/v1/mediaserver/play", query: null, body: { path: PATH, mediaId: SERVER_ONLY } } as never, environment))
+        expect(noAddress).toBe("The media server's address is missing")
+        expect(signedOut + noAddress).not.toContain(TOKEN)
     })
 })

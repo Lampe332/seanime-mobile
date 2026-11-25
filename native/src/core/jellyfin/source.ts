@@ -6,11 +6,12 @@ import { storedEntry } from "../anilist/store"
 import { inOrder } from "../database/database"
 import { anilistListEntries, anilistMedia, episodeMetadata, mediaserverMappings, mediaserverSeries, settingsSections } from "../database/schema"
 import { CoreError } from "../errors"
+import { emitCoreEvent } from "../events"
 import { animeWithEpisodes, episodesOut } from "../library/library"
 import { type LocalFileRow, episodeOfFile, libraryDataOf } from "../library/local-files"
 import { animeMetadata } from "../library/metadata"
-import type { CoreEnvironment } from "../registry"
-import { JellyfinFailure, type JellyfinSeries, type JellyfinSession, listEpisodes, listSeasons, listSeries, providerId } from "./client"
+import type { CoreEnvironment, CoreRequest } from "../registry"
+import { JellyfinFailure, type JellyfinSeries, type JellyfinSession, authorizationHeader, jellyfinUrl, listEpisodes, listSeasons, listSeries, providerId } from "./client"
 import { type AnilistTitle, type EpisodeMatch, type MatchRule, type ServerShow, matchLibrary, matchS1 } from "./match"
 
 /*
@@ -475,6 +476,17 @@ export async function withServerLibrary(collection: unknown, environment: Enviro
     return added ? { ...collection, lists } : collection
 }
 
+/** The certain match of a title with episodes; a title outside the lists is matched now, with the lists' titles, so that no episode gets two titles */
+async function certainMatch(environment: Environment, session: JellyfinSession, id: number, media: unknown): Promise<{ match: ServerMatch, shows: ServerShow[] } | null> {
+    const state = await libraryState(environment, session)
+    let match = state.matches.find(candidate => candidate.anilistId === id)
+    if (!match && !state.listed.has(id) && isRecord(media)) {
+        const title = titleOf({ ...media, id }, (await keptMetadata(environment, [id])).get(id) ?? null, environment.now())
+        match = allMatches([...state.titles, title], state.shows, state.mappings).find(candidate => candidate.anilistId === id)
+    }
+    return match?.certain && match.episodes.length > 0 ? { match, shows: state.shows } : null
+}
+
 /**
  * GET /api/v1/library/anime-entry/{id}: an anime that neither the device nor a Nakama host has files of and that the
  * server has for certain becomes the server's (`_isMediaServerEntry`, its episodes with `_isMediaServerEpisode`).
@@ -482,25 +494,18 @@ export async function withServerLibrary(collection: unknown, environment: Enviro
 export async function withServerFiles(entry: unknown, environment: Environment): Promise<unknown> {
     if (!isRecord(entry) || entry.libraryData || entry._isNakamaEntry || !whole(entry.mediaId)) return entry
     const id = whole(entry.mediaId)
-    let match: ServerMatch | undefined
-    let shows: ServerShow[]
+    let found: { match: ServerMatch, shows: ServerShow[] } | null
     try {
         await environment.pause("mediaserver library")
         const session = await serverSession(environment)
         if (!session) return entry
-        const state = await libraryState(environment, session)
-        shows = state.shows
-        match = state.matches.find(candidate => candidate.anilistId === id)
-        if (!match && !state.listed.has(id) && isRecord(entry.media)) {
-            // a title outside the lists is matched now, with the lists' titles, so that no episode gets two titles
-            const title = titleOf({ ...entry.media, id }, (await keptMetadata(environment, [id])).get(id) ?? null, environment.now())
-            match = allMatches([...state.titles, title], shows, state.mappings).find(candidate => candidate.anilistId === id)
-        }
+        found = await certainMatch(environment, session, id, entry.media)
     }
     catch {
         return entry
     }
-    if (!match?.certain || match.episodes.length === 0) return entry
+    if (!found) return entry
+    const { match, shows } = found
     const rows = serverRows(match, shows, environment.now())
     const { media, episodes } = await animeWithEpisodes(environment, id)
     const progress = whole(isRecord(entry.listData) ? entry.listData.progress : 0)
@@ -519,6 +524,73 @@ export async function withServerFiles(entry: unknown, environment: Environment):
         localFiles: serverEpisodes.map(episode => episode.localFile),
         _isMediaServerEntry: true,
     }
+}
+
+/* ── Playing ──────────────────────────────────────────────────────────── */
+
+const MIME: Record<string, string> = { mkv: "video/x-matroska", mp4: "video/mp4", webm: "video/webm", avi: "video/x-msvideo", mov: "video/quicktime", m4v: "video/mp4", ts: "video/mp2t" }
+
+/** A new id for one playing (Jellyfin's `PlaySessionId`): 32 hex digits */
+function newPlaySessionId(now: number): string {
+    let id = now.toString(16)
+    while (id.length < 32) id += Math.floor(Math.random() * 16).toString(16)
+    return id.slice(0, 32)
+}
+
+/**
+ * The address of a server episode's original file, played as it is (`static=true`, no conversion). The token is never
+ * part of it: it goes in the Authorization line (`requestHeaders`).
+ */
+export function serverStreamAddress(session: JellyfinSession, episodeId: string, mediaSourceId: string, playSessionId: string): string {
+    return jellyfinUrl(session.url, `/Videos/${encodeURIComponent(episodeId)}/stream`, { static: true, mediaSourceId, deviceId: session.identity.deviceId, playSessionId })
+}
+
+/**
+ * POST /api/v1/mediaserver/play {path, mediaId}: the player opens the server's file straight from the server, with
+ * the Authorization line as a header (`requestHeaders`, mpv `http-header-fields`); the progress goes as for any
+ * episode. Fails in plain words when no server is set up or signed in or the episode is not among the kept series.
+ */
+export async function playServerFile(request: CoreRequest, environment: Environment): Promise<boolean> {
+    const body = isRecord(request.body) ? request.body : {}
+    const path = text(body.path)
+    const mediaId = whole(body.mediaId)
+    const file = serverFileOfPath(path)
+    if (!file || !mediaId) throw new CoreError("path and mediaId are needed", 400)
+    if (!(await serverSettingsOf(environment)).url) throw new CoreError("The media server's address is missing", 400)
+    const session = await serverSession(environment)
+    if (!session) throw new CoreError("Not signed in to a media server", 400)
+    const { media, episodes } = await animeWithEpisodes(environment, mediaId)
+    const found = await certainMatch(environment, session, mediaId, media)
+    const row = found ? serverRows(found.match, found.shows, environment.now()).find(candidate => candidate.path === path) : undefined
+    const episode = found?.shows.flatMap(show => show.episodes).find(candidate => candidate.id === file.episodeId)
+    if (!found || !row || !episode) throw new CoreError("The episode is not in the media server's library", 404)
+    // one version: Jellyfin names its source after the item (a movie read as one episode carries none)
+    const source = episode.mediaSources[0]
+    const mediaSourceId = source?.id || episode.id
+    const container = (source?.container ?? "").split(",")[0].toLowerCase()
+    const entry = await storedEntry(await environment.database(), "ANIME", mediaId)
+    emitCoreEvent("native-player", {
+        type: "watch",
+        payload: {
+            id: `core-mediaserver-${environment.now()}`,
+            // a file of the library: the player's playlist goes on through playMediaFile, which knows server episodes
+            streamType: "localfile",
+            streamPath: row.path,
+            mimeType: MIME[container] ?? "video/*",
+            streamUrl: serverStreamAddress(session, episode.id, mediaSourceId, newPlaySessionId(environment.now())),
+            requestHeaders: { Authorization: authorizationHeader(session.identity, session.token) },
+            contentLength: 0,
+            ...(entry ? { entryListData: listDataOf(entry) } : {}),
+            episode: {
+                ...episodeOfFile(row, media, episodes),
+                _isMediaServerEpisode: true,
+                mediaServerEpisode: { serverId: found.match.serverId, seriesId: found.match.seriesId, episodeId: episode.id },
+            },
+            media,
+            isNakamaWatchParty: false,
+        },
+    })
+    return true
 }
 
 /* ── Not assigned, and assigning by hand ──────────────────────────────── */
