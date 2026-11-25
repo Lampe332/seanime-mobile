@@ -64,6 +64,7 @@ import Play from "lucide-react-native/icons/play"
 import RefreshCcw from "lucide-react-native/icons/refresh-ccw"
 import Shuffle from "lucide-react-native/icons/shuffle"
 import SlidersHorizontal from "lucide-react-native/icons/sliders-horizontal"
+import Sparkles from "lucide-react-native/icons/sparkles"
 import React from "react"
 import { BackHandler, View } from "react-native"
 import Animated from "react-native-reanimated"
@@ -103,6 +104,7 @@ const TOP_FROM = 12
 
 export function ListsPhone() {
     const t = useTr()
+    const router = useRouter()
     const serverStatus = useServerStatus()
     const enableManga = !!serverStatus?.settings?.library?.enableManga
     const canStats = !!serverStatus?.user && !serverStatus.user.isSimulated
@@ -130,14 +132,18 @@ export function ListsPhone() {
     const statsButton = (square: boolean) => canStats
         ? <ListsAction icon={ChartColumn} label={t("Stats", "Statistik")} pressed={stats} square={square} onPress={() => setStatsOpen(open => !open)} />
         : null
+    // "Your year" counts from the lists alone, so it shows for every account, the simulated one too
+    const wrappedButton = (square: boolean) => serverStatus?.user
+        ? <ListsAction icon={Sparkles} label={t("Your year", "Dein Jahr")} square={square} onPress={() => router.push("/wrapped")} />
+        : null
     // With Manga on, the stats switch sits next to Anime | Manga, whose choice it shows; without, it joins the header actions.
     // the list built anew for a type chosen here rises in; the first one comes with the page
     const [typeSwitched, setTypeSwitched] = React.useState(false)
     const typeSwitch = enableManga ? <TypeSwitch type={type} onType={value => {
         setTypeSwitched(true)
         setType(value)
-    }}>{statsButton(true)}</TypeSwitch> : null
-    const headerStats = enableManga ? null : statsButton(false)
+    }}>{wrappedButton(true)}{statsButton(true)}</TypeSwitch> : null
+    const headerStats = enableManga ? null : <>{wrappedButton(false)}{statsButton(false)}</>
 
     return stats
         ? <ListsStats type={type} typeSwitch={typeSwitch} actions={<>{refreshButton}{headerStats}</>} onRefresh={pullRefresh} />

@@ -157,6 +157,7 @@ describe("the questions asked of AniList", () => {
         const cases: [string, string, unknown][] = [
             ["anime lists", queries.collectionQuery("ANIME"), recorded.animeCollection],
             ["manga lists", queries.collectionQuery("MANGA"), recorded.mangaCollection],
+            ["anime lists: main studios", queries.collectionQuery("ANIME"), { MediaListCollection: { lists: [{ entries: [{ media: { studios: { nodes: [{ id: 1, name: "Some Studio" }] } } }] }] } }],
             ["anime details", queries.ANIME_DETAILS, { Media: recorded.details }],
             ["studio", queries.STUDIO_DETAILS, recorded.studio],
             ["staff", queries.STAFF_DETAILS, staffAnswer],
@@ -169,6 +170,11 @@ describe("the questions asked of AniList", () => {
             ["statistics", queries.VIEWER_STATS, { Viewer: { statistics: { anime: recorded.stats.animeStats, manga: recorded.stats.mangaStats } } }],
         ]
         for (const [name, document, answer] of cases) expect(missing(fieldTree(answer), selection(document)), name).toEqual([])
+    })
+
+    it("ask for the main studios only with the user's anime lists", () => {
+        expect(queries.collectionQuery("ANIME")).toContain("studios(isMain: true) { nodes { id name } }")
+        for (const document of [queries.collectionQuery("MANGA"), queries.LIST_ANIME, queries.LIST_RECENT_AIRING]) expect(document).not.toContain("studios")
     })
 
     it("are never a mutation, except the two changes, which askAnilist does not send (changes.test.ts)", async () => {

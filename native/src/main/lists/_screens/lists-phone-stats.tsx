@@ -10,6 +10,7 @@ import { Text } from "@/components/ui/text/text"
 import { getAppLanguage, plural, type Translate, useTr } from "@/lib/app-language"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { formatScore, getListFacts, getPhoneLists, getStatsView, type ListType, type StatRow, statusLabel, type StatsView } from "@/main/lists/_lib/lists-phone"
+import { WrappedEntry } from "@/main/wrapped/_components/wrapped-entry"
 import React from "react"
 import { Pressable, View } from "react-native"
 import Animated from "react-native-reanimated"
@@ -58,6 +59,7 @@ export function ListsStats({ type, typeSwitch, actions, onRefresh }: { type: Lis
     return (
         <PhoneScreen title={t("My lists", "Meine Listen")} subtitle={facts} actions={actions} onRefresh={onRefresh}>
             {typeSwitch}
+            <WrappedEntry />
             {failed ? <Notice text={offlineAware(["Your stats could not be loaded.", "Deine Statistik konnte nicht geladen werden."],
                     ["No internet connection, so your stats could not be loaded.", "Keine Internetverbindung, deshalb konnte deine Statistik nicht geladen werden."])}>
                     <TextAction label={t("Try again", "Erneut versuchen")} onPress={() => void query.refetch()} />

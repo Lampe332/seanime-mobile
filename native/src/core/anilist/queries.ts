@@ -26,8 +26,11 @@ const pageInfo = "pageInfo { hasNextPage total perPage currentPage lastPage }"
 
 export const VIEWER_NAME = "query ViewerName { Viewer { name } }"
 
+/** The main studios of an anime; only the user's anime lists ask for them (the yearly review counts them) */
+const mainStudios = "studios(isMain: true) { nodes { id name } }"
+
 export function collectionQuery(kind: "ANIME" | "MANGA"): string {
-    const media = kind === "ANIME" ? `${animeFields} ${nextEpisode}` : mangaFields
+    const media = kind === "ANIME" ? `${animeFields} ${nextEpisode} ${mainStudios}` : mangaFields
     return `query ListCollection($userName: String) {
         MediaListCollection(userName: $userName, forceSingleCompletedList: true, type: ${kind}) {
             lists { status name isCustomList entries { ${entryFields} media { ${media} } } }

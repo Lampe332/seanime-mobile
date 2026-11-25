@@ -188,6 +188,7 @@ function MainFrame() {
                 <TabTrigger name="entry" href="/entry" />
                 <TabTrigger name="schedule" href="/schedule" />
                 <TabTrigger name="history" href="/history" />
+                <TabTrigger name="wrapped" href="/wrapped" />
                 <TabTrigger name="updates" href="/updates" />
                 <TabTrigger name="settings" href="/settings" />
                 <TabTrigger name="manga/index" href="/manga" />
