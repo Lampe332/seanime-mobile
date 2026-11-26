@@ -1,5 +1,5 @@
 import { useNavBarHeight } from "@/components/navigation/app-navigation"
-import { usePageBottomPad, usePageTop, usePhonePageTint } from "@/components/shared/phone-screen"
+import { useMiniPlayerFrame, usePageBottomPad, usePageTop, usePhonePageTint } from "@/components/shared/phone-screen"
 import { cn } from "@/components/ui/core/styling"
 import { Heading, Muted, Text } from "@/components/ui/text/text"
 import { useTr } from "@/lib/app-language"
@@ -7,7 +7,7 @@ import { haptic } from "@/lib/feedback"
 import { useThemeColors } from "@/lib/theme/appearance"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { type TourScrollHost, TourScrollContext } from "@/main/_features/tour/tour-targets"
-import { activeJumpIndex, chipRowOffset, focusChipId, jumpScrollMetrics, type JumpScrollEvent, SETTINGS_WIDE_COLUMN_WIDTH, settingsColumnMaxWidth } from "@/main/settings/_lib/settings-page-layout"
+import { activeJumpIndex, chipRowOffset, focusChipId, jumpScrollMetrics, type JumpScrollEvent, miniCardRightPad, SETTINGS_WIDE_COLUMN_WIDTH, settingsColumnMaxWidth } from "@/main/settings/_lib/settings-page-layout"
 import type { LucideIcon } from "lucide-react-native"
 import ArrowLeft from "lucide-react-native/icons/arrow-left"
 import React from "react"
@@ -89,7 +89,9 @@ export function SettingsPage({ icon: Icon, title, summary, onBack, jump = true, 
     const pageTint = usePhonePageTint()
     const barHeight = useNavBarHeight()
     const { rail, isTablet } = useTabletLayout()
-    const { height } = useWindowDimensions()
+    const { height, width: windowWidth } = useWindowDimensions()
+    const mini = useMiniPlayerFrame()
+    const [frameBox, setFrameBox] = React.useState({ x: 0, width: 0 })
     const ownBottom = usePageBottomPad((rail ? 32 : barHeight + 32) + insets.bottom)
     const reducedMotion = useReducedMotion()
 
@@ -271,6 +273,11 @@ export function SettingsPage({ icon: Icon, title, summary, onBack, jump = true, 
     // The phone page is centred like every phone tab; the pane is centred in its room once that is wider than its column
     const column = pane ? undefined : { width: "100%" as const, maxWidth: settingsColumnMaxWidth(isTablet), alignSelf: "center" as const }
     const side = pane ? "" : "px-4"
+    const cardPad = miniCardRightPad({ frameX: frameBox.x, frameWidth: frameBox.width, maxWidth: column?.maxWidth, windowWidth,
+        card: mini?.kind === "card" ? mini : null })
+    const readFrame = () => frameRef.current?.measureInWindow((x, _y, width) => {
+        setFrameBox(previous => previous.x === x && previous.width === width ? previous : { x, width })
+    })
 
     const page = (
         <View className="flex-1" style={pane ? { width: "100%", maxWidth: SETTINGS_WIDE_COLUMN_WIDTH } : { paddingTop: top, ...(!rail && pageTint ? { backgroundImage: pageTint } : null) }}>
@@ -316,7 +323,7 @@ export function SettingsPage({ icon: Icon, title, summary, onBack, jump = true, 
                     </ScrollView>
                 </View>
             )}
-            <View ref={frameRef} collapsable={false} className="flex-1">
+            <View ref={frameRef} collapsable={false} className="flex-1" onLayout={readFrame}>
                 <ScrollView
                     ref={scrollRef}
                     className="flex-1"
@@ -325,6 +332,8 @@ export function SettingsPage({ icon: Icon, title, summary, onBack, jump = true, 
                     onLayout={event => { viewport.current = event.nativeEvent.layout.height }}
                     onContentSizeChange={(_width, contentHeight) => {
                         content.current = contentHeight
+                        // the chips were picked with the old height: after a sign-in the end rule lit the last group ("Progress")
+                        if (showChips) refreshActive()
                         if (!started.current) {
                             started.current = true
                             offset.current = 0
@@ -337,7 +346,7 @@ export function SettingsPage({ icon: Icon, title, summary, onBack, jump = true, 
                     onScrollEndDrag={event => readScroll(event.nativeEvent)}
                     onMomentumScrollEnd={event => readScroll(event.nativeEvent)}
                     scrollEventThrottle={64}
-                    contentContainerStyle={{ ...column, paddingBottom: bottomPad ?? ownBottom }}
+                    contentContainerStyle={{ ...column, paddingBottom: bottomPad ?? ownBottom, ...(cardPad > 0 ? { paddingRight: Math.max(pane ? 0 : 16, cardPad) } : null) }}
                     contentContainerClassName={`gap-6 ${side}`}
                 >
                     {children}

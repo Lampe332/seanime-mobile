@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { activeJumpIndex, chipRowOffset, focusChipId, jumpScrollMetrics, pickerListMaxHeight, settingsColumnMaxWidth } from "./settings-page-layout"
+import { activeJumpIndex, chipRowOffset, focusChipId, jumpScrollMetrics, miniCardRightPad, pickerListMaxHeight, settingsColumnMaxWidth } from "./settings-page-layout"
 
 describe("the settings column", () => {
     it("keeps the phone at 640 and lets a tablet fill up to 960", () => {
@@ -87,5 +87,20 @@ describe("focusChipId", () => {
         expect(focusChipId(chips, undefined)).toBeNull()
         expect(focusChipId(chips, "Banner")).toBeNull()
         expect(focusChipId([], "Sorting")).toBeNull()
+    })
+})
+
+describe("the room beside the mini player card", () => {
+    const card = { right: 20, width: 320 }
+    it("keeps the values of a pane clear of the card", () => {
+        // Pixel Tablet landscape: the pane runs from 440 to 1260 of a 1280dp window, the card starts at 940
+        expect(miniCardRightPad({ frameX: 440, frameWidth: 820, windowWidth: 1280, card })).toBe(336)
+    })
+    it("measures from the centred column's edge, not the frame's", () => {
+        expect(miniCardRightPad({ frameX: 0, frameWidth: 1280, maxWidth: 960, windowWidth: 1280, card })).toBe(196)
+    })
+    it("adds nothing without the card or when the column ends before it", () => {
+        expect(miniCardRightPad({ frameX: 440, frameWidth: 820, windowWidth: 1280, card: null })).toBe(0)
+        expect(miniCardRightPad({ frameX: 0, frameWidth: 600, windowWidth: 1280, card })).toBe(0)
     })
 })

@@ -2,6 +2,7 @@ import { useGetRawAnimeCollection } from "@/api/hooks/anilist.hooks"
 import { useGetRawAnilistMangaCollection } from "@/api/hooks/manga.hooks"
 import { ChipRow, PhoneEmpty, useOfflineAware } from "@/components/shared/phone-cards"
 import { LoadingRows, Notice, TextAction } from "@/components/shared/phone-kit"
+import { useAfterPageEnter } from "@/components/shared/cover-flight"
 import { PhoneScreen } from "@/components/shared/phone-screen"
 import { Button } from "@/components/ui/button/button"
 import { cn } from "@/components/ui/core/styling"
@@ -68,7 +69,8 @@ export function WrappedPhone() {
     // the route stays mounted behind the hidden tab bar; leaving it builds the page anew at the top (PhoneScreen has no
     // scroll handle), so it opens at its start again, not at the share image. A year picked on a chip keeps the position.
     const [visit, setVisit] = React.useState(0)
-    useFocusEffect(React.useCallback(() => () => setVisit(value => value + 1), []))
+    // low priority: the rebuild must not take frames from the page being opened (S22: jank leaving "Your year")
+    useFocusEffect(React.useCallback(() => () => React.startTransition(() => setVisit(value => value + 1)), []))
 
     const loading = hasUser && animeQuery.isPending
     const failed = hasUser && animeQuery.isError && !animeQuery.data
@@ -137,19 +139,23 @@ function WrappedContent({ t, view }: { t: Translate, view: WrappedView }) {
         !!view.longest && view.titles > 1 && view.longest.episodes > 1 && <WrappedLongest key="longest" t={t} item={view.longest} />,
         !!view.manga && <WrappedManga key="manga" t={t} manga={view.manga} />,
     ].filter(Boolean) as React.ReactElement[]
+    // the cards below the first screen and the share image (its 1080 x 1350 capture) are built once the page has come in
+    const entered = useAfterPageEnter()
+    const shown = entered ? cards : cards.slice(0, columns * 2)
 
     return (
-        <View className={cn("w-full gap-6 self-center", columns > 1 ? "max-w-[1040px]" : isTablet && "max-w-[640px]")}>
+        // left-aligned with the heading and the year chips (tablet: the column sat centred, right of them)
+        <View className={cn("w-full gap-6", columns > 1 ? "max-w-[1040px]" : isTablet && "max-w-[640px]")}>
             <View className="gap-2">
                 <WrappedOverview t={t} view={view} />
                 {view.undated > 0 && <Muted>{undatedText(t, view.undated)}</Muted>}
             </View>
             {columns > 1
                 ? <View className="flex-row items-start gap-6">
-                    {intoColumns(cards, columns).map((column, index) => <View key={index} className="min-w-0 flex-1 gap-6">{column}</View>)}
+                    {intoColumns(shown, columns).map((column, index) => <View key={index} className="min-w-0 flex-1 gap-6">{column}</View>)}
                 </View>
-                : cards}
-            <WrappedShareSection view={view} />
+                : shown}
+            {entered && <WrappedShareSection view={view} />}
         </View>
     )
 }

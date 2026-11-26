@@ -23,6 +23,15 @@ const CAPTURE_TIMEOUT = 10_000
 const PNG_START = "iVBORw0KGgo"
 const FRAME = { aspectRatio: SHARE_WIDTH / SHARE_HEIGHT }
 const FILL = { position: "absolute", inset: 0 } as const
+/** Made PNGs by card and accent: the page is built anew on every visit, and a capture blocks the UI thread (S22: 150 ms) */
+const made = new Map<string, string>()
+const MADE_MAX = 8
+
+function remember(image: string, png: string) {
+    made.delete(image)
+    made.set(image, png)
+    if (made.size > MADE_MAX) made.delete(made.keys().next().value as string)
+}
 
 /**
  * The end of "Your year": the year as one picture to post. The SVG (WrappedShareImage) is drawn under the preview and
@@ -37,17 +46,20 @@ export function WrappedShareSection({ view }: { view: WrappedView }) {
     const [attempt, setAttempt] = React.useState(0)
     const [result, setResult] = React.useState<{ key: string, png: string | null }>({ key: "", png: null })
     const [sharing, setSharing] = React.useState(false)
-    const key = `${JSON.stringify(card)}|${palette.swatch}|${palette.amoled}|${attempt}`
-    const png = result.key === key ? result.png : null
-    const failed = result.key === key && !result.png
+    const image = `${JSON.stringify(card)}|${palette.swatch}|${palette.amoled}`
+    const key = `${image}|${attempt}`
+    const png = made.get(image) ?? (result.key === key ? result.png : null)
+    const failed = !png && result.key === key
 
     React.useEffect(() => {
+        if (made.has(image)) return
         let settled = false
         let limit: ReturnType<typeof setTimeout> | undefined
         const finish = (data: string | null) => {
             if (settled) return
             settled = true
             clearTimeout(limit)
+            if (data) remember(image, data)
             setResult({ key, png: data })
         }
         const wait = setTimeout(() => {
@@ -67,7 +79,7 @@ export function WrappedShareSection({ view }: { view: WrappedView }) {
             clearTimeout(wait)
             clearTimeout(limit)
         }
-    }, [key])
+    }, [key, image])
 
     const share = async () => {
         if (!png || sharing) return
@@ -76,6 +88,7 @@ export function WrappedShareSection({ view }: { view: WrappedView }) {
             await saveExport(base64ToBytes(png), `seanime-${view.year}.png`, "image/png")
         }
         catch {
+            made.delete(image)
             setResult({ key, png: null })
         }
         finally {
@@ -89,10 +102,10 @@ export function WrappedShareSection({ view }: { view: WrappedView }) {
         <PhoneSection title={t("Share your year", "Dein Jahr teilen")}>
             <View className="w-full max-w-[400px] gap-4 self-center">
                 <View className="w-full overflow-hidden rounded-surface bg-sm-surface-raised" style={FRAME}>
-                    {/* the drawing the PNG is made from; the preview or the placeholder covers it */}
-                    <View className="absolute inset-0" importantForAccessibility="no-hide-descendants">
+                    {/* the drawing the PNG is made from, only until it is made; the placeholder covers it */}
+                    {!png && <View className="absolute inset-0" importantForAccessibility="no-hide-descendants">
                         <WrappedShareImage ref={svgRef} card={card} t={t} />
-                    </View>
+                    </View>}
                     {png
                         ? <Image source={{ uri: `data:image/png;base64,${png}` }} cachePolicy="none" contentFit="cover"
                             style={FILL} accessibilityLabel={summary} accessible accessibilityIgnoresInvertColors />

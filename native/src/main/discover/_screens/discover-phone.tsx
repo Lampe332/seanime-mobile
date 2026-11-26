@@ -122,6 +122,8 @@ export function DiscoverPhone() {
     // see-through, untouchable, hidden from screen readers), so the scroll height is the shown tab's
     const [visited, setVisited] = React.useState<ReadonlySet<DiscoverTab>>(() => new Set([tab]))
     if (!visited.has(tab)) setVisited(new Set([...visited, tab]))
+    // the tab the screen opens on comes with the screen, without a fade of its own over the whole new tree (S22: 27 %)
+    const [firstTab] = React.useState(tab)
     const schedule = useDiscoverSchedule(tab === "schedule")
     const { current } = React.useMemo(() => discoverSeasons(new Date()), [])
     const facts = tab === "anime" ? seasonTitle(t, "season", current)
@@ -146,9 +148,9 @@ export function DiscoverPhone() {
             {/* A new tab rises in instead of swapping in one frame (useSwap); a visited tab stays built, only hidden. One
                 wrapper without padding: the hidden panes (absolute, left/right 0) get the visible one's width */}
             <View>
-                {visited.has("anime") && <DiscoverTabPane active={tab === "anime"} isTablet={isTablet}><AnimeTab /></DiscoverTabPane>}
-                {visited.has("schedule") && <DiscoverTabPane active={tab === "schedule"} isTablet={isTablet}><DiscoverPhoneSchedule schedule={schedule} /></DiscoverTabPane>}
-                {visited.has("manga") && <DiscoverTabPane active={tab === "manga"} isTablet={isTablet}><MangaTab /></DiscoverTabPane>}
+                {visited.has("anime") && <DiscoverTabPane active={tab === "anime"} instant={firstTab === "anime"} isTablet={isTablet}><AnimeTab /></DiscoverTabPane>}
+                {visited.has("schedule") && <DiscoverTabPane active={tab === "schedule"} instant={firstTab === "schedule"} isTablet={isTablet}><DiscoverPhoneSchedule schedule={schedule} /></DiscoverTabPane>}
+                {visited.has("manga") && <DiscoverTabPane active={tab === "manga"} instant={firstTab === "manga"} isTablet={isTablet}><MangaTab /></DiscoverTabPane>}
             </View>
         </PhoneScreen>
     )
@@ -159,20 +161,29 @@ export function DiscoverPhone() {
  * drawn as one GPU layer only while it moves (the hidden panes never get one); hidden while another tab shows, its native
  * views kept (display none would take them down and build them again on the next switch). Reduced motion: it is simply there.
  */
-function DiscoverTabPane({ active, isTablet, children }: { active: boolean, isTablet: boolean, children: React.ReactNode }) {
+function DiscoverTabPane({ active, instant = false, isTablet, children }: { active: boolean, instant?: boolean, isTablet: boolean, children: React.ReactNode }) {
     const reduceMotion = useReducedMotion()
-    const opacity = useSharedValue(reduceMotion ? 1 : 0)
-    const shift = useSharedValue(reduceMotion ? 0 : DISTANCE.swap)
+    const still = reduceMotion || (instant && active)
+    const opacity = useSharedValue(still ? 1 : 0)
+    const shift = useSharedValue(still ? 0 : DISTANCE.swap)
+    const skip = React.useRef(still)
     // set when the tab is picked, during render: the layer is there in the fade's first frame
-    const [fading, setFading] = React.useState(() => active && !reduceMotion)
+    const [fading, setFading] = React.useState(() => active && !still)
+    // a pane built in this frame fades without the layer: drawing the whole new tree into a texture first cost the frame
+    const [fresh, setFresh] = React.useState(true)
     const [wasActive, setWasActive] = React.useState(active)
     if (active !== wasActive) {
         setWasActive(active)
         setFading(active)
+        setFresh(false)
     }
-    const layered = fading && active && !reduceMotion
+    const layered = fading && active && !reduceMotion && !fresh
 
     React.useEffect(() => {
+        if (skip.current) {
+            skip.current = false
+            if (active) return
+        }
         if (!active || reduceMotion) {
             opacity.set(reduceMotion ? 1 : 0)
             shift.set(reduceMotion ? 0 : DISTANCE.swap)

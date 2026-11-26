@@ -65,6 +65,23 @@ export function focusChipId(chipIds: readonly string[], group: string | undefine
     return group !== undefined && chipIds.includes(group) ? group : null
 }
 
+/**
+ * The room the rows keep on the right while the tablet's mini player card floats over the page's bottom right: the card
+ * covered the values at the right end of the rows (Pixel Tablet). `maxWidth` is the centred column's, none for the pane.
+ */
+export function miniCardRightPad({ frameX, frameWidth, maxWidth, windowWidth, card }: {
+    frameX: number
+    frameWidth: number
+    maxWidth?: number
+    windowWidth: number
+    card: { right: number, width: number } | null
+}): number {
+    if (!card || frameWidth <= 0) return 0
+    const columnRight = frameX + frameWidth - (maxWidth === undefined ? 0 : Math.max(0, (frameWidth - maxWidth) / 2))
+    const overlap = columnRight - (windowWidth - card.right - card.width)
+    return overlap > 0 ? Math.round(overlap + 16) : 0
+}
+
 /** The sheet of all options is as tall as its options, at most this share of the screen; past it its options scroll */
 export const PICKER_MAX_SHARE = 0.85
 
