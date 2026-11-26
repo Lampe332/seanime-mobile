@@ -13,6 +13,7 @@ import { useCurrentUser, useIsSimulatedUser } from "@/main/_hooks/use-server-sta
 import {
     chooseListStatus,
     clampStep,
+    datesOutOfOrder,
     formatFieldDate,
     listEntryDefaults,
     type ListEntryForm,
@@ -117,6 +118,9 @@ function AnilistMediaEntrySheet({ media, listData, type, open, onOpenChange }: {
     const released = media?.status !== "NOT_YET_RELEASED"
     const max = progressMaxFor(media, type)
     const total = type === "anime" ? (media as AL_BaseAnime | undefined)?.episodes : (media as AL_BaseManga | undefined)?.chapters
+    // a start after the completion: marked at the start date, Save stays off until one of them changes
+    const outOfOrder = datesOutOfOrder(form)
+    const datesError = t("The start date is after the completion date.", "Das Startdatum liegt nach dem Enddatum.")
 
     const save = () => submitListEntry(form, repeat, listData.repeat, media?.id || 0, type, {
         saveEntry: (body, options) => mutate(body, options),
@@ -153,9 +157,16 @@ function AnilistMediaEntrySheet({ media, listData, type, open, onOpenChange }: {
                     <Stepper label={t("Score", "Bewertung")} value={form.score} max={10} decimals suffix="/ 10" onValue={score => setForm(f => ({ ...f, score }))} />
                 </Field>
             </View>
-            <View className="flex-row flex-wrap gap-2">
-                <Field label={t("Start date", "Startdatum")}><DateField value={form.startedAt} label={t("Start date", "Startdatum")} onPress={() => pickDate("startedAt")} onClear={() => clearDate("startedAt")} /></Field>
-                <Field label={t("Completion date", "Enddatum")}><DateField value={form.completedAt} label={t("Completion date", "Enddatum")} onPress={() => pickDate("completedAt")} onClear={() => clearDate("completedAt")} /></Field>
+            <View className="gap-1.5">
+                <View className="flex-row flex-wrap gap-2">
+                    <Field label={t("Start date", "Startdatum")}>
+                        <DateField value={form.startedAt} label={t("Start date", "Startdatum")} invalid={outOfOrder} onPress={() => pickDate("startedAt")} onClear={() => clearDate("startedAt")} />
+                    </Field>
+                    <Field label={t("Completion date", "Enddatum")}>
+                        <DateField value={form.completedAt} label={t("Completion date", "Enddatum")} onPress={() => pickDate("completedAt")} onClear={() => clearDate("completedAt")} />
+                    </Field>
+                </View>
+                {outOfOrder && <Text accessibilityLiveRegion="polite" className="text-[13px] text-sm-danger">{datesError}</Text>}
             </View>
             <View className="flex-row flex-wrap items-center justify-between gap-3">
                 <Text className="text-[13px] font-medium text-sm-text-muted">{type === "anime" ? t("Total rewatches", "Wiederholungen") : t("Total rereads", "Erneut gelesen")}</Text>
@@ -179,7 +190,7 @@ function AnilistMediaEntrySheet({ media, listData, type, open, onOpenChange }: {
             </Pressable>
             {confirmDelete && <Button intent="danger" loading={isDeleting} onPress={() => deleteEntry({ mediaId: media?.id!, type })}>{t("Confirm", "Bestätigen")}</Button>}
         </View>
-        <Button wrapperClassName="ml-auto min-w-[136px]" loading={isEditing || isRepeating} disabled={isDeleting} onPress={save}>{t("Save", "Speichern")}</Button>
+        <Button wrapperClassName="ml-auto min-w-[136px]" loading={isEditing || isRepeating} disabled={isDeleting || outOfOrder} onPress={save}>{t("Save", "Speichern")}</Button>
     </View>
 
     const title = media?.title?.userPreferred || ""
@@ -197,13 +208,14 @@ function Field({ label, children }: { label: string, children: React.ReactNode }
     </View>
 }
 
-/** A tap picks the date; with one set, the ✕ beside it empties the field (saved as no date). */
-function DateField({ value, label, onPress, onClear }: { value: Date | null, label: string, onPress: () => void, onClear: () => void }) {
+/** A tap picks the date; with one set, the ✕ beside it empties the field (saved as no date). `invalid`: a danger outline. */
+function DateField({ value, label, invalid, onPress, onClear }: { value: Date | null, label: string, invalid?: boolean, onPress: () => void, onClear: () => void }) {
     const t = useTr()
-    return <View className="min-h-12 flex-row items-center overflow-hidden rounded-surface-sm bg-sm-surface-raised">
-        <Pressable accessibilityRole="button" accessibilityLabel={`${label}: ${formatFieldDate(value) || "–"}`} onPress={onPress}
+    return <View className={cn("min-h-12 flex-row items-center overflow-hidden rounded-surface-sm border bg-sm-surface-raised", invalid ? "border-sm-danger" : "border-transparent")}>
+        <Pressable accessibilityRole="button" accessibilityLabel={`${label}: ${formatFieldDate(value) || "–"}`}
+            accessibilityHint={invalid ? t("The start date is after the completion date.", "Das Startdatum liegt nach dem Enddatum.") : undefined} onPress={onPress}
             className="min-h-12 min-w-0 flex-1 flex-row items-center justify-between px-3 active:bg-sm-surface-control">
-            <Text className={cn("text-sm", !value && "text-sm-text-subtle")} style={{ fontVariant: ["tabular-nums"] }}>{formatFieldDate(value) || "–"}</Text>
+            <Text className={cn("text-sm", !value && "text-sm-text-subtle", invalid && "text-sm-danger")} style={{ fontVariant: ["tabular-nums"] }}>{formatFieldDate(value) || "–"}</Text>
             {!value && <CalendarDays size={18} color={colors.smTextMuted} />}
         </Pressable>
         {!!value && <Pressable accessibilityRole="button" accessibilityLabel={`${t("Remove date", "Datum entfernen")}: ${label}`} onPress={onClear}

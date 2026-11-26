@@ -349,12 +349,21 @@ function BecauseYouWatchedBlocks() {
 function BecauseYouWatchedRow({ row }: { row: BecauseRow }) {
     const t = useTr()
     const coverWidth = useRowCoverWidth()
-    const title = t("Because you watched {0}", "Weil du {0} geschaut hast").replace("{0}", () => sourceTitle(row.source))
-    // PhoneSection's head, with the title kept to one line: some anime titles are a sentence long
+    const template = t("Because you watched {0}", "Weil du {0} geschaut hast")
+    const source = sourceTitle(row.source)
+    const title = template.replace("{0}", () => source)
+    // the words around {0} in any language, quieter than the anime's title
+    const at = template.indexOf("{0}")
+    const [before, after] = at < 0 ? [template, ""] : [template.slice(0, at), template.slice(at + 3)]
+    // PhoneSection's head; a long title wraps to a second line (some are a sentence long), a wide screen keeps one
     return (
         <View className="gap-3">
             <View className="min-h-9 flex-row items-center">
-                <SectionTitle className="min-w-0 shrink" numberOfLines={1} ellipsizeMode="tail">{title}</SectionTitle>
+                <SectionTitle className="min-w-0 shrink" numberOfLines={2} ellipsizeMode="tail">
+                    {!!before && <Text className="text-xl leading-[27px] font-medium text-sm-text-muted">{before}</Text>}
+                    {at >= 0 && source}
+                    {!!after && <Text className="text-xl leading-[27px] font-medium text-sm-text-muted">{after}</Text>}
+                </SectionTitle>
             </View>
             {!row.items ? (
                 <CoverRowBones label={`${title}: ${t("loading", "wird geladen")}`} />

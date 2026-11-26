@@ -4,6 +4,7 @@ import {
     changedRepeat,
     chooseListStatus,
     clampStep,
+    datesOutOfOrder,
     formatFieldDate,
     listEntryDefaults,
     listEntryPayload,
@@ -180,5 +181,52 @@ describe("edit sheet: typed numbers and save", () => {
         // only the rewatch count failed: the sheet stays open
         expect(run("saved", 2, "failed")).toEqual(["repeat 2", "entry 80 3"])
         expect(run("failed", 2)).toEqual(["repeat 2", "entry 80 3"])
+    })
+})
+
+describe("edit sheet: start date after the completion date", () => {
+    const base = { status: "COMPLETED" as const, score: null, progress: 12, startedAt: null, completedAt: null }
+    const noSave = { saveEntry: () => { throw new Error("saved") }, saveRepeat: () => { throw new Error("saved") }, close: () => {} }
+
+    it("refuses a start on a later day than the completion, and sends nothing", () => {
+        const form = { ...base, startedAt: new Date(2026, 10, 26), completedAt: new Date(2026, 10, 25) }
+        expect(datesOutOfOrder(form)).toBe(true)
+        expect(submitListEntry(form, 2, 1, 5114, "anime", noSave)).toBe(false)
+    })
+
+    it("takes the same day at any time of day, and a single date", () => {
+        expect(datesOutOfOrder({ startedAt: new Date(2026, 10, 25, 23, 59), completedAt: new Date(2026, 10, 25, 0, 1) })).toBe(false)
+        expect(datesOutOfOrder({ startedAt: new Date(2026, 10, 24), completedAt: new Date(2026, 10, 25) })).toBe(false)
+        expect(datesOutOfOrder({ startedAt: new Date(2026, 10, 26), completedAt: null })).toBe(false)
+        expect(datesOutOfOrder({ startedAt: null, completedAt: new Date(2026, 10, 25) })).toBe(false)
+        expect(datesOutOfOrder({ startedAt: null, completedAt: null })).toBe(false)
+        const calls: string[] = []
+        const saved = submitListEntry({ ...base, startedAt: new Date(2026, 10, 25), completedAt: new Date(2026, 10, 25) }, 0, 0, 5114, "anime", {
+            saveEntry: (body, options) => { calls.push(`entry ${body.startedAt.day} ${body.completedAt.day}`); options.onSuccess() },
+            saveRepeat: () => calls.push("repeat"),
+            close: () => calls.push("close"),
+        })
+        expect(saved).toBe(true)
+        expect(calls).toEqual(["entry 25 25", "close"])
+    })
+
+    it("never puts the dates out of order when a status fills today", () => {
+        const today = new Date(2026, 10, 25, 14, 30)
+        const day = new Date(2026, 10, 25)
+        // completing with a start later than today: the completion date stays empty instead of today
+        const started = chooseListStatus({ ...base, status: "CURRENT", startedAt: new Date(2026, 10, 26) }, "COMPLETED", undefined, "anime", today)
+        expect(started.completedAt).toBeNull()
+        expect(datesOutOfOrder(started)).toBe(false)
+        // watching again after an earlier completion: no start of today after it
+        const done = chooseListStatus({ ...base, completedAt: new Date(2025, 3, 2) }, "CURRENT", undefined, "anime", today)
+        expect(done.startedAt).toBeNull()
+        expect(datesOutOfOrder(done)).toBe(false)
+        // started today or earlier: completing still fills today
+        const ordinary = chooseListStatus({ ...base, status: "CURRENT", startedAt: day }, "COMPLETED", undefined, "anime", today)
+        expect(ordinary.completedAt).toEqual(day)
+        expect(datesOutOfOrder(ordinary)).toBe(false)
+        // the bug as reported: Completed fills today, then a later start makes it unsavable until fixed
+        const reported = { ...chooseListStatus({ ...base, status: "CURRENT" }, "COMPLETED", undefined, "anime", today), startedAt: new Date(2026, 10, 26) }
+        expect(datesOutOfOrder(reported)).toBe(true)
     })
 })

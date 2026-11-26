@@ -55,7 +55,8 @@ export function listStatusOptions(t: Translate, type: "anime" | "manga", release
  * Choosing a status; completing an anime fills its progress (the desktop status select does the same). With `today`
  * the dates follow as on AniList's own editor: completing fills an empty completion date, starting to watch an empty
  * start date. The sheet sends both dates as they stand, so an empty one would leave the entry without a date (and the
- * title out of "Your year"). A date that is set is never replaced, and the user can still clear it.
+ * title out of "Your year"). A date that is set is never replaced, and the user can still clear it. Today is not filled
+ * in where it would put the start after the completion (datesOutOfOrder): a status tap never makes the form unsavable.
  */
 export function chooseListStatus(form: ListEntryForm, status: AL_MediaListStatus, media: AL_BaseAnime | AL_BaseManga | undefined, type: "anime" | "manga", today?: Date): ListEntryForm {
     const episodes = (media as AL_BaseAnime | undefined)?.episodes
@@ -63,10 +64,23 @@ export function chooseListStatus(form: ListEntryForm, status: AL_MediaListStatus
     if (type === "anime" && status === "COMPLETED" && episodes) next.progress = episodes
     if (today && status !== form.status) {
         const day = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-        if (status === "COMPLETED" && !form.completedAt) next.completedAt = day
-        if (status === "CURRENT" && !form.startedAt) next.startedAt = day
+        if (status === "COMPLETED" && !form.completedAt && !datesOutOfOrder({ startedAt: form.startedAt, completedAt: day })) next.completedAt = day
+        if (status === "CURRENT" && !form.startedAt && !datesOutOfOrder({ startedAt: day, completedAt: form.completedAt })) next.startedAt = day
     }
     return next
+}
+
+/** The calendar day of a date as one number (20261125), so the time a picker hands back does not count */
+function dayNumber(date: Date) {
+    return date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate()
+}
+
+/**
+ * The start date lies on a later day than the completion date. The sheet marks the start date and keeps Save off
+ * until it is fixed; the same day, or only one date set, is fine.
+ */
+export function datesOutOfOrder({ startedAt, completedAt }: Pick<ListEntryForm, "startedAt" | "completedAt">): boolean {
+    return !!startedAt && !!completedAt && dayNumber(startedAt) > dayNumber(completedAt)
 }
 
 /** A stepper's value kept inside its limits; scores keep one decimal */
@@ -131,13 +145,14 @@ export function changedRepeat(repeat: number | null, stored: number | undefined)
 
 /**
  * Save in the edit sheet: a changed rewatch count goes along, then the entry. The sheet closes only once every part is
- * saved; when one fails it stays open with the changes, and the error shows.
+ * saved; when one fails it stays open with the changes, and the error shows. Dates out of order send nothing (false).
  */
 export function submitListEntry(form: ListEntryForm, repeat: number | null, storedRepeat: number | undefined, mediaId: number, type: "anime" | "manga", actions: {
     saveEntry: (body: ReturnType<typeof listEntryPayload>, options: { onSuccess: () => void }) => void
     saveRepeat: (body: { mediaId: number, repeat: number }, options: { onSuccess: () => void }) => void
     close: () => void
-}) {
+}): boolean {
+    if (datesOutOfOrder(form)) return false
     const nextRepeat = changedRepeat(repeat, storedRepeat)
     let waiting = nextRepeat !== null ? 2 : 1
     const saved = () => {
@@ -145,9 +160,9 @@ export function submitListEntry(form: ListEntryForm, repeat: number | null, stor
     }
     if (nextRepeat !== null) actions.saveRepeat({ mediaId, repeat: nextRepeat }, { onSuccess: saved })
     actions.saveEntry(listEntryPayload(form, mediaId, type), { onSuccess: saved })
+    return true
 }
 
-/** "2026-10-05" in the date fields */
 /**
  * The button next to the progress (AnilistMediaEntryButton): nothing without a user, "add" without an entry, "edit"
  * with one. Right after adding it hides until the entry comes (`adding` = the add succeeded on this page).
@@ -166,6 +181,7 @@ export function addingDone(adding: boolean, listData: unknown): boolean {
     return adding && !!listData
 }
 
+/** "2026-10-05" in the date fields */
 export function formatFieldDate(date: Date | null) {
     if (!date) return ""
     const pad = (n: number) => String(n).padStart(2, "0")
