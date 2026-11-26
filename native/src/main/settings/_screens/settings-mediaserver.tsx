@@ -186,6 +186,11 @@ function SignedIn({ t, status }: { t: Translate, status: MediaServerStatus }) {
     const [matchOpen, setMatchOpen] = React.useState(false)
     // The time "last read" is counted from; it moves on with each answer
     const [now, setNow] = React.useState(() => Date.now())
+    // and once a minute while the page is open, so "5 min ago" does not stand still
+    React.useEffect(() => {
+        const timer = setInterval(() => setNow(Date.now()), 60_000)
+        return () => clearInterval(timer)
+    }, [])
     const reading = refresh.isPending || status.reading
     // a reading in the background (after signing in, or due) ends: the library and an open anime page show its series
     const wasReading = React.useRef(status.reading)

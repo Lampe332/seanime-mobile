@@ -192,7 +192,8 @@ export function MediaServerMatchSheet({ subject, open, onOpenChange, cover }: {
                 note={t("Pick a season when only that one belongs to this anime.", "Wähl eine Staffel, wenn nur sie zu diesem Anime gehört.")}>
                 <RowGroup>
                     <PickRow radio checked={!seasonId} onPress={() => pickSeason(null)} label={t("Whole series", "Ganze Serie")}
-                        note={plural(t, subject.episodes, ["1 episode", "{0} episodes"], ["1 Folge", "{0} Folgen"])} />
+                        // all seasons, not the episodes the current match covers (a match on one season counts only that one)
+                        note={plural(t, subject.seasons.reduce((sum, season) => sum + season.episodes, 0), ["1 episode", "{0} episodes"], ["1 Folge", "{0} Folgen"])} />
                     {subject.seasons.map(season => <PickRow key={season.id} radio checked={seasonId === season.id} onPress={() => pickSeason(season.id)}
                         label={season.name || t(`Season ${season.index ?? "?"}`, `Staffel ${season.index ?? "?"}`)}
                         note={plural(t, season.episodes, ["1 episode", "{0} episodes"], ["1 Folge", "{0} Folgen"])} />)}
