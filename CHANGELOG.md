@@ -28,6 +28,7 @@ Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lamp
 - 🎉 Media server: A series you marked as belonging to nothing is listed under "Left out" on the settings page, which is always shown with its count, and a tap brings it back
 - ⚡️ Edit sheet: Choosing Completed or Watching fills an empty completion or start date with today, like AniList's own editor, and both dates stay when you change the status
 - ⚡️ Edit sheet: A start date after the completion date is marked and can't be saved
+- ⚡️ Edit sheet: Closing it with unsaved changes asks first, so a stray tap no longer drops them
 - ⚡️ Home: The banner fades softly into the page, the continue-watching card's shade reaches every edge, and the score badge on cards matches My lists
 - ⚡️ Cards: Rows stop on a whole card, with an even peek of the next one
 - ⚡️ Performance: Pages you left are no longer redrawn in the background, so typing and opening screens take less work
