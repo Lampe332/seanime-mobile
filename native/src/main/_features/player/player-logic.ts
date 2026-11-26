@@ -172,6 +172,13 @@ export function stillEnded(ended: boolean, state: string): boolean {
     return state === "playing" ? false : ended
 }
 
+/** mpv keeps a finished file open at its last frame, where Play does nothing: Play there starts the episode again */
+export const PLAY_AGAIN_SLACK_S = 0.5
+
+export function playsFromStart(paused: boolean, currentTime: number, duration: number): boolean {
+    return paused && duration > 0 && currentTime >= duration - PLAY_AGAIN_SLACK_S
+}
+
 /** One second of the countdown. "play" when it ran out, null = cancelled/none. */
 export function countdownTick(seconds: number | null): { seconds: number | null, play: boolean } {
     if (seconds === null) return { seconds: null, play: false }

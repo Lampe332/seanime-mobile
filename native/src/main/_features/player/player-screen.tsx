@@ -101,6 +101,7 @@ import {
     type SkipSegment,
     pictureFitProperties,
     playerEpisodeTitle,
+    playsFromStart,
     type TapMemory,
     toPlayerTrack,
 } from "./player-logic"
@@ -450,8 +451,14 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
         seekTo(seekBase(timeRef.current.currentTime, pendingSeek.current, Date.now()) + seconds)
     }, [seekTo])
     const togglePlay = React.useCallback(() => {
+        const { paused, currentTime, duration } = timeRef.current
+        if (playsFromStart(paused, currentTime, duration)) {
+            seekTo(0)
+            mpv.current?.play().catch(() => {})
+            return
+        }
         mpv.current?.togglePlay().catch(() => {})
-    }, [])
+    }, [seekTo])
 
     const flash = React.useCallback((text: string, ms: number) => {
         setMessage(text)

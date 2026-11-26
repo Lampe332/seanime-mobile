@@ -36,6 +36,7 @@ import {
     scrubUp,
     shouldSendCompleted,
     TRACK_LIST_READS,
+    playsFromStart,
     stillEnded,
     sleepTimerChoice,
     sleepTimerFrom,
@@ -199,6 +200,14 @@ describe("auto next and sleep timer", () => {
         expect(stillEnded(true, "paused")).toBe(true)
         expect(stillEnded(true, "buffering")).toBe(true)
         expect(stillEnded(false, "ended")).toBe(false)
+    })
+
+    it("Play on the last frame of a finished file starts it again (device run 26.11.: Play at 0:09/0:10 did nothing)", () => {
+        expect(playsFromStart(true, 10, 10)).toBe(true)
+        expect(playsFromStart(true, 9.6, 10)).toBe(true)
+        expect(playsFromStart(true, 9, 10)).toBe(false)
+        expect(playsFromStart(false, 10, 10)).toBe(false)
+        expect(playsFromStart(true, 0, 0)).toBe(false)
     })
 
     it("counts down 5 seconds, then plays; cancelled stays cancelled", () => {
