@@ -215,7 +215,9 @@ function DateField({ value, label, invalid, onPress, onClear }: { value: Date | 
         <Pressable accessibilityRole="button" accessibilityLabel={`${label}: ${formatFieldDate(value) || "–"}`}
             accessibilityHint={invalid ? t("The start date is after the completion date.", "Das Startdatum liegt nach dem Enddatum.") : undefined} onPress={onPress}
             className="min-h-12 min-w-0 flex-1 flex-row items-center justify-between px-3 active:bg-sm-surface-control">
-            <Text className={cn("text-sm", !value && "text-sm-text-subtle", invalid && "text-sm-danger")} style={{ fontVariant: ["tabular-nums"] }}>{formatFieldDate(value) || "–"}</Text>
+            {/* one line: two date fields side by side leave a phone little room beside the ✕ (S22 run 26.11.: "2026-05-0" / "6") */}
+            <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}
+                className={cn("min-w-0 flex-shrink text-sm", !value && "text-sm-text-subtle", invalid && "text-sm-danger")} style={{ fontVariant: ["tabular-nums"] }}>{formatFieldDate(value) || "–"}</Text>
             {!value && <CalendarDays size={18} color={colors.smTextMuted} />}
         </Pressable>
         {!!value && <Pressable accessibilityRole="button" accessibilityLabel={`${t("Remove date", "Datum entfernen")}: ${label}`} onPress={onClear}
