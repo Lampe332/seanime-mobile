@@ -43,6 +43,7 @@ import Puzzle from "lucide-react-native/icons/puzzle"
 import Unlink from "lucide-react-native/icons/unlink"
 import { successFeedback } from "@/lib/feedback"
 import React from "react"
+import { useAfterPageEnter } from "@/components/shared/cover-flight"
 import { PixelRatio, Pressable, TextInput, useWindowDimensions, View } from "react-native"
 import { snapRow } from "@/components/shared/cover-layout"
 import { formatDate } from "@/lib/i18n/format"
@@ -61,6 +62,9 @@ import { formatDate } from "@/lib/i18n/format"
 const PAGE = 24
 const libraryEpisodeItems = forEpisodeType("library")
 const PAGINATE_FROM = 29
+const UNDOWNLOADED_MAX = 28
+/** Rows built in the frame of the tap (more than fit on a tablet's right column) */
+const FIRST_ROWS = 10
 
 export function EpisodeSection({ entry, bottomSection }: { entry: Anime_Entry, bottomSection?: React.ReactNode }) {
     const t = useTr()
@@ -68,6 +72,9 @@ export function EpisodeSection({ entry, bottomSection }: { entry: Anime_Entry, b
     const { playMediaFile } = useHandlePlayMedia()
     const { data: watchHistory } = useGetContinuityWatchHistory()
     const [page, setPage] = React.useState(1)
+    // the tap's frame builds only the rows on screen; the rest (below the fold) follows once the page has come in
+    const ready = useAfterPageEnter(entry.mediaId)
+    const rows = ready ? UNDOWNLOADED_MAX : FIRST_ROWS
 
     if (!media) return null
 
@@ -88,7 +95,7 @@ export function EpisodeSection({ entry, bottomSection }: { entry: Anime_Entry, b
                             : t("Not in your library", "Nicht in deiner Bibliothek")}</Text>
                     </View>
                     : <Text className="text-lg font-semibold tracking-[-0.45px] text-[#fefce8]">{t("Not yet released", "Noch nicht erschienen")}</Text>}
-                {!entry._isNakamaEntry && <UndownloadedEpisodeList downloadInfo={entry.downloadInfo} media={media} underHeading />}
+                {!entry._isNakamaEntry && <UndownloadedEpisodeList downloadInfo={entry.downloadInfo} media={media} underHeading rows={rows} />}
             </View>
             {bottomSection}
         </View>
@@ -96,7 +103,8 @@ export function EpisodeSection({ entry, bottomSection }: { entry: Anime_Entry, b
 
     const paginate = mainEpisodes.length >= PAGINATE_FROM
     const pages = paginate ? Math.ceil(mainEpisodes.length / PAGE) : 1
-    const shown = paginate ? mainEpisodes.slice((page - 1) * PAGE, page * PAGE) : mainEpisodes
+    const pageEpisodes = paginate ? mainEpisodes.slice((page - 1) * PAGE, page * PAGE) : mainEpisodes
+    const shown = ready ? pageEpisodes : pageEpisodes.slice(0, FIRST_ROWS)
 
     return <View className="gap-6">
         <PhoneDownloadedEpisodes mediaId={entry.mediaId} />
@@ -120,15 +128,15 @@ export function EpisodeSection({ entry, bottomSection }: { entry: Anime_Entry, b
                 </View>}
             </View>
 
-            {!entry._isNakamaEntry && <UndownloadedEpisodeList downloadInfo={entry.downloadInfo} media={media} watchedProgress={entry.listData?.progress} />}
+            {!entry._isNakamaEntry && <UndownloadedEpisodeList downloadInfo={entry.downloadInfo} media={media} watchedProgress={entry.listData?.progress} rows={rows} />}
 
-            {specialEpisodes.length > 0 && <View className="gap-2">
+            {ready && specialEpisodes.length > 0 && <View className="gap-2">
                 <SectionTitle>{t("Specials", "Specials")}</SectionTitle>
                 <View>{specialEpisodes.map(episode => <EpisodeItem key={episode.localFile?.path || episode.displayTitle} episode={episode} media={media}
                     watchedProgress={entry.listData?.progress} onPlay={play} />)}</View>
             </View>}
 
-            {ncEpisodes.length > 0 && <View className="gap-2">
+            {ready && ncEpisodes.length > 0 && <View className="gap-2">
                 <SectionTitle>{t("Others", "Sonstiges")}</SectionTitle>
                 <View>{ncEpisodes.map(episode => <EpisodeItem key={episode.localFile?.path} episode={episode} media={media}
                     watchedProgress={entry.listData?.progress} onPlay={play} />)}</View>
@@ -369,8 +377,8 @@ function MetadataSheet({ episode, onClose }: { episode: Anime_Episode, onClose: 
 }
 
 /** Episodes neither in the library nor (with a torrent provider) watched; at most 28. `underHeading`: under "Not in your library" */
-function UndownloadedEpisodeList({ downloadInfo, media, watchedProgress, underHeading }: {
-    downloadInfo: Anime_EntryDownloadInfo | undefined, media: AL_BaseAnime, watchedProgress?: number, underHeading?: boolean
+function UndownloadedEpisodeList({ downloadInfo, media, watchedProgress, underHeading, rows = UNDOWNLOADED_MAX }: {
+    downloadInfo: Anime_EntryDownloadInfo | undefined, media: AL_BaseAnime, watchedProgress?: number, underHeading?: boolean, rows?: number
 }) {
     const t = useTr()
     const { hasTorrentProvider } = useHasTorrentProvider()
@@ -390,7 +398,7 @@ function UndownloadedEpisodeList({ downloadInfo, media, watchedProgress, underHe
     return <View className="gap-4">
         {!repeatsHeading && <Text className="text-base">{text}</Text>}
         <View>
-            {episodes.slice(0, 28).map((ep, idx) => {
+            {episodes.slice(0, Math.min(rows, UNDOWNLOADED_MAX)).map((ep, idx) => {
                 if (!ep.episode) return null
                 const episode = ep.episode
                 return <EpisodeRow key={episode.localFile?.path || idx} media={media} image={episode.episodeMetadata?.image} isInvalid={episode.isInvalid}
@@ -413,7 +421,7 @@ function UndownloadedEpisodeList({ downloadInfo, media, watchedProgress, underHe
                 </EpisodeRow>
             })}
         </View>
-        {episodes.length > 28 && <Text className="text-lg font-semibold">{t("And more...", "Und mehr …")}</Text>}
+        {rows >= UNDOWNLOADED_MAX && episodes.length > UNDOWNLOADED_MAX && <Text className="text-lg font-semibold">{t("And more...", "Und mehr …")}</Text>}
         {!!info && <EpisodeInfoDialog episode={info} onClose={() => setInfo(null)} />}
     </View>
 }

@@ -267,7 +267,7 @@ export function AnimeEntryPage() {
     }, [entry, isLoading, isError, mediaId, router])
 
     // characters and relations (below the screen) come once the page has come in
-    const moreReady = useAfterPageEnter()
+    const moreReady = useAfterPageEnter(mediaId)
 
     if (isLoading) return <View className="flex-1 items-center justify-center"><ActivityIndicator color={colors.smAccent} size="large" /></View>
     if (!entry && isError) return <View className="flex-1 items-center justify-center gap-4 px-6">

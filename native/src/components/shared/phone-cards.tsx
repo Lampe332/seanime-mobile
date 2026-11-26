@@ -192,12 +192,14 @@ export const PhoneCoverCard = React.memo(function PhoneCoverCard({ media, type, 
                     </View>
                 )}
             </View>
-            <Text numberOfLines={2} textBreakStrategy="simple" className="text-[13px] font-medium leading-[18px]">{title}</Text>
+            <Text numberOfLines={2} textBreakStrategy="simple" className="text-[13px] font-medium leading-[18px]">{breakableTitle(title)}</Text>
             {hasMeta && (
                 <View className="flex-row items-center">
                     {metaIcon}
-                    <Text numberOfLines={1} textBreakStrategy="simple" className={cn("shrink text-xs", metaTone === "accent" ? "font-semibold text-sm-accent" : "text-sm-text-subtle")}
-                        style={{ fontVariant: ["tabular-nums"] }}>{meta}</Text>
+                    {typeof meta === "string"
+                        ? <YearEndText text={meta} className={cn("text-xs", metaTone === "accent" ? "font-semibold text-sm-accent" : "text-sm-text-subtle")} style={TABULAR} />
+                        : <Text numberOfLines={1} textBreakStrategy="simple" className={cn("shrink text-xs", metaTone === "accent" ? "font-semibold text-sm-accent" : "text-sm-text-subtle")}
+                            style={TABULAR}>{meta}</Text>}
                 </View>
             )}
         </Pressable>
@@ -237,6 +239,26 @@ function CoverCardMenu({ anchor, title, onClose, media, type, menuItems, onList,
 }
 
 /** `.ps-badge` / `.ps-tag`: a dark pill on the cover, so it reads on any picture. */
+const TABULAR = { fontVariant: ["tabular-nums" as const] }
+
+/** Lets a title wrap after "×", "・" or "/" ("NARUTO×UT") instead of the word being cut anywhere when it does not fit */
+export function breakableTitle(title: string) {
+    return title.replace(/([×・/])(?=\S)/g, "$1​")
+}
+
+/**
+ * A one-line meta ending in a year ("Summer 2024", "Special · 2019"): on a narrow card (four columns) the front shortens,
+ * the year stays whole. The parent is a row.
+ */
+export function YearEndText({ text, className, style }: { text: string, className?: string, style?: React.ComponentProps<typeof Text>["style"] }) {
+    const match = /^(.*\S)\s+((?:19|20)\d{2})$/.exec(text)
+    if (!match) return <Text numberOfLines={1} textBreakStrategy="simple" className={cn("shrink", className)} style={style}>{text}</Text>
+    return <>
+        <Text numberOfLines={1} textBreakStrategy="simple" className={cn("shrink", className)} style={style}>{match[1]}</Text>
+        <Text numberOfLines={1} className={className} style={style}>{" " + match[2]}</Text>
+    </>
+}
+
 function CardMark({ text, className, textClassName }: { text: string, className: string, textClassName: string }) {
     return (
         <View style={{ maxWidth: "88%" }} className={cn("absolute rounded-full bg-[rgba(12,12,14,0.82)] px-[7px] py-[3px]", className)}>

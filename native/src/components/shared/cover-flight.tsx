@@ -313,15 +313,18 @@ export function useCoverFlightTarget(id: number | null, uri: string | undefined)
  * the cover's flight into it ends, or after the page's fade (300 ms) when nothing flies. They no longer add to the frame of
  * the tap, where the header and the episode rows are built (S22: janky frames on every card → page).
  */
-export function useAfterPageEnter() {
+export function useAfterPageEnter(key?: unknown) {
     const flying = useCoverFlight(s => s.flight?.direction === "in")
-    const [ready, setReady] = React.useState(false)
-    const flew = React.useRef(flying)
+    // per key: the entry tab stays mounted and only gets a new id, so every open defers again (was: only the first)
+    const [readyFor, setReadyFor] = React.useState<{ key: unknown } | null>(null)
+    const ready = readyFor !== null && Object.is(readyFor.key, key)
+    const flew = React.useRef<{ key: unknown, flew: boolean }>({ key, flew: false })
     React.useEffect(() => {
-        if (flying) flew.current = true
+        if (!Object.is(flew.current.key, key)) flew.current = { key, flew: false }
+        if (flying) flew.current.flew = true
         if (ready || flying) return
-        const timer = setTimeout(() => setReady(true), flew.current ? 0 : 300)
+        const timer = setTimeout(() => setReadyFor({ key }), flew.current.flew ? 0 : 300)
         return () => clearTimeout(timer)
-    }, [ready, flying])
+    }, [ready, flying, key])
     return ready
 }

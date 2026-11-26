@@ -21,6 +21,7 @@ import { Pressable, useWindowDimensions, View } from "react-native"
 import Animated from "react-native-reanimated"
 import { CardMenu, type CardMenuAnchor } from "@/components/shared/card-menu"
 import { useCoverFlightSource } from "@/components/shared/cover-flight"
+import { breakableTitle, YearEndText } from "@/components/shared/phone-cards"
 import { useImageFade } from "@/components/ui/core/image-fade"
 import { usePressScale } from "@/components/ui/core/press"
 import { SCALE } from "@/lib/motion"
@@ -149,8 +150,10 @@ export const MediaEntryCard = React.memo(function MediaEntryCard({ media, type, 
                 )}
             </View>
             <View className="gap-1 pt-2">
-                <Text numberOfLines={2} className="text-[13px] font-medium leading-[18px]">{title}</Text>
-                {!!season && <Text numberOfLines={1} className="text-xs text-sm-text-subtle" style={seasonTop ? { paddingTop: seasonTop } : undefined}>{season}</Text>}
+                <Text numberOfLines={2} textBreakStrategy="simple" className="text-[13px] font-medium leading-[18px]">{breakableTitle(title)}</Text>
+                {!!season && <View className="flex-row" style={seasonTop ? { paddingTop: seasonTop } : undefined}>
+                    <YearEndText text={season} className="text-xs text-sm-text-subtle" />
+                </View>}
             </View>
         </Pressable>
         </Animated.View>

@@ -103,6 +103,7 @@ export function RelatedCard({ card, width }: { card: RelatedCardData, width: num
         // the relation label takes the corner of the airing mark (2.0.33 shows only the label there)
         hideReleasingBadge={!!card.label} seasonTop={5} withFormat={!!card.label}
         overlay={card.label ? <View className="absolute right-1.5 top-1.5 max-w-[85%] rounded-full bg-[rgba(12,12,14,0.82)] px-2.5 py-1">
-            <Text numberOfLines={1} className="text-[13px] font-semibold text-white">{card.label}</Text>
+            {/* "Side story" on a narrow card (four columns): smaller instead of "Side sto…" */}
+            <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} className="text-[13px] font-semibold text-white">{card.label}</Text>
         </View> : undefined} />
 }
