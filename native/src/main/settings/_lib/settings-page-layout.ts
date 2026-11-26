@@ -16,6 +16,12 @@ export function settingsColumnMaxWidth(tablet: boolean): number {
 export const JUMP_ACTIVE_LINE = 32
 
 /**
+ * How close to the end of the rows counts as the end: the offset a fling settles on is a fraction of a pixel short of
+ * the content's end on a 3.5x screen (S22: "Matching" stayed unlit at the bottom)
+ */
+export const JUMP_END_SLACK = 2
+
+/**
  * The index of the group shown at the top: the last one whose top passed the line. At the end of the rows the last group
  * is current, also when it is too short to reach the top. `tops` are content offsets in the order of the chips.
  */
@@ -27,13 +33,28 @@ export function activeJumpIndex({ tops, scrollY, viewportHeight, contentHeight, 
     line?: number
 }): number {
     if (tops.length === 0) return -1
-    if (scrollY > 0 && viewportHeight > 0 && scrollY + viewportHeight >= contentHeight - 1) return tops.length - 1
+    if (scrollY > 0 && viewportHeight > 0 && scrollY + viewportHeight >= contentHeight - JUMP_END_SLACK) return tops.length - 1
     let active = 0
     for (let i = 0; i < tops.length; i++) {
         if (tops[i] <= scrollY + line) active = i
         else break
     }
     return active
+}
+
+/** What a scroll event of the rows says about them; every event carries the sizes of that moment, not of the last layout */
+export interface JumpScrollEvent {
+    contentOffset: { y: number }
+    layoutMeasurement: { height: number }
+    contentSize: { height: number }
+}
+
+/**
+ * The rows' scroll state for activeJumpIndex from a scroll, drag-end or momentum-end event. The page reads it at each of
+ * them: onScroll is throttled, so its last event can come before a fling settles at the end.
+ */
+export function jumpScrollMetrics(event: JumpScrollEvent): { scrollY: number, viewportHeight: number, contentHeight: number } {
+    return { scrollY: event.contentOffset.y, viewportHeight: event.layoutMeasurement.height, contentHeight: event.contentSize.height }
 }
 
 /**
@@ -49,9 +70,17 @@ export const PICKER_MAX_SHARE = 0.85
 
 /**
  * The most the options may take: the share less the sheet's own parts (sheet.tsx: 20dp on top, the 25dp title, about two
- * lines of note, 16dp to the body, the reset button's ~76dp foot, 12dp under it).
+ * lines of note, 16dp to the body, the reset button's ~76dp foot, 12dp under it). The tablet's side sheet runs the full
+ * height and already bounds its body to that room: there the options take no bound of their own (undefined), else they
+ * ended ~290px above its bottom.
  */
-export function pickerListMaxHeight({ windowHeight, hasNote, hasFooter }: { windowHeight: number, hasNote: boolean, hasFooter: boolean }): number {
+export function pickerListMaxHeight({ windowHeight, hasNote, hasFooter, sideSheet = false }: {
+    windowHeight: number
+    hasNote: boolean
+    hasFooter: boolean
+    sideSheet?: boolean
+}): number | undefined {
+    if (sideSheet) return undefined
     const chrome = 20 + 25 + (hasNote ? 44 : 0) + 16 + (hasFooter ? 76 : 0) + 12
     return Math.max(160, Math.round(windowHeight * PICKER_MAX_SHARE - chrome))
 }

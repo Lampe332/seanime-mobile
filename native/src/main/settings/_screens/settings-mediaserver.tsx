@@ -147,7 +147,7 @@ function SignInForm({ t }: { t: Translate }) {
                 "Diese Adresse hat kein https://, deshalb geht dein Passwort unverschlüsselt durchs Netzwerk. Nutze https://, wenn dein Server es unterstützt.")} /> : undefined}>
             <View className="gap-2 bg-sm-surface px-0 py-1">
                 <TextInput {...accentInput} ref={addressRef} value={address} onChangeText={edit(setAddress)} onBlur={() => setAddressLeft(true)} editable={!isPending}
-                    placeholder={t("Server address, e.g. http://192.168.1.20:8096", "Serveradresse, z. B. http://192.168.1.20:8096")} placeholderTextColor={colors.smTextSubtle}
+                    placeholder={t("e.g. http://192.168.1.20:8096", "z. B. http://192.168.1.20:8096")} placeholderTextColor={colors.smTextSubtle}
                     accessibilityLabel={t("Server address", "Serveradresse")} autoCapitalize="none" autoCorrect={false} autoComplete="url" textContentType="URL"
                     keyboardType="url" returnKeyType="next" className={cn(FIELD, addressWrong && "border-2 border-sm-danger")} />
                 {addressWrong && <Text accessibilityRole="alert" className="px-1 text-[13px] leading-[19.5px] text-sm-danger">

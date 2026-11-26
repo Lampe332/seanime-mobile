@@ -7,7 +7,7 @@ import { haptic } from "@/lib/feedback"
 import { useThemeColors } from "@/lib/theme/appearance"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { type TourScrollHost, TourScrollContext } from "@/main/_features/tour/tour-targets"
-import { activeJumpIndex, chipRowOffset, focusChipId, SETTINGS_WIDE_COLUMN_WIDTH, settingsColumnMaxWidth } from "@/main/settings/_lib/settings-page-layout"
+import { activeJumpIndex, chipRowOffset, focusChipId, jumpScrollMetrics, type JumpScrollEvent, SETTINGS_WIDE_COLUMN_WIDTH, settingsColumnMaxWidth } from "@/main/settings/_lib/settings-page-layout"
 import type { LucideIcon } from "lucide-react-native"
 import ArrowLeft from "lucide-react-native/icons/arrow-left"
 import React from "react"
@@ -135,6 +135,15 @@ export function SettingsPage({ icon: Icon, title, summary, onBack, jump = true, 
         const id = list[index]?.id ?? null
         setActiveId(previous => previous === id ? previous : id)
     }, [])
+
+    // The throttled onScroll can miss where a fling settles; its end reports it, so the end of the rows lights the last chip
+    const readScroll = (event: JumpScrollEvent) => {
+        const metrics = jumpScrollMetrics(event)
+        offset.current = metrics.scrollY
+        if (metrics.viewportHeight > 0) viewport.current = metrics.viewportHeight
+        if (metrics.contentHeight > 0) content.current = metrics.contentHeight
+        if (showChips) refreshActive()
+    }
 
     React.useEffect(() => {
         chipsRef.current = chips
@@ -324,10 +333,9 @@ export function SettingsPage({ icon: Icon, title, summary, onBack, jump = true, 
                         if (showChips) requestAnimationFrame(measure)
                     }}
                     onScrollBeginDrag={() => { pinned.current = false }}
-                    onScroll={event => {
-                        offset.current = event.nativeEvent.contentOffset.y
-                        if (showChips) refreshActive()
-                    }}
+                    onScroll={event => readScroll(event.nativeEvent)}
+                    onScrollEndDrag={event => readScroll(event.nativeEvent)}
+                    onMomentumScrollEnd={event => readScroll(event.nativeEvent)}
                     scrollEventThrottle={64}
                     contentContainerStyle={{ ...column, paddingBottom: bottomPad ?? ownBottom }}
                     contentContainerClassName={`gap-6 ${side}`}

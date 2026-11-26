@@ -36,11 +36,13 @@ import { Platform } from "react-native"
 import { requestPinWidget } from "react-native-android-widget"
 
 /**
- * App lock (lib/app-lock): turning it on and off both ask the device's own lock. Without one it cannot be turned on;
- * a switch left on after the device lock was removed can still be turned off (confirmWithDeviceLock answers true).
+ * Privacy: the app lock and the usage count in one group (two groups both titled "Privacy" shared one chip, which led to
+ * the lower one). App lock (lib/app-lock): turning it on and off both ask the device's own lock. Without one it cannot be
+ * turned on; a switch left on after the device lock was removed can still be turned off (confirmWithDeviceLock answers true).
  */
-function AppLockGroup({ t }: { t: Translate }) {
+function PrivacyGroup({ t }: { t: Translate }) {
     const [enabled] = useAtom(appLockEnabledAtom)
+    const [usageCount, setUsageCount] = useAtom(usageCountEnabledAtom)
     const hasLock = useHasDeviceLock()
     const unavailable = hasLock === false && !enabled
     const toggle = async (next: boolean) => {
@@ -48,13 +50,18 @@ function AppLockGroup({ t }: { t: Translate }) {
         if (await confirmWithDeviceLock(prompt)) setAppLockEnabled(next)
     }
     return (
-        <SettingsGroup title={t("Privacy", "Privatsphäre")}>
+        <SettingsGroup title={t("Privacy", "Datenschutz")}>
             <LocalSwitch label={t("App lock", "App-Sperre")} checked={enabled} onCheckedChange={next => void toggle(next)}
                 defaultChecked={false} scope="device" disabled={hasLock === undefined || unavailable}
                 note={unavailable
                     ? t("Set up a screen lock or fingerprint on this device first.", "Richte zuerst eine Displaysperre oder einen Fingerabdruck auf diesem Gerät ein.")
                     : t("Asks for your fingerprint, face or screen lock when the app starts and after a minute away.",
                         "Fragt nach Fingerabdruck, Gesicht oder Displaysperre, wenn die App startet und nach einer Minute im Hintergrund.")} />
+            <LocalSwitch label={t("Send anonymous usage count", "Anonyme Nutzungszählung senden")} checked={usageCount} onCheckedChange={setUsageCount} defaultChecked
+                note={t(
+                    "Once a day the app sends a random ID and its version, so we know how many people use it. No account, no email, no IP is stored.",
+                    "Einmal am Tag sendet die App eine zufällige ID und ihre Version, damit wir wissen, wie viele sie nutzen. Kein Konto, keine E-Mail, keine IP wird gespeichert.",
+                )} />
         </SettingsGroup>
     )
 }
@@ -88,7 +95,7 @@ export function SettingsAppSection({ t }: { t: Translate }) {
                     "Solange an, landet nichts, was du schaust oder liest, im Verlauf oder bei „Weiterschauen“, und kein Fortschritt geht an AniList. Auch im Menü.")} />
         </SettingsGroup>
 
-        <AppLockGroup t={t} />
+        <PrivacyGroup t={t} />
 
         <SettingsGroup title={t("Episodes", "Folgen")}>
             <DefaultSourceSelect t={t} />
@@ -143,7 +150,6 @@ export function SettingsAppSection({ t }: { t: Translate }) {
 
         <BackupGroup t={t} />
         <LocalAccountGroup t={t} isSimulated={isSimulated} />
-        <PrivacyGroup t={t} />
         {!isSimulated && !!status?.user && <AccountGroup t={t} />}
     </>
 }
@@ -223,17 +229,6 @@ async function addWidget(t: Translate, widgetName: string) {
     const asked = await requestPinWidget({ widgetName }).catch(() => false)
     if (!asked) toast.error(t("Your launcher cannot add widgets from apps. Add it from the home screen instead.",
         "Dein Startbildschirm kann keine Widgets aus Apps hinzufügen. Füge es dort über die Widget-Auswahl hinzu."))
-}
-
-function PrivacyGroup({ t }: { t: Translate }) {
-    const [usageCount, setUsageCount] = useAtom(usageCountEnabledAtom)
-    return <SettingsGroup title={t("Privacy", "Datenschutz")}>
-        <LocalSwitch label={t("Send anonymous usage count", "Anonyme Nutzungszählung senden")} checked={usageCount} onCheckedChange={setUsageCount} defaultChecked
-            note={t(
-                "Once a day the app sends a random ID and its version, so we know how many people use it. No account, no email, no IP is stored.",
-                "Einmal am Tag sendet die App eine zufällige ID und ihre Version, damit wir wissen, wie viele sie nutzen. Kein Konto, keine E-Mail, keine IP wird gespeichert.",
-            )} />
-    </SettingsGroup>
 }
 
 function AppFeedbackGroup({ t }: { t: Translate }) {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { activeJumpIndex, chipRowOffset, focusChipId, pickerListMaxHeight, settingsColumnMaxWidth } from "./settings-page-layout"
+import { activeJumpIndex, chipRowOffset, focusChipId, jumpScrollMetrics, pickerListMaxHeight, settingsColumnMaxWidth } from "./settings-page-layout"
 
 describe("the settings column", () => {
     it("keeps the phone at 640 and lets a tablet fill up to 960", () => {
@@ -27,6 +27,21 @@ describe("the active jump chip", () => {
         expect(at(1200)).toBe(3)
     })
 
+    it("is the last group where a fling settles a fraction short of the end", () => {
+        // S22 (3.5x): the offset ends 1.7dp short of content - viewport; "Matching" / "Debrid" stayed unlit
+        expect(at(1198.3)).toBe(3)
+        expect(at(1190)).toBe(2)
+    })
+
+    it("lights the last chip from the momentum-end event, with that moment's sizes", () => {
+        // the throttled onScroll's last event came at 1130; the fling's end reports where it settled
+        const tabs = [0, 500, 1100, 1700]
+        const throttled = jumpScrollMetrics({ contentOffset: { y: 1130 }, layoutMeasurement: { height: 700 }, contentSize: { height: 2000 } })
+        const settled = jumpScrollMetrics({ contentOffset: { y: 1299.6 }, layoutMeasurement: { height: 700 }, contentSize: { height: 2000 } })
+        expect(activeJumpIndex({ tops: tabs, ...throttled })).toBe(2)
+        expect(activeJumpIndex({ tops: tabs, ...settled })).toBe(3)
+    })
+
     it("is none without groups", () => {
         expect(activeJumpIndex({ tops: [], scrollY: 0, viewportHeight: 600, contentHeight: 600 })).toBe(-1)
     })
@@ -37,6 +52,12 @@ describe("the sheet of all options", () => {
         // S22: 780dp tall, a note and the reset button: 663 - 193
         expect(pickerListMaxHeight({ windowHeight: 780, hasNote: true, hasFooter: true })).toBe(470)
         expect(pickerListMaxHeight({ windowHeight: 780, hasNote: false, hasFooter: false })).toBe(590)
+    })
+
+    it("takes no bound of its own in the tablet's side sheet, which bounds its body to the full height", () => {
+        // Pixel Tablet emulator (2560x1600): the options ended ~290px above the sheet's bottom
+        expect(pickerListMaxHeight({ windowHeight: 800, hasNote: true, hasFooter: true, sideSheet: true })).toBeUndefined()
+        expect(pickerListMaxHeight({ windowHeight: 800, hasNote: true, hasFooter: true, sideSheet: false })).toBe(487)
     })
 
     it("leaves room for a few options on a very short window", () => {

@@ -17,6 +17,8 @@ import { THEME_DEFAULT_VALUES } from "@/lib/theme/theme-hooks"
 import { serverStatusAtom } from "@/main/_atoms/server-status.atoms"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
 import { type RowReveal, useJumpTarget, useRowFocus } from "@/main/settings/_components/settings-page"
+import { WIDE_MIN_WIDTH } from "@/lib/tablet-ui"
+import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { pickerListMaxHeight } from "@/main/settings/_lib/settings-page-layout"
 import { withStoredOption, type Option } from "@/main/settings/_lib/settings-phone"
 import { useQueryClient } from "@tanstack/react-query"
@@ -519,6 +521,9 @@ export function SelectRow({ label, note, value, options, onChange, disabled, sub
     const colors = useThemeColors()
     const t = useTr()
     const { height: windowHeight } = useWindowDimensions()
+    // the tablet's side sheet (sheet.tsx) bounds its body itself
+    const { isTablet, window } = useTabletLayout()
+    const sideSheet = isTablet && window.width >= WIDE_MIN_WIDTH
     const [open, setOpen] = React.useState(false)
     const changed = defaultValue !== undefined && value !== defaultValue
 
@@ -564,9 +569,9 @@ export function SelectRow({ label, note, value, options, onChange, disabled, sub
                 setOpen(false)
                 onChange(defaultValue)
             }}>{t("Reset to default", "Auf Standard zurücksetzen")}</Button> : undefined}>
-            {/* As tall as the options, at most ~85 % of the screen with the sheet's head and foot; past it they scroll here */}
+            {/* As tall as the options, at most ~85 % of the screen with the sheet's head and foot (the side sheet: its body); past it they scroll here */}
             <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}
-                style={{ flexGrow: 0, maxHeight: pickerListMaxHeight({ windowHeight, hasNote: !!note, hasFooter: changed }) }}>
+                style={{ flexGrow: 0, maxHeight: pickerListMaxHeight({ windowHeight, hasNote: !!note, hasFooter: changed, sideSheet }) }}>
             <View accessibilityRole="radiogroup" accessibilityLabel={label} className="gap-0.5 overflow-hidden rounded-surface">
                 {all.map(option => {
                     const selected = option.value === value
@@ -597,9 +602,11 @@ export function SelectRow({ label, note, value, options, onChange, disabled, sub
  * keeps its full width and the label wraps instead; a long one (a path) stops at 55 % with an ellipsis (settings audit
  * 98fa4e2: values were cut to "No…" and "De…").
  */
-export function LinkRow({ label, value, note, onPress, disabled, tone, chevron = true, sub, icon: Icon, scope }: {
+export function LinkRow({ label, value, note, onPress, disabled, tone, chevron = true, sub, icon: Icon, scope, path }: {
     label: string
     value?: string
+    /** The value is a folder's path: shortened in its middle, so the folder's name at its end stays (S22: "/storage/emulated/0/An…") */
+    path?: boolean
     note?: string
     onPress: () => void
     disabled?: boolean
@@ -618,7 +625,7 @@ export function LinkRow({ label, value, note, onPress, disabled, tone, chevron =
             <RowHighlight label={label} />
             {!!Icon && <Icon size={20} color={colors.smTextMuted} />}
             <RowText label={label} note={note} scope={scope} tone={tone} />
-            {!!value && <Text numberOfLines={1} style={VALUE_STYLE} className={VALUE}>{value}</Text>}
+            {!!value && <Text numberOfLines={1} ellipsizeMode={path ? "middle" : "tail"} style={VALUE_STYLE} className={VALUE}>{value}</Text>}
             {chevron && <ChevronRight size={18} color={colors.smTextSubtle} />}
         </Pressable>
     )
@@ -715,7 +722,7 @@ function TextSheet({ open, onOpenChange, title, label, note, value, placeholder,
 }
 
 /** Opens a TextSheet from a row showing the value. */
-export function TextSettingRow({ label, value, empty, note, sheetTitle, placeholder, secure, multiline, keyboardType, validate, onApply, display, sub, extra }: {
+export function TextSettingRow({ label, value, empty, note, sheetTitle, placeholder, secure, multiline, keyboardType, validate, onApply, display, sub, extra, path }: {
     label: string
     value: string
     /** Shown in the row when the value is empty */
@@ -732,11 +739,13 @@ export function TextSettingRow({ label, value, empty, note, sheetTitle, placehol
     display?: (value: string) => string
     sub?: boolean
     extra?: (setDraft: (value: string) => void) => React.ReactNode
+    /** The value is a folder's path (LinkRow) */
+    path?: boolean
 }) {
     const [open, setOpen] = React.useState(false)
     const [opened, setOpened] = React.useState(0)
     return <>
-        <LinkRow label={label} value={value ? (display ? display(value) : value) : empty} sub={sub} onPress={() => {
+        <LinkRow label={label} value={value ? (display ? display(value) : value) : empty} sub={sub} path={path && !!value} onPress={() => {
             setOpened(count => count + 1)
             setOpen(true)
         }} />
