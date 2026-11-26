@@ -126,6 +126,14 @@ function Backdrop({ children }: { children: React.ReactNode }) {
     )
 }
 
+/** Scrolls the sheet's body to a row of it (a settings search hit that stands in a sheet) */
+export type SheetScroll = (row: React.RefObject<React.ComponentRef<typeof View> | null>) => void
+const SheetScrollContext = React.createContext<SheetScroll | null>(null)
+/** The body scroll of the sheet around this view; null outside a sheet */
+export function useSheetScroll() {
+    return React.useContext(SheetScrollContext)
+}
+
 export function Sheet({ open, onOpenChange, title, description, children, footer, className, tourTarget, compact, workspace, titleIcon, dense }: BaseProps & {
     /** shown before the title in one row (the extension sheets' icon) */
     titleIcon?: React.ReactNode
@@ -170,6 +178,24 @@ export function Sheet({ open, onOpenChange, title, description, children, footer
     const bodyStyle = useAnimatedStyle(() => ({
         maxHeight: Math.max(120, bodyBase - headHeight.get() - (hasFooter ? footHeight.get() : 0)),
     }))
+    const bodyRef = React.useRef<React.ComponentRef<typeof Animated.ScrollView>>(null)
+    const bodyContentRef = React.useRef<React.ComponentRef<typeof View>>(null)
+    const bodyHeight = React.useRef(0)
+    const scrollTimer = React.useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+    React.useEffect(() => () => clearTimeout(scrollTimer.current), [])
+    // After the sheet has slid in and laid out, a row in its body is scrolled a third down the visible body
+    const scrollTo = React.useCallback<SheetScroll>(row => {
+        clearTimeout(scrollTimer.current)
+        scrollTimer.current = setTimeout(() => {
+            const content = bodyContentRef.current
+            if (!row.current || !content) return
+            row.current.measureLayout(content, (_x, y, _width, height) => {
+                const room = bodyHeight.current
+                if (room <= 0 || y + height <= room) return
+                bodyRef.current?.scrollTo({ y: Math.max(0, y - Math.max(24, (room - height) / 3)), animated: true })
+            })
+        }, (side ? 260 : DURATION.sheetPhone) + 50)
+    }, [side])
 
     return (
         <DialogPrimitive.Root open={open} onOpenChange={onOpenChange} style={OUT_OF_FLOW}>
@@ -203,8 +229,10 @@ export function Sheet({ open, onOpenChange, title, description, children, footer
                                     <Header title={title} description={description} large compact={compact} workspace={side && workspace} titleIcon={titleIcon} />
                                 </View>
                                 <Animated.ScrollView
+                                    ref={bodyRef}
                                     // only as tall as its content; it scrolls once it reaches the sheet's room (see bodyStyle)
                                     style={[{ flexShrink: 1, marginTop: compact ? 12 : 16, flexGrow: side && workspace ? 1 : 0 }, bodyStyle]}
+                                    onLayout={event => { bodyHeight.current = event.nativeEvent.layout.height }}
                                     keyboardShouldPersistTaps="handled"
                                     showsVerticalScrollIndicator={false}
                                 >
@@ -213,8 +241,8 @@ export function Sheet({ open, onOpenChange, title, description, children, footer
                                       * above became the JS responder, and Android hands a responder view every move of its
                                       * touch: a slow drag never reached the scroll view (filter sheets stuck at "Year", T1/S2 15.11.).
                                       */}
-                                    <View className={dense ? "gap-4" : "gap-5"} onStartShouldSetResponder={claimTouch}>
-                                        {children}
+                                    <View ref={bodyContentRef} className={dense ? "gap-4" : "gap-5"} onStartShouldSetResponder={claimTouch}>
+                                        <SheetScrollContext.Provider value={scrollTo}>{children}</SheetScrollContext.Provider>
                                     </View>
                                 </Animated.ScrollView>
                                 {!!footer && <View onLayout={event => footHeight.set(event.nativeEvent.layout.height)} style={{ paddingTop: sheetFooterTop({ compact, dense }) }}

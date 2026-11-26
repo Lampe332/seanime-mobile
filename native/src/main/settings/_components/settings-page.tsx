@@ -1,6 +1,7 @@
 import { useNavBarHeight } from "@/components/navigation/app-navigation"
 import { useMiniPlayerFrame, usePageBottomPad, usePageTop, usePhonePageTint } from "@/components/shared/phone-screen"
 import { cn } from "@/components/ui/core/styling"
+import { useSheetScroll } from "@/components/ui/sheet/sheet"
 import { Heading, Muted, Text } from "@/components/ui/text/text"
 import { useTr } from "@/lib/app-language"
 import { haptic } from "@/lib/feedback"
@@ -58,9 +59,11 @@ const SettingsFocusContext = React.createContext<{ focus: SettingsPageFocus, rev
 /** For a row of the kit: set when this row is the one the page was opened on */
 export function useRowFocus(label: string, group: string | undefined) {
     const context = React.useContext(SettingsFocusContext)
+    // a row in a sheet is brought into sight by the sheet's own scroll; the page stays on the sheet's control
+    const sheetScroll = useSheetScroll()
     if (!context?.focus.labels?.includes(label)) return null
     if (context.focus.group !== undefined && group !== undefined && context.focus.group !== group) return null
-    return { nonce: context.focus.nonce, reveal: context.reveal }
+    return { nonce: context.focus.nonce, reveal: context.focus.sheet && sheetScroll ? sheetScroll : context.reveal }
 }
 
 /**
@@ -79,8 +82,9 @@ export function useSheetFocus(sheet: string, group: string | undefined): number 
  * mounted in the frames of its slide-in and dropped them. Heading, note and jump target of every group are there at
  * once (the chips and the page height start right); a page opened on a row (`focus`) mounts everything at once.
  */
-const EAGER_GROUPS = 3
-const GROUPS_PER_FRAME = 2
+// One group with the page: three (Appearance: colours, banner pictures, sorting) cost 40 ms in its first frame (S22)
+const EAGER_GROUPS = 1
+const GROUPS_PER_FRAME = 1
 const GroupGateContext = React.createContext<{ next: () => number, limit: number } | null>(null)
 
 function GroupGate({ all, children }: { all: boolean, children: React.ReactNode }) {

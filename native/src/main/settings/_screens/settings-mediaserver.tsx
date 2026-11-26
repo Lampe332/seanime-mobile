@@ -11,6 +11,7 @@ import { plural, type Translate } from "@/lib/app-language"
 import { useThemeColors } from "@/lib/theme/appearance"
 import { accentInput } from "@/lib/theme/tokens"
 import { ConfirmSheet, InfoRow, LinkRow, LocalSwitch, SettingsGroup } from "@/main/settings/_components/settings-kit"
+import { useStaggeredCount } from "@/main/settings/_components/use-staggered-count"
 import { checkServerAddress } from "@/main/settings/_lib/mediaserver-host"
 import { MediaServerMatchSheet } from "@/main/entry/_containers/entry-actions/media-server-match-sheet"
 import { type MatchSubject, subjectOfLeftOut, subjectOfUnmatched } from "@/main/entry/_lib/media-server-match"
@@ -234,16 +235,16 @@ function SignedIn({ t, status }: { t: Translate, status: MediaServerStatus }) {
         {status.unmatched.length > 0 && <SettingsGroup title={t("Not matched", "Nicht zugeordnet")}
             note={t("These series could not be matched to an AniList entry, so they do not show up in your library.",
                 "Diese Serien ließen sich keinem AniList-Eintrag zuordnen, deshalb erscheinen sie nicht in deiner Bibliothek.")}>
-            {status.unmatched.map(show => <LinkRow key={show.seriesId} label={show.year ? `${show.name} (${show.year})` : show.name}
+            <SeriesRows t={t} items={status.unmatched} render={show => <LinkRow key={show.seriesId} label={show.year ? `${show.name} (${show.year})` : show.name}
                 note={show.suggestion ? t(`Suggestion: ${show.suggestion.title}`, `Vorschlag: ${show.suggestion.title}`) : t("No suggestion", "Kein Vorschlag")}
-                onPress={() => { setMatching(subjectOfUnmatched(show)); setMatchOpen(true) }} />)}
+                onPress={() => { setMatching(subjectOfUnmatched(show)); setMatchOpen(true) }} />} />
         </SettingsGroup>}
         {status.leftOut.length > 0 && <SettingsGroup title={t("Left out", "Ausgelassen")}
             note={t("Series you marked as belonging to nothing. They stay out of your library.",
                 "Serien, die du als „gehört zu nichts“ markiert hast. Sie bleiben aus deiner Bibliothek heraus.")}>
-            {status.leftOut.map(item => <LinkRow key={item.itemId} label={item.year ? `${item.name} (${item.year})` : item.name}
+            <SeriesRows t={t} items={status.leftOut} render={item => <LinkRow key={item.itemId} label={item.year ? `${item.name} (${item.year})` : item.name}
                 note={item.seasonName !== null ? leftSeasonName(t, item) : t("Whole series", "Ganze Serie")}
-                onPress={() => { setMatching(subjectOfLeftOut(item)); setMatchOpen(true) }} />)}
+                onPress={() => { setMatching(subjectOfLeftOut(item)); setMatchOpen(true) }} />} />
         </SettingsGroup>}
         {/* kept in state: the series leaves its group once saved, the sheet stays until it closes */}
         {!!matching && <MediaServerMatchSheet subject={matching} open={matchOpen} onOpenChange={setMatchOpen} />}
@@ -260,6 +261,22 @@ function SignedIn({ t, status }: { t: Translate, status: MediaServerStatus }) {
             title={t("Sign out of the media server?", "Vom Medienserver abmelden?")}
             text={t("The server's series leave your library until you sign in again.", "Die Serien des Servers verschwinden aus deiner Bibliothek, bis du dich wieder anmeldest.")}
             action={t("Sign out", "Abmelden")} onConfirm={signOut} />
+    </>
+}
+
+const PREVIEW_SERIES = 8
+
+/**
+ * The first series of a long list and a row that shows the rest, which then mount a few per frame: a server of ~134
+ * series mounted every row with the page, one 110 ms frame on the S22.
+ */
+function SeriesRows<T>({ t, items, render }: { t: Translate, items: readonly T[], render: (item: T) => React.ReactNode }) {
+    const [all, setAll] = React.useState(false)
+    const shown = useStaggeredCount(all ? items.length : Math.min(items.length, PREVIEW_SERIES), PREVIEW_SERIES, 16)
+    return <>
+        {items.slice(0, shown).map(render)}
+        {!all && items.length > PREVIEW_SERIES &&
+            <LinkRow label={t(`Show all ${items.length}`, `Alle ${items.length} zeigen`)} tone="accent" chevron={false} onPress={() => setAll(true)} />}
     </>
 }
 

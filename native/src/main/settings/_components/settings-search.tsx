@@ -9,6 +9,7 @@ import { useSettingValue, useThemeValue } from "@/main/settings/_components/sett
 import type { SettingsSectionId } from "@/main/settings/_lib/settings-phone"
 import { buildSearchDocs, type SearchConditions, searchSettings, type SettingsSearchDoc, type SettingsSearchSection } from "@/main/settings/_lib/settings-search"
 import { SETTINGS_SEARCH_INDEX } from "@/main/settings/_lib/settings-search-index"
+import { useStaggeredCount } from "@/main/settings/_components/use-staggered-count"
 import { useRowValue } from "@/main/settings/_screens/settings-torrents"
 import type { LucideIcon } from "lucide-react-native"
 import React from "react"
@@ -104,6 +105,8 @@ export function SettingsSearch({ t, sections, query, onQuery, onOpen, compact, t
 }
 
 const NO_HITS: SettingsSearchDoc[] = []
+/** about a phone screen of hits */
+const FIRST_HITS = 8
 
 const SearchHits = React.memo(function SearchHits({ t, hits, sections, onOpen, compact }: {
     t: Translate
@@ -114,6 +117,8 @@ const SearchHits = React.memo(function SearchHits({ t, hits, sections, onOpen, c
 }) {
     const colors = useThemeColors()
     const icons = React.useMemo(() => Object.fromEntries(sections.map(section => [section.id, section.icon])) as Record<SettingsSectionId, LucideIcon>, [sections])
+    // the first hits fill the screen in the first frame, the rest follow a few per frame (all of them at once was 75 ms)
+    const shown = useStaggeredCount(hits.length, FIRST_HITS, FIRST_HITS)
     if (hits.length === 0) {
         return (
             <View accessible accessibilityLiveRegion="polite" className="items-center gap-1 px-4 py-10">
@@ -124,7 +129,7 @@ const SearchHits = React.memo(function SearchHits({ t, hits, sections, onOpen, c
     }
     return (
         <View accessibilityLabel={t("Search results", "Suchergebnisse")} className="gap-0.5 overflow-hidden rounded-surface">
-            {hits.map(hit => <HitRow key={hit.id} hit={hit} Icon={compact ? undefined : icons[hit.section]} accent={colors.smAccent} onOpen={onOpen} />)}
+            {hits.slice(0, shown).map(hit => <HitRow key={hit.id} hit={hit} Icon={compact ? undefined : icons[hit.section]} accent={colors.smAccent} onOpen={onOpen} />)}
         </View>
     )
 })
