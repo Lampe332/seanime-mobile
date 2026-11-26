@@ -112,12 +112,20 @@ function AnilistMediaEntrySheet({ media, listData, type, open, onOpenChange }: {
     const [form, setForm] = React.useState<ListEntryForm>(() => listEntryDefaults(listData))
     const [repeat, setRepeat] = React.useState<number | null>(listData.repeat || 0)
     const [confirmDelete, setConfirmDelete] = React.useState(false)
-    // The plugin slot (websocket message, listeners) mounts once the sheet stands, not in the frames that slide it in
-    const [slotReady, setSlotReady] = React.useState(false)
+    // The sheet mounts in the frame its slide starts. The fields come in light (values as text, no icons, no TextInput)
+    // and turn into the real controls once it stands; the plugin slot (websocket message, listeners) a frame after that.
+    // S22 trace 26.11.: the full form in the first frame (10 Svg, 3 TextInput) took 24 ms main + 10 ms draw.
+    const [stage, setStage] = React.useState(0)
     React.useEffect(() => {
-        const timer = setTimeout(() => setSlotReady(true), isTablet ? 200 : DURATION.sheetPhone)
+        if (stage >= 2) return
+        if (stage === 1) {
+            const frame = requestAnimationFrame(() => setStage(2))
+            return () => cancelAnimationFrame(frame)
+        }
+        const timer = setTimeout(() => setStage(1), isTablet ? 200 : DURATION.sheetPhone)
         return () => clearTimeout(timer)
-    }, [isTablet])
+    }, [stage, isTablet])
+    const still = stage === 0
     const isGuest = useIsSimulatedUser()
     const { mutate, isPending: isEditing, isError: saveFailed } = useEditAnilistListEntry(media?.id, type)
     const { mutate: mutateRepeat, isPending: isRepeating, isError: repeatFailed } = useUpdateAnimeEntryRepeat(media?.id)
@@ -145,7 +153,10 @@ function AnilistMediaEntrySheet({ media, listData, type, open, onOpenChange }: {
 
     const clearDate = (field: "startedAt" | "completedAt") => setForm(f => ({ ...f, [field]: null }))
 
+    // once it stands, the form is drawn into a layer: the closing slide then moves one texture instead of redrawing every
+    // field. The plugin slot (a WebView) stays outside it.
     const body = <View className="gap-4">
+        <View className="gap-4" renderToHardwareTextureAndroid={!still}>
         <View accessibilityRole="radiogroup" accessibilityLabel={t("Status", "Status")} className="flex-row flex-wrap gap-1.5">
             {listStatusOptions(t, type, released).map(option => {
                 const checked = form.status === option.value
@@ -158,19 +169,19 @@ function AnilistMediaEntrySheet({ media, listData, type, open, onOpenChange }: {
         {released && <>
             <View className="flex-row flex-wrap gap-2">
                 <Field label={t("Progress", "Fortschritt")}>
-                    <Stepper label={t("Progress", "Fortschritt")} value={form.progress} max={max} suffix={total ? `/ ${total}` : undefined} onValue={progress => setForm(f => ({ ...f, progress }))} />
+                    <Stepper still={still} label={t("Progress", "Fortschritt")} value={form.progress} max={max} suffix={total ? `/ ${total}` : undefined} onValue={progress => setForm(f => ({ ...f, progress }))} />
                 </Field>
                 <Field label={t("Score", "Bewertung")}>
-                    <Stepper label={t("Score", "Bewertung")} value={form.score} max={10} decimals suffix="/ 10" onValue={score => setForm(f => ({ ...f, score }))} />
+                    <Stepper still={still} label={t("Score", "Bewertung")} value={form.score} max={10} decimals suffix="/ 10" onValue={score => setForm(f => ({ ...f, score }))} />
                 </Field>
             </View>
             <View className="gap-1.5">
                 <View className="flex-row flex-wrap gap-2">
                     <Field label={t("Start date", "Startdatum")}>
-                        <DateField value={form.startedAt} label={t("Start date", "Startdatum")} invalid={outOfOrder} onPress={() => pickDate("startedAt")} onClear={() => clearDate("startedAt")} />
+                        <DateField still={still} value={form.startedAt} label={t("Start date", "Startdatum")} invalid={outOfOrder} onPress={() => pickDate("startedAt")} onClear={() => clearDate("startedAt")} />
                     </Field>
                     <Field label={t("Completion date", "Enddatum")}>
-                        <DateField value={form.completedAt} label={t("Completion date", "Enddatum")} onPress={() => pickDate("completedAt")} onClear={() => clearDate("completedAt")} />
+                        <DateField still={still} value={form.completedAt} label={t("Completion date", "Enddatum")} onPress={() => pickDate("completedAt")} onClear={() => clearDate("completedAt")} />
                     </Field>
                 </View>
                 {outOfOrder && <Text accessibilityLiveRegion="polite" className="text-[13px] text-sm-danger">{datesError}</Text>}
@@ -178,12 +189,13 @@ function AnilistMediaEntrySheet({ media, listData, type, open, onOpenChange }: {
             <View className="flex-row flex-wrap items-center justify-between gap-3">
                 <Text className="text-[13px] font-medium text-sm-text-muted">{type === "anime" ? t("Total rewatches", "Wiederholungen") : t("Total rereads", "Erneut gelesen")}</Text>
                 <View className="w-[152px]">
-                    <Stepper label={type === "anime" ? t("Total rewatches", "Wiederholungen") : t("Total rereads", "Erneut gelesen")} value={repeat} max={1000} onValue={setRepeat} />
+                    <Stepper still={still} label={type === "anime" ? t("Total rewatches", "Wiederholungen") : t("Total rereads", "Erneut gelesen")} value={repeat} max={1000} onValue={setRepeat} />
                 </View>
             </View>
         </>}
+        </View>
         {/* a plugin's own HTML under the form (web anilist-media-entry-modal) */}
-        {slotReady && <PluginWebviewSlot slot="after-media-entry-form" />}
+        {stage >= 2 && <PluginWebviewSlot slot="after-media-entry-form" />}
     </View>
 
     const footer = <View className="flex-1 flex-row flex-wrap items-center justify-between gap-3">
@@ -215,8 +227,11 @@ function Field({ label, children }: { label: string, children: React.ReactNode }
     </View>
 }
 
-/** A tap picks the date; with one set, the ✕ beside it empties the field (saved as no date). `invalid`: a danger outline. */
-function DateField({ value, label, invalid, onPress, onClear }: { value: Date | null, label: string, invalid?: boolean, onPress: () => void, onClear: () => void }) {
+/**
+ * A tap picks the date; with one set, the ✕ beside it empties the field (saved as no date). `invalid`: a danger outline.
+ * `still`: while the sheet slides in, the same box without its icons.
+ */
+function DateField({ value, label, invalid, still, onPress, onClear }: { value: Date | null, label: string, invalid?: boolean, still?: boolean, onPress: () => void, onClear: () => void }) {
     const t = useTr()
     return <View className={cn("min-h-12 flex-row items-center overflow-hidden rounded-surface-sm border bg-sm-surface-raised", invalid ? "border-sm-danger" : "border-transparent")}>
         <Pressable accessibilityRole="button" accessibilityLabel={`${label}: ${formatFieldDate(value) || "–"}`}
@@ -225,17 +240,18 @@ function DateField({ value, label, invalid, onPress, onClear }: { value: Date | 
             {/* one line: two date fields side by side leave a phone little room beside the ✕ (S22 run 26.11.: "2026-05-0" / "6") */}
             <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}
                 className={cn("min-w-0 flex-shrink text-sm", !value && "text-sm-text-subtle", invalid && "text-sm-danger")} style={{ fontVariant: ["tabular-nums"] }}>{formatFieldDate(value) || "–"}</Text>
-            {!value && <CalendarDays size={18} color={colors.smTextMuted} />}
+            {!value && !still && <CalendarDays size={18} color={colors.smTextMuted} />}
         </Pressable>
         {!!value && <Pressable accessibilityRole="button" accessibilityLabel={`${t("Remove date", "Datum entfernen")}: ${label}`} onPress={onClear}
             className="h-12 w-12 items-center justify-center active:bg-sm-surface-control">
-            <X size={18} color={colors.smTextMuted} />
+            {!still && <X size={18} color={colors.smTextMuted} />}
         </Pressable>}
     </View>
 }
 
-function Stepper({ value, onValue, min = 0, max, decimals, suffix, label }: {
-    value: number | null, onValue: (value: number | null) => void, min?: number, max?: number, decimals?: boolean, suffix?: string, label: string
+/** `still`: while the sheet slides in, the same box with the value as text, no −/+ icons and no TextInput yet */
+function Stepper({ value, onValue, min = 0, max, decimals, suffix, label, still }: {
+    value: number | null, onValue: (value: number | null) => void, min?: number, max?: number, decimals?: boolean, suffix?: string, label: string, still?: boolean
 }) {
     const t = useTr()
     const limits = { min, max, decimals }
@@ -246,10 +262,11 @@ function Stepper({ value, onValue, min = 0, max, decimals, suffix, label }: {
         <Pressable accessibilityRole="button" accessibilityLabel={`${t("Decrease", "Verringern")}: ${label}`} disabled={value === null || current <= min}
             onPress={() => onValue(clampStep(Math.ceil(current) - 1, limits))}
             className={cn("h-12 w-12 items-center justify-center rounded-surface-sm active:bg-sm-surface-control", (value === null || current <= min) && "opacity-40")}>
-            <Minus size={18} color={colors.smText} />
+            {!still && <Minus size={18} color={colors.smText} />}
         </Pressable>
         <View className="min-w-0 flex-1 flex-row items-baseline justify-center gap-1">
-            <TextInput {...accentInput} value={shown} placeholder="–" placeholderTextColor={colors.smTextSubtle} accessibilityLabel={label}
+            {still ? <Text className={cn("min-w-[30px] text-right text-base font-semibold", shown ? "text-sm-text" : "text-sm-text-subtle")}
+                style={{ fontVariant: ["tabular-nums"] }}>{shown || "–"}</Text> : <TextInput {...accentInput} value={shown} placeholder="–" placeholderTextColor={colors.smTextSubtle} accessibilityLabel={label}
                 keyboardType={decimals ? "decimal-pad" : "number-pad"}
                 onChangeText={text => {
                     const next = stepInputText(text, shown, limits)
@@ -257,13 +274,13 @@ function Stepper({ value, onValue, min = 0, max, decimals, suffix, label }: {
                     if (next.value !== undefined) onValue(next.value)
                 }}
                 onBlur={() => setDraft(null)}
-                className="min-w-[30px] p-0 text-right font-sans text-base font-semibold text-sm-text" style={{ fontVariant: ["tabular-nums"] }} />
+                className="min-w-[30px] p-0 text-right font-sans text-base font-semibold text-sm-text" style={{ fontVariant: ["tabular-nums"] }} />}
             {!!suffix && <Text className="text-[13px] text-sm-text-subtle">{suffix}</Text>}
         </View>
         <Pressable accessibilityRole="button" accessibilityLabel={`${t("Increase", "Erhöhen")}: ${label}`} disabled={max !== undefined && current >= max}
             onPress={() => onValue(clampStep(value === null ? min + 1 : Math.floor(current) + 1, limits))}
             className={cn("h-12 w-12 items-center justify-center rounded-surface-sm active:bg-sm-surface-control", max !== undefined && current >= max && "opacity-40")}>
-            <Plus size={18} color={colors.smText} />
+            {!still && <Plus size={18} color={colors.smText} />}
         </Pressable>
     </View>
 }

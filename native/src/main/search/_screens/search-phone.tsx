@@ -264,6 +264,22 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
         </PhoneEmpty>
     }
     const gridItems = body ? EMPTY : items
+    // The first results of a search come in two frames: the rows the screen shows under the head first, the rest of the
+    // list's draw range one frame later (S22 trace 26.11., "naruto": all cells in one commit, 114–133 ms JS, a 34 ms frame).
+    // Only when the grid had no cards before; new results over dimmed ones reuse the mounted cells.
+    const showing = gridItems.length > 0
+    const [wasShowing, setWasShowing] = React.useState(showing)
+    const [firstBatch, setFirstBatch] = React.useState(false)
+    if (showing !== wasShowing) {
+        setWasShowing(showing)
+        setFirstBatch(showing)
+    }
+    React.useEffect(() => {
+        if (!firstBatch) return
+        const frame = requestAnimationFrame(() => setFirstBatch(false))
+        return () => cancelAnimationFrame(frame)
+    }, [firstBatch])
+    const listItems = firstBatch ? gridItems.slice(0, grid.columns * FIRST_ROWS) : gridItems
 
     const header = (
         <View className="gap-6 pb-3">
@@ -350,15 +366,17 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
                 <StaleContext value={stale}>
                 <FlashList
                     ref={list}
-                    data={gridItems}
+                    data={listItems}
                     keyExtractor={media => String(media.id)}
                     numColumns={grid.columns}
                     renderItem={renderItem}
                     ListHeaderComponent={<View style={{ paddingHorizontal: grid.gap / 2 }}>{header}</View>}
-                    ListFooterComponent={<View style={{ paddingHorizontal: grid.gap / 2 }}>{footer}{otherSources}</View>}
+                    // not under the short first batch: "That's all" or the TVmaze cards would flash up in that frame
+                    ListFooterComponent={firstBatch ? null : <View style={{ paddingHorizontal: grid.gap / 2 }}>{footer}{otherSources}</View>}
                     // The next page loads before the end comes into view; "Load more" stays for screen readers.
                     onEndReached={() => {
-                        if (canLoadMore && !loading) void results.fetchNextPage()
+                        // the short first batch is not the end of the list
+                        if (canLoadMore && !loading && !firstBatch) void results.fetchNextPage()
                     }}
                     onEndReachedThreshold={1}
                     onScroll={onScroll}
@@ -389,6 +407,8 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
 }
 
 const EMPTY: Media[] = []
+/** rows of cards in the first commit of new results: what a phone shows under the search head (S22: about 1.5 rows) */
+const FIRST_ROWS = 2
 
 /** AniList pages of the search, 48 at a time; the server caches each page for ten minutes. */
 function useSearchResults(type: SearchType, variables: ReturnType<typeof searchVariables>) {
