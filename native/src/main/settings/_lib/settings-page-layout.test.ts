@@ -68,6 +68,17 @@ describe("the active jump chip", () => {
     it("is none without groups", () => {
         expect(activeJumpIndex({ tops: [], scrollY: 0, viewportHeight: 600, contentHeight: 600 })).toBe(-1)
     })
+
+    // 4.4.0 device test (Playback): "External player" stayed lit while "Next episode" and "Picture" filled the view
+    it("follows the groups that fill the view over the last screen of scrolling", () => {
+        // Files 0, External player 500, Next episode 1300, Picture 1550, Seeking 1950; 800dp rows, 2200 content
+        const playback = [0, 500, 1300, 1550, 1950]
+        const view = (scrollY: number) => activeJumpIndex({ tops: playback, scrollY, viewportHeight: 800, contentHeight: 2200 })
+        expect(view(600)).toBe(1)
+        expect(view(1150)).toBe(2)
+        expect(view(1300)).toBe(3)
+        expect(view(1400)).toBe(4)
+    })
 })
 
 describe("the sheet of all options", () => {
@@ -116,7 +127,7 @@ describe("focusChipId", () => {
     // so the scroll alone lit "Series"; the jump now lights the group's chip like a tapped one
     it("lights the chip of a group hit that cannot reach the top", () => {
         const chips = ["Series", "Left out", "Progress"]
-        expect(activeJumpIndex({ tops: [0, 400, 600], scrollY: 300, viewportHeight: 900, contentHeight: 1300 })).toBe(0)
+        expect(activeJumpIndex({ tops: [0, 400, 600], scrollY: 100, viewportHeight: 900, contentHeight: 1300 })).toBe(0)
         expect(focusChipId(chips, "Left out")).toBe("Left out")
     })
 })

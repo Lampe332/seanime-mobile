@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
-import { focusFromHit, isFocusedRow, revealsInSheet, sheetFocusNonce } from "@/main/settings/_lib/settings-focus"
+import { focusFromHit, isFocusedRow, revealsInSheet, ROW_GLOW, rowSettled, sheetFocusNonce } from "@/main/settings/_lib/settings-focus"
 import { SETTINGS_SECTIONS } from "@/main/settings/_lib/settings-phone"
 import { buildSearchDocs, searchSettings } from "@/main/settings/_lib/settings-search"
 import { SETTINGS_SEARCH_INDEX } from "@/main/settings/_lib/settings-search-index"
@@ -55,5 +55,19 @@ describe("a search hit on a row inside a sheet", () => {
     it("names the sheet's row as the index does", () => {
         const source = sources.find(text => text.includes(`<Sheet title={t("Auto-select profile"`))!
         expect(source).toContain(`t("Multiple subtitle tracks", "Mehrere Untertitel-Spuren")`)
+    })
+})
+
+describe("search hit glow", () => {
+    it("waits until the row stands still in sight", () => {
+        expect(rowSettled(undefined, 300, 56, 800)).toBe(false)
+        expect(rowSettled(900, 300, 56, 800)).toBe(false)
+        expect(rowSettled(300, 300, 56, 800)).toBe(true)
+        expect(rowSettled(1200, 1200, 56, 800)).toBe(false)
+        expect(rowSettled(-80, -80, 56, 800)).toBe(false)
+    })
+    it("stays lit about 1.5 s and gives up waiting before 2 s", () => {
+        expect(ROW_GLOW.fadeInMs + ROW_GLOW.holdMs).toBeGreaterThanOrEqual(1200)
+        expect(ROW_GLOW.pollMs * ROW_GLOW.maxPolls).toBeLessThan(2000)
     })
 })

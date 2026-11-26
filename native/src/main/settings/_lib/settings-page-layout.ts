@@ -22,8 +22,11 @@ export const JUMP_ACTIVE_LINE = 32
 export const JUMP_END_SLACK = 2
 
 /**
- * The index of the group shown at the top: the last one whose top passed the line. At the end of the rows the last group
- * is current, also when it is too short to reach the top. `tops` are content offsets in the order of the chips.
+ * The index of the group shown at the top: the last one whose top passed the line. The last groups of a page cannot
+ * reach the top, so over the last screen of scrolling the line moves down to the middle of the rows: the chip follows
+ * the groups that fill the view (Playback: "External player" stayed lit over "Next episode" and "Picture"). At the end
+ * of the rows the last group is current, also when it is too short to reach the line. `tops` are content offsets in the
+ * order of the chips.
  */
 export function activeJumpIndex({ tops, scrollY, viewportHeight, contentHeight, line = JUMP_ACTIVE_LINE }: {
     tops: readonly number[]
@@ -34,12 +37,22 @@ export function activeJumpIndex({ tops, scrollY, viewportHeight, contentHeight, 
 }): number {
     if (tops.length === 0) return -1
     if (scrollY > 0 && viewportHeight > 0 && scrollY + viewportHeight >= contentHeight - JUMP_END_SLACK) return tops.length - 1
+    const at = scrollY + activeLine({ scrollY, viewportHeight, contentHeight, line })
     let active = 0
     for (let i = 0; i < tops.length; i++) {
-        if (tops[i] <= scrollY + line) active = i
+        if (tops[i] <= at) active = i
         else break
     }
     return active
+}
+
+/** The line under the top edge: `line` until the last screen of scrolling, then down to half the rows' height at the end */
+function activeLine({ scrollY, viewportHeight, contentHeight, line }: { scrollY: number, viewportHeight: number, contentHeight: number, line: number }) {
+    const maxScroll = contentHeight - viewportHeight
+    if (viewportHeight <= 0 || maxScroll <= 0) return line
+    const from = Math.max(0, maxScroll - viewportHeight)
+    const progress = Math.min(1, Math.max(0, (scrollY - from) / (maxScroll - from)))
+    return line + progress * Math.max(0, viewportHeight / 2 - line)
 }
 
 /**

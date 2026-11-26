@@ -5,7 +5,7 @@ import type { Models_Theme, Status } from "@/api/generated/types"
 import { Button } from "@/components/ui/button/button"
 import { HueRing } from "@/components/ui/color-wheel/color-wheel"
 import { cn } from "@/components/ui/core/styling"
-import { Sheet } from "@/components/ui/sheet/sheet"
+import { Dialog, Sheet } from "@/components/ui/sheet/sheet"
 import { Switch } from "@/components/ui/switch/switch"
 import { Muted, Text } from "@/components/ui/text/text"
 import { toast } from "@/components/ui/toast/toast-store"
@@ -31,7 +31,8 @@ import ChevronRight from "lucide-react-native/icons/chevron-right"
 import RefreshCw from "lucide-react-native/icons/refresh-cw"
 import Smartphone from "lucide-react-native/icons/smartphone"
 import React from "react"
-import { Animated, Easing, Pressable, ScrollView, TextInput, useWindowDimensions, View } from "react-native"
+import { Animated, Dimensions, Easing, Pressable, ScrollView, TextInput, useWindowDimensions, View } from "react-native"
+import { ROW_GLOW, rowSettled } from "@/main/settings/_lib/settings-focus"
 import { useReducedMotion } from "react-native-reanimated"
 
 /*
@@ -179,7 +180,7 @@ const GroupTitleContext = React.createContext<string | undefined>(undefined)
 
 /**
  * The row a search hit opened (settings-page.tsx `focus`): the page scrolls to it and an accent tint fades in and out
- * over it, about 1.5 s in all. It lies under the row's text and takes no touches; every other row renders nothing here.
+ * over it once the row stands in sight, about 1.8 s in all. It lies under the row's text and takes no touches; every other row renders nothing here.
  */
 function RowHighlight({ label }: { label: string }) {
     const target = useRowFocus(label, React.useContext(GroupTitleContext))
@@ -193,17 +194,44 @@ function RowGlow({ reveal }: { reveal: RowReveal }) {
     const reducedMotion = useReducedMotion()
     React.useEffect(() => {
         reveal(ref)
+        let alive = true
+        let timer: ReturnType<typeof setTimeout> | undefined
+        let glow: Animated.CompositeAnimation | undefined
+        let polls = 0
+        let lastY: number | undefined
         const fade = (toValue: number, duration: number) => Animated.timing(opacity, {
             toValue, duration: reducedMotion ? 0 : duration, easing: Easing.out(Easing.cubic), useNativeDriver: true,
         })
-        // waits for the page's scroll to the row, then 200 ms in, 900 ms lit, 450 ms out
-        const glow = Animated.sequence([Animated.delay(280), fade(1, 200), Animated.delay(900), fade(0, 450)])
-        glow.start()
-        return () => glow.stop()
+        // the page may wait for its layout before it scrolls (up to a second) and a sheet slides in first: the glow starts
+        // once the row stands still in sight, so it is never spent off screen
+        const start = () => {
+            glow = Animated.sequence([fade(1, ROW_GLOW.fadeInMs), Animated.delay(ROW_GLOW.holdMs), fade(0, ROW_GLOW.fadeOutMs)])
+            glow.start()
+        }
+        const check = () => {
+            const node = ref.current
+            if (!alive) return
+            if (!node) return start()
+            node.measureInWindow((_x, y, _width, height) => {
+                if (!alive) return
+                const settled = rowSettled(lastY, y, height, Dimensions.get("window").height)
+                lastY = y
+                polls += 1
+                if (settled || polls >= ROW_GLOW.maxPolls) start()
+                else timer = setTimeout(check, ROW_GLOW.pollMs)
+            })
+        }
+        timer = setTimeout(check, ROW_GLOW.pollMs)
+        return () => {
+            alive = false
+            clearTimeout(timer)
+            glow?.stop()
+        }
     }, [opacity, reducedMotion, reveal])
     return (
         <View ref={ref} collapsable={false} pointerEvents="none" className="absolute inset-0">
-            <Animated.View style={{ flex: 1, backgroundColor: colors.smAccentSoft, opacity }} />
+            {/* the soft tint alone was lost on a raised row: an accent edge around it makes the row stand out */}
+            <Animated.View style={{ flex: 1, backgroundColor: colors.smAccentSoft, borderWidth: 2, borderColor: colors.smAccent, opacity }} />
         </View>
     )
 }
@@ -651,7 +679,7 @@ export function ChoiceRows({ label, children }: { label: string, children: React
 }
 
 /** Asks before something that cannot be undone. */
-export function ConfirmSheet({ open, onOpenChange, title, text, action, cancel, danger, onConfirm }: {
+export function ConfirmSheet({ open, onOpenChange, title, text, action, cancel, danger, compact, onConfirm }: {
     open: boolean
     onOpenChange: (open: boolean) => void
     title: string
@@ -660,19 +688,22 @@ export function ConfirmSheet({ open, onOpenChange, title, text, action, cancel, 
     /** the label of the button that keeps things as they are (default "Cancel") */
     cancel?: string
     danger?: boolean
+    /** a centred dialog instead of a sheet, for a question asked on top of a tablet dialog */
+    compact?: boolean
     onConfirm: () => void
 }) {
     const t = useTr()
-    return <Sheet title={title} open={open} onOpenChange={onOpenChange}
+    const Frame = compact ? Dialog : Sheet
+    return <Frame title={title} open={open} onOpenChange={onOpenChange}
         footer={<>
-            <Button intent="secondary" wrapperClassName="flex-1" onPress={() => onOpenChange(false)}>{cancel ?? t("Cancel", "Abbrechen")}</Button>
-            <Button intent={danger ? "danger" : "primary"} wrapperClassName="flex-1" onPress={() => {
+            <Button intent="secondary" wrapperClassName={compact ? undefined : "flex-1"} onPress={() => onOpenChange(false)}>{cancel ?? t("Cancel", "Abbrechen")}</Button>
+            <Button intent={danger ? "danger" : "primary"} wrapperClassName={compact ? undefined : "flex-1"} onPress={() => {
                 onOpenChange(false)
                 onConfirm()
             }}>{action}</Button>
         </>}>
         <Text className="text-[15px] leading-[23px] text-sm-text-muted">{text}</Text>
-    </Sheet>
+    </Frame>
 }
 
 const FIELD = "min-h-[52px] rounded-surface bg-sm-surface-raised px-4 py-3 font-sans text-base text-sm-text"

@@ -28,3 +28,11 @@ export function sheetFocusNonce(focus: SettingsPageFocus | null | undefined, she
 export function revealsInSheet(focus: SettingsPageFocus, inSheet: boolean): boolean {
     return !!focus.sheet && inSheet
 }
+
+/** How the glow runs: lit until the row has been in sight a while, then out; Reduce Motion keeps the tint, without the fades */
+export const ROW_GLOW = { fadeInMs: 220, holdMs: 1100, fadeOutMs: 500, pollMs: 90, maxPolls: 18 } as const
+
+/** The row stands still in the window (the page's or the sheet's scroll is done) and some of it is in sight */
+export function rowSettled(previousY: number | undefined, y: number, height: number, windowHeight: number) {
+    return previousY !== undefined && Math.abs(y - previousY) < 1 && height > 0 && y + height > 0 && y < windowHeight
+}

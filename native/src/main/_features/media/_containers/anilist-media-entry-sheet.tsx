@@ -228,7 +228,7 @@ function AnilistMediaEntrySheet({ media, listData, type, open, onOpenChange }: {
         {isTablet
             ? <Dialog title={title} description={where} open={open} onOpenChange={requestOpenChange} footer={footer}>{body}</Dialog>
             : <Sheet title={title} description={where} open={open} onOpenChange={requestOpenChange} footer={footer}>{body}</Sheet>}
-        <ConfirmSheet open={confirmDiscard} onOpenChange={setConfirmDiscard}
+        <ConfirmSheet compact={isTablet} open={confirmDiscard} onOpenChange={setConfirmDiscard}
             title={t("Discard changes?", "Änderungen verwerfen?")}
             text={t("Your changes to this entry are not saved yet.", "Deine Änderungen an diesem Eintrag sind noch nicht gespeichert.")}
             action={t("Discard", "Verwerfen")} cancel={t("Keep editing", "Weiter bearbeiten")} danger
