@@ -2685,6 +2685,7 @@
   "Privacy": "隐私",
   "App lock": "应用锁",
   "Set up a screen lock or fingerprint on this device first.": "请先在此设备上设置屏幕锁或指纹。",
+  "This device has no screen lock any more, so the app lock asks for nothing. Set one up again, or turn it off.": "此设备已没有屏幕锁，因此应用锁不会要求任何验证。请重新设置一个，或将其关闭。",
   "Asks for your fingerprint, face or screen lock when the app starts and after a minute away.": "启动应用时以及在后台超过一分钟后，要求验证指纹、面容或屏幕锁。",
   "Send anonymous usage count": "发送匿名使用统计",
   "Once a day the app sends a random ID and its version, so we know how many people use it. No account, no email, no IP is stored.": "应用每天发送一次随机 ID 和版本号，让我们知道有多少人在使用。不会保存账户、电子邮件或 IP。",

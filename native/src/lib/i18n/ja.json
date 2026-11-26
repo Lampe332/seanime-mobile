@@ -2685,6 +2685,7 @@
   "Privacy": "プライバシー",
   "App lock": "アプリロック",
   "Set up a screen lock or fingerprint on this device first.": "まずこのデバイスで画面ロックまたは指紋を設定してください。",
+  "This device has no screen lock any more, so the app lock asks for nothing. Set one up again, or turn it off.": "この端末には画面ロックがなくなったため、アプリロックは何も求めません。もう一度設定するか、オフにしてください。",
   "Asks for your fingerprint, face or screen lock when the app starts and after a minute away.": "アプリの起動時と、バックグラウンドで1分経過した後に、指紋、顔認証、または画面ロックを求めます。",
   "Send anonymous usage count": "匿名の利用カウントを送信",
   "Once a day the app sends a random ID and its version, so we know how many people use it. No account, no email, no IP is stored.": "1日に1回、アプリはランダムなIDとバージョンを送信し、何人が使っているかを把握します。アカウント、メールアドレス、IPアドレスは保存されません。",

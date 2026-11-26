@@ -2858,6 +2858,7 @@
   "Privacy": "Privacidade",
   "App lock": "Bloqueio do app",
   "Set up a screen lock or fingerprint on this device first.": "Primeiro configure um bloqueio de tela ou uma digital neste dispositivo.",
+  "This device has no screen lock any more, so the app lock asks for nothing. Set one up again, or turn it off.": "Este aparelho não tem mais bloqueio de tela, então o bloqueio do app não pede nada. Configure um de novo ou desative-o.",
   "Asks for your fingerprint, face or screen lock when the app starts and after a minute away.": "Pede sua digital, seu rosto ou o bloqueio de tela ao abrir o app e após um minuto em segundo plano.",
   "Send anonymous usage count": "Enviar contagem de uso anônima",
   "Once a day the app sends a random ID and its version, so we know how many people use it. No account, no email, no IP is stored.": "Uma vez por dia o app envia um ID aleatório e a versão dele, para sabermos quantas pessoas o usam. Nenhuma conta, nenhum e-mail e nenhum IP são guardados.",

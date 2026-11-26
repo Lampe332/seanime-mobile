@@ -2880,6 +2880,7 @@
   "Privacy": "Confidentialité",
   "App lock": "Verrouillage de l'app",
   "Set up a screen lock or fingerprint on this device first.": "Configure d'abord un verrouillage de l'écran ou une empreinte sur cet appareil.",
+  "This device has no screen lock any more, so the app lock asks for nothing. Set one up again, or turn it off.": "Cet appareil n'a plus de verrouillage de l'écran, le verrouillage de l'app ne demande donc rien. Configure-en un à nouveau ou désactive-le.",
   "Asks for your fingerprint, face or screen lock when the app starts and after a minute away.": "Demande ton empreinte, ton visage ou le verrouillage de l'écran au démarrage de l'app et après une minute en arrière-plan.",
   "Send anonymous usage count": "Envoyer un comptage d’utilisation anonyme",
   "Once a day the app sends a random ID and its version, so we know how many people use it. No account, no email, no IP is stored.": "Une fois par jour, l’app envoie un identifiant aléatoire et sa version, pour que nous sachions combien de personnes l’utilisent. Aucun compte, aucun e-mail, aucune IP n’est enregistré.",

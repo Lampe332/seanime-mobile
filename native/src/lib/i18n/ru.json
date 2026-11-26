@@ -2839,6 +2839,7 @@
   "Privacy": "Конфиденциальность",
   "App lock": "Блокировка приложения",
   "Set up a screen lock or fingerprint on this device first.": "Сначала настрой блокировку экрана или отпечаток пальца на этом устройстве.",
+  "This device has no screen lock any more, so the app lock asks for nothing. Set one up again, or turn it off.": "На этом устройстве больше нет блокировки экрана, поэтому блокировка приложения ничего не запрашивает. Настрой её снова или выключи.",
   "Asks for your fingerprint, face or screen lock when the app starts and after a minute away.": "Запрашивает отпечаток пальца, лицо или блокировку экрана при запуске приложения и после минуты в фоне.",
   "Send anonymous usage count": "Отправлять анонимный счётчик использования",
   "Once a day the app sends a random ID and its version, so we know how many people use it. No account, no email, no IP is stored.": "Раз в день приложение отправляет случайный ID и свою версию, чтобы мы знали, сколько людей им пользуются. Ни аккаунт, ни email, ни IP не сохраняются.",
