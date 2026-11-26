@@ -47,6 +47,7 @@
 - 🦺 Online streaming: The big card of the current episode follows the spoiler settings like the episode list
 - 🦺 Cards: On a small card, the progress pill shortens or hides instead of running under the score badge
 - 🦺 Player: A player closed with X no longer starts the next episode
+- 🦺 Player: Next and previous episode go to the nearest episode you have, so auto next also works when some episodes are missing
 - 🦺 Player: A tap on the timeline seeks to where you tapped and keeps a playing video playing
 - 🦺 More menu: One tap on the rail or bar closes it and switches, instead of needing a second tap
 - 🦺 Navigation: The right tab stays lit after you sign in, and the side rail lights Discover while you search

@@ -19,6 +19,7 @@ import {
 import { useHandlePlayMedia } from "@/main/entry/_lib/handle-play-media"
 import { useAtomValue, useSetAtom } from "jotai"
 import React from "react"
+import { adjacentEpisodes } from "./player-logic"
 import { player_miniAtom } from "./player.atoms"
 
 /*
@@ -41,8 +42,7 @@ export function usePlayerPlaylist(info: NativePlayer_PlaybackInfo | null) {
     }, [type, animeEntry?.episodes, episodeCollection?.episodes])
 
     const current = info?.episode?.progressNumber ?? 0
-    const previousEpisode = episodes.find(ep => ep.progressNumber === current - 1) ?? null
-    const nextEpisode = episodes.find(ep => ep.progressNumber === current + 1) ?? null
+    const { previous: previousEpisode, next: nextEpisode } = React.useMemo(() => adjacentEpisodes(episodes, current), [episodes, current])
 
     const { playMediaFile } = useHandlePlayMedia()
     const torrent = useHandleStartTorrentStream()

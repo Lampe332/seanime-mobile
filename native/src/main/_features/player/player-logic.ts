@@ -173,6 +173,21 @@ export function endAction(sleepTimer: SleepTimer, autoNext: boolean, hasNextEpis
 }
 
 /**
+ * The episodes before and after the current one: the closest progress numbers on either side, not just ±1. A library
+ * or media server can miss episodes (1, 3, 7): after 1 comes 3, so auto next and Next do not stop at the gap.
+ */
+export function adjacentEpisodes<T extends { progressNumber: number }>(episodes: T[], current: number): { previous: T | null, next: T | null } {
+    let previous: T | null = null
+    let next: T | null = null
+    for (const episode of episodes) {
+        const number = episode.progressNumber
+        if (number < current && (!previous || number > previous.progressNumber)) previous = episode
+        if (number > current && (!next || number < next.progressNumber)) next = episode
+    }
+    return { previous, next }
+}
+
+/**
  * Whether the episode still counts as ended after this mpv state. Playing again (after seeking back from the end) makes
  * the next end count again: auto next and the "end of episode" sleep timer fire each time, like the web video's ended event.
  */

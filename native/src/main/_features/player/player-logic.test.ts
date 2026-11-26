@@ -13,6 +13,7 @@ import {
     SEEK_STREAK_MS,
     seekStep,
     endAction,
+    adjacentEpisodes,
     endedEarly,
     formatTime,
     isPlayingState,
@@ -199,6 +200,21 @@ describe("AniList progress only at the end", () => {
         expect(endedEarly(39.5, 40)).toBe(false)
         expect(endedEarly(3, 25)).toBe(false)
         expect(endedEarly(0, 0)).toBe(false)
+    })
+})
+
+describe("previous and next episode", () => {
+    const episodes = [7, 1, 3].map(progressNumber => ({ progressNumber }))
+    it("goes over gaps in the library (Jellyfin 1, 3, 7: after 1 comes 3)", () => {
+        expect(adjacentEpisodes(episodes, 1)).toEqual({ previous: null, next: { progressNumber: 3 } })
+        expect(adjacentEpisodes(episodes, 3)).toEqual({ previous: { progressNumber: 1 }, next: { progressNumber: 7 } })
+        expect(adjacentEpisodes(episodes, 7)).toEqual({ previous: { progressNumber: 3 }, next: null })
+    })
+    it("keeps ±1 for a full list, so auto next has a countdown", () => {
+        const full = [1, 2, 3].map(progressNumber => ({ progressNumber }))
+        expect(adjacentEpisodes(full, 2)).toEqual({ previous: { progressNumber: 1 }, next: { progressNumber: 3 } })
+        expect(endAction(null, true, !!adjacentEpisodes(episodes, 1).next)).toBe("countdown")
+        expect(adjacentEpisodes([], 1)).toEqual({ previous: null, next: null })
     })
 })
 
