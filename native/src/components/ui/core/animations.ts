@@ -94,8 +94,9 @@ export const menuOut = new Keyframe({
 }).duration(160).reduceMotion(ReduceMotion.System)
 
 /*
- * A toast moves like sonner 2.0.7's (styles.css): it comes down from one toast height above and fades in with the CSS
- * transition `transform 400ms, opacity 400ms` (timing `ease`). Removed, the front one runs the same way back up, but it
+ * A toast moves like sonner 2.0.7's (styles.css): it comes down from one toast height above (up from below at the
+ * bottom) and fades in with the CSS transition `transform 400ms, opacity 400ms` (timing `ease`). Removed, the front one
+ * runs the same way back, but it
  * is taken away after 200 ms (TIME_BEFORE_UNMOUNT), about 80% of the way; one behind the front fades in 200 ms and
  * sinks 40% of its height (500 ms) until then.
  */
@@ -103,26 +104,44 @@ const sonnerEase = Easing.bezier(0.25, 0.1, 0.25, 1)
 const TOAST_MOVE = { duration: 400, easing: sonnerEase, reduceMotion: ReduceMotion.System }
 const TOAST_GONE = 200
 
-export function toastIn(values: EntryAnimationsValues): LayoutAnimation {
+/** -1 for the phone's toasts at the top (they come from above), 1 for the tablet's at the bottom (from below) */
+function toastSide(edge: "top" | "bottom") {
+    "worklet"
+    return edge === "top" ? -1 : 1
+}
+
+function toastEntry(values: EntryAnimationsValues, edge: "top" | "bottom"): LayoutAnimation {
     "worklet"
     return {
-        initialValues: { opacity: 0, transform: [{ translateY: -values.targetHeight }] },
+        initialValues: { opacity: 0, transform: [{ translateY: toastSide(edge) * values.targetHeight }] },
         animations: { opacity: withTiming(1, TOAST_MOVE), transform: [{ translateY: withTiming(0, TOAST_MOVE) }] },
     }
 }
 
-/** `front` tells at removal whether the toast was the one in front of the stack */
-export function toastOut(front: SharedValue<boolean>) {
+export function toastIn(values: EntryAnimationsValues): LayoutAnimation {
+    "worklet"
+    return toastEntry(values, "top")
+}
+
+/** The tablet's toasts at the bottom right: the same move, up from one toast height below */
+export function toastInFromBottom(values: EntryAnimationsValues): LayoutAnimation {
+    "worklet"
+    return toastEntry(values, "bottom")
+}
+
+/** `front` tells at removal whether the toast was the one in front of the stack; `edge` which edge the toasts sit at */
+export function toastOut(front: SharedValue<boolean>, edge: "top" | "bottom" = "top") {
     return (values: ExitAnimationsValues): LayoutAnimation => {
         "worklet"
         const isFront = front.get()
+        const side = toastSide(edge)
         const fade = { duration: TOAST_GONE, easing: sonnerEase, reduceMotion: ReduceMotion.System }
         return {
             initialValues: { opacity: 1, transform: [{ translateY: 0 }] },
             animations: isFront
-                ? { opacity: withTiming(0.2, fade), transform: [{ translateY: withTiming(-0.8 * values.currentHeight, fade) }] }
-                // 200 of the 500 ms `ease` towards 40%: about a quarter of its height
-                : { opacity: withTiming(0, fade), transform: [{ translateY: withTiming(0.25 * values.currentHeight, fade) }] },
+                ? { opacity: withTiming(0.2, fade), transform: [{ translateY: withTiming(side * 0.8 * values.currentHeight, fade) }] }
+                // 200 of the 500 ms `ease` towards 40%: about a quarter of its height, further back into the stack
+                : { opacity: withTiming(0, fade), transform: [{ translateY: withTiming(-side * 0.25 * values.currentHeight, fade) }] },
         }
     }
 }

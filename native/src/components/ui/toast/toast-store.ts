@@ -3,6 +3,7 @@
  * unchanged. <Toaster /> (toaster.tsx) draws them; this file has no React Native import so logic tests can load it.
  */
 import { pageTop } from "@/components/shared/page-top"
+import { MINI_CARD, type MiniFrame } from "@/main/_features/player/player-chrome"
 
 export type ToastType = "default" | "success" | "error" | "warning" | "info"
 
@@ -36,23 +37,35 @@ export const VISIBLE_TOASTS = 4
  */
 export const TOAST_TOP_UNDER_HEAD = 64
 
+/** Room between the toasts and the mini player under them (tablet) */
+export const TOAST_ABOVE_MINI = 12
+
+export type ToasterFrame = { edge: "top" | "bottom", top?: number, bottom?: number, left?: number, right: number, width?: number }
+
 /**
- * Where the toaster sits (sonner 2.0.7, `position="top-right"`): up to 600dp wide (its `max-width: 600px` rule) the
- * toasts span the width 16dp from the sides; wider they are 356dp, 24dp from the right. Their top is under the page
- * head (TOAST_TOP_UNDER_HEAD), the same on every page, phone and tablet.
+ * Where the toaster sits. Phone (sonner 2.0.7, `position="top-right"`): up to 600dp wide (its `max-width: 600px` rule)
+ * the toasts span the width 16dp from the sides; wider they are 356dp, 24dp from the right; their top is under the page
+ * head (TOAST_TOP_UNDER_HEAD). Tablet with the rail: 356dp at the bottom right, at the mini card's 20dp edges, and
+ * TOAST_ABOVE_MINI over the mini player while it shows; at the top right they covered the detail page's tab row.
  */
-export function toasterFrame(windowWidth: number, insetTop: number): { top: number, left?: number, right: number, width?: number } {
-    const top = pageTop(insetTop) + TOAST_TOP_UNDER_HEAD
-    return windowWidth <= 600 ? { top, left: 16, right: 16 } : { top, right: 24, width: 356 }
+export function toasterFrame(windowWidth: number, insets: { top: number, bottom: number, right: number },
+    tablet?: { rail: boolean, mini: Pick<MiniFrame, "bottom" | "height"> | null }): ToasterFrame {
+    if (tablet?.rail) {
+        const floor = insets.bottom + MINI_CARD.edge
+        const bottom = tablet.mini ? Math.max(floor, tablet.mini.bottom + tablet.mini.height + TOAST_ABOVE_MINI) : floor
+        return { edge: "bottom", bottom, right: insets.right + MINI_CARD.edge, width: 356 }
+    }
+    const top = pageTop(insets.top) + TOAST_TOP_UNDER_HEAD
+    return windowWidth <= 600 ? { edge: "top", top, left: 16, right: 16 } : { edge: "top", top, right: 24, width: 356 }
 }
 
 /**
- * sonner's collapsed stack: the newest toast (index 0) in front, each older one 14dp (GAP) lower and 5% smaller behind
- * it, as tall as the front one with its own content hidden.
+ * sonner's collapsed stack: the newest toast (index 0) in front, each older one 14dp (GAP) further back and 5% smaller
+ * behind it, as tall as the front one with its own content hidden. Back is down for top toasts, up for bottom ones.
  */
-export function stackedToast(index: number): { translateY: number, scale: number, contentOpacity: number } {
+export function stackedToast(index: number, edge: "top" | "bottom" = "top"): { translateY: number, scale: number, contentOpacity: number } {
     "worklet"
-    return { translateY: index * 14, scale: 1 - index * 0.05, contentOpacity: index === 0 ? 1 : 0 }
+    return { translateY: (edge === "top" ? 1 : -1) * index * 14, scale: 1 - index * 0.05, contentOpacity: index === 0 ? 1 : 0 }
 }
 
 let toasts: ToastItem[] = []

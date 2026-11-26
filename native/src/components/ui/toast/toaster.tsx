@@ -1,11 +1,13 @@
-import { TOAST_STACK_MOVE, toastIn, toastOut } from "@/components/ui/core/animations"
+import { useMiniPlayerFrame } from "@/components/shared/phone-screen"
+import { TOAST_STACK_MOVE, toastIn, toastInFromBottom, toastOut } from "@/components/ui/core/animations"
 import { getToasts, stackedToast, subscribeToasts, toast, toasterFrame, type ToastItem, type ToastType, VISIBLE_TOASTS } from "@/components/ui/toast/toast-store"
 import { haptic } from "@/lib/feedback"
+import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { DURATION, POP_EASE, SCALE } from "@/lib/motion"
 import { colors } from "@/lib/theme/tokens"
 import { useThemeColors } from "@/lib/theme/appearance"
 import React from "react"
-import { Pressable, Text, useWindowDimensions, View } from "react-native"
+import { Pressable, Text, View } from "react-native"
 import Animated, { Easing, Keyframe, ReduceMotion, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import Svg, { Path } from "react-native-svg"
@@ -16,7 +18,8 @@ import Svg, { Path } from "react-native-svg"
  * 12/16dp padding and 12dp between icon and text; the type shows only in the colour of sonner's filled icon (20dp in its
  * 16dp box, -3/+4dp margins). The text is sonner's own face (system-ui = Roboto on Android): title 14/21 medium, a
  * description 14/19.6 in the muted colour. A success's check pops in once (360 ms, 80 ms late). Newer toasts stack
- * over older ones (stackedToast). A tap closes one; each leaves after its duration.
+ * over older ones (stackedToast). A tap closes one; each leaves after its duration. On a tablet with the rail they sit at
+ * the bottom right over the mini player (toasterFrame) and come up from below.
  */
 const ICON_COLOR: Record<Exclude<ToastType, "info">, string> = {
     default: colors.smTextMuted,
@@ -61,30 +64,32 @@ function ToastIcon({ type }: { type: ToastType }) {
     )
 }
 
-function ToastRow({ item, index, frontHeight, onFrontHeight }: { item: ToastItem, index: number, frontHeight: number, onFrontHeight: (height: number) => void }) {
+function ToastRow({ item, index, edge, frontHeight, onFrontHeight }: {
+    item: ToastItem, index: number, edge: "top" | "bottom", frontHeight: number, onFrontHeight: (height: number) => void
+}) {
     React.useEffect(() => {
         const timer = setTimeout(() => toast.dismiss(item.id), item.duration)
         return () => clearTimeout(timer)
     }, [item.id, item.duration, item.createdAt])
 
     const place = useSharedValue(index)
-    const shown = useSharedValue(stackedToast(index).contentOpacity)
+    const shown = useSharedValue(stackedToast(index, edge).contentOpacity)
     const front = useSharedValue(index === 0)
     React.useEffect(() => {
         place.set(withTiming(index, TOAST_STACK_MOVE))
-        shown.set(withTiming(stackedToast(index).contentOpacity, TOAST_STACK_MOVE))
+        shown.set(withTiming(stackedToast(index, edge).contentOpacity, TOAST_STACK_MOVE))
         front.set(index === 0)
-    }, [index, place, shown, front])
-    const exiting = React.useMemo(() => toastOut(front), [front])
+    }, [index, edge, place, shown, front])
+    const exiting = React.useMemo(() => toastOut(front, edge), [front, edge])
     const boxStyle = useAnimatedStyle(() => {
-        const { translateY, scale } = stackedToast(place.get())
+        const { translateY, scale } = stackedToast(place.get(), edge)
         return { transform: [{ translateY }, { scale }] }
     })
     const contentStyle = useAnimatedStyle(() => ({ opacity: shown.get() }))
 
     return (
-        <Animated.View entering={toastIn} exiting={exiting} pointerEvents={index === 0 ? "auto" : "none"}
-            style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: VISIBLE_TOASTS - index }}>
+        <Animated.View entering={edge === "top" ? toastIn : toastInFromBottom} exiting={exiting} pointerEvents={index === 0 ? "auto" : "none"}
+            style={[{ position: "absolute", left: 0, right: 0, zIndex: VISIBLE_TOASTS - index }, edge === "top" ? { top: 0 } : { bottom: 0 }]}>
             <Animated.View
                 onLayout={index === 0 ? event => onFrontHeight(event.nativeEvent.layout.height) : undefined}
                 style={[boxStyle, index > 0 && frontHeight > 0 ? { height: frontHeight } : null]}
@@ -118,8 +123,9 @@ function ToastRow({ item, index, frontHeight, onFrontHeight }: { item: ToastItem
 
 export function Toaster() {
     const toasts = React.useSyncExternalStore(subscribeToasts, getToasts, getToasts)
-    const { width } = useWindowDimensions()
-    const insetTop = useSafeAreaInsets().top
+    const { rail, window } = useTabletLayout()
+    const insets = useSafeAreaInsets()
+    const mini = useMiniPlayerFrame()
     const visible = toasts.slice(-VISIBLE_TOASTS)
     const [frontHeight, setFrontHeight] = React.useState(0)
     // a new error toast gets the "reject" haptic (toaster.tsx of the web app)
@@ -129,10 +135,11 @@ export function Toaster() {
         seen.current = new Set(toasts.map(item => item.id))
     }, [toasts])
     if (visible.length === 0) return null
+    const { edge, top, bottom, left, right, width: frameWidth } = toasterFrame(window.width, insets, { rail, mini })
     return (
-        <View pointerEvents="box-none" style={{ position: "absolute", ...toasterFrame(width, insetTop) }}>
+        <View pointerEvents="box-none" style={{ position: "absolute", top, bottom, left, right, width: frameWidth }}>
             {visible.map((item, i) => (
-                <ToastRow key={item.id} item={item} index={visible.length - 1 - i} frontHeight={frontHeight} onFrontHeight={setFrontHeight} />
+                <ToastRow key={item.id} item={item} index={visible.length - 1 - i} edge={edge} frontHeight={frontHeight} onFrontHeight={setFrontHeight} />
             ))}
         </View>
     )
