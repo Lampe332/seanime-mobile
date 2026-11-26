@@ -189,7 +189,7 @@ export function HomeSettingsSheet() {
 
     return (
         <>
-            <Sheet open={open} onOpenChange={setOpen} title={t("Customize Home", "Home anpassen")}>
+            <Sheet open={open} onOpenChange={setOpen} title={t("Customize Home", "Startseite anpassen")}>
                 <View className="gap-6">
                     <View>
                         <Text className="mb-2.5 text-base font-bold">{t("Your library", "Deine Bibliothek")}</Text>

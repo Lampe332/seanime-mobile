@@ -196,8 +196,8 @@ function NoSections() {
     return (
         <View className="items-center gap-4 py-10">
             <SectionTitle className="text-center">{t("Home has no sections", "Die Startseite hat keine Bereiche")}</SectionTitle>
-            <Text className="text-center leading-[22px] text-sm-text-muted">{t("You removed all sections. Add the ones you want in Customize Home.", "Du hast alle Bereiche entfernt. Füge unter „Home anpassen“ die gewünschten hinzu.")}</Text>
-            <Button intent="secondary" leftIcon={<Settings2 size={18} color={colors.smText} />} onPress={() => setCustomize(true)}>{t("Customize Home", "Home anpassen")}</Button>
+            <Text className="text-center leading-[22px] text-sm-text-muted">{t("You removed all sections. Add the ones you want in Customize Home.", "Du hast alle Bereiche entfernt. Füge unter „Startseite anpassen“ die gewünschten hinzu.")}</Text>
+            <Button intent="secondary" leftIcon={<Settings2 size={18} color={colors.smText} />} onPress={() => setCustomize(true)}>{t("Customize Home", "Startseite anpassen")}</Button>
         </View>
     )
 }
@@ -469,9 +469,9 @@ function MyLists({ item }: { item: Models_HomeItem }) {
     if (loaded && customName && !shown.length) {
         return <SectionNote>{type === "manga"
             ? t(`You have no manga list named "${customName}" with entries on AniList. Check the name in Customize Home.`,
-                `Du hast auf AniList keine Manga-Liste „${customName}“ mit Einträgen. Prüfe den Namen unter „Home anpassen“.`)
+                `Du hast auf AniList keine Manga-Liste „${customName}“ mit Einträgen. Prüfe den Namen unter „Startseite anpassen“.`)
             : t(`You have no anime list named "${customName}" with entries on AniList. Check the name in Customize Home.`,
-                `Du hast auf AniList keine Anime-Liste „${customName}“ mit Einträgen. Prüfe den Namen unter „Home anpassen“.`)}</SectionNote>
+                `Du hast auf AniList keine Anime-Liste „${customName}“ mit Einträgen. Prüfe den Namen unter „Startseite anpassen“.`)}</SectionNote>
     }
     if (loaded && !shown.length) return <SectionNote>{t("Your lists have no entries with the picked statuses.", "Deine Listen haben keine Einträge mit den gewählten Status.")}</SectionNote>
     return (

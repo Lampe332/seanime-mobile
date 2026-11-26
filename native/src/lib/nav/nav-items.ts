@@ -168,7 +168,7 @@ const NAV_LABELS_DE: Record<string, string> = {
     "Refresh AniList": "AniList aktualisieren", "Extensions": "Erweiterungen", "Settings": "Einstellungen",
     "Sign out": "Abmelden", "Sign in": "Anmelden", "Login": "Anmelden",
     // added by the native app
-    "Downloads": "Downloads", "Server status": "Server-Status", "Building blocks": "Bausteine", "Customize Home": "Home anpassen",
+    "Downloads": "Downloads", "Server status": "Server-Status", "Building blocks": "Bausteine", "Customize Home": "Startseite anpassen",
 }
 
 /** The shown text of an entry; the label itself stays the English key */

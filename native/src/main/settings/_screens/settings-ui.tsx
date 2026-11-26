@@ -207,7 +207,7 @@ function CarouselGroup({ t }: { t: Translate }) {
 function PreloadGroup({ t }: { t: Translate }) {
     const [mode, setMode] = useAtom(__navigationPreloadModeAtom)
     const simulated = useIsSimulatedUser()
-    return <SettingsGroup title={t("Loading pages", "Seiten laden")}>
+    return <SettingsGroup title={t("Loading pages", "Vorab laden")}>
         <SelectRow label={t("Load anime pages ahead", "Anime-Seiten vorab laden")} disabled={simulated} value={simulated ? "disable" : mode}
             note={simulated ? t("Off without an AniList account, because of AniList's request limits.", "Ohne AniList-Konto aus, wegen der Anfragegrenzen von AniList.")
                 : t("Only on this device. Loading ahead reaches AniList's request limit sooner.", "Nur auf diesem Gerät. Vorab laden erreicht die Anfragegrenze von AniList schneller.")}
