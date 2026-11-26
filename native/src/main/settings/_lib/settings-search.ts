@@ -37,6 +37,8 @@ export type SettingsSearchEntry = {
     alt?: readonly Pair[]
     /** shown only while these hold */
     when?: readonly SearchCondition[]
+    /** the title of the sheet the row stands in: its group's control opens it, the page alone does not show the row */
+    sheet?: Pair
 }
 
 export type SettingsSearchSection = { id: SettingsSectionId, title: Pair, summary: Pair }
@@ -52,6 +54,8 @@ export type SettingsSearchDoc = {
     /** the group's title and the row's names as the page shows them: what the page jumps to */
     group?: string
     labels?: string[]
+    /** the sheet the row stands in, as the page shows its title (SettingsSearchEntry.sheet) */
+    sheet?: string
     when?: readonly SearchCondition[]
     /** normalised, the English text included */
     fields: { title: string, note: string, group: string, section: string }
@@ -114,15 +118,18 @@ export function buildSearchDocs(entries: readonly SettingsSearchEntry[], section
             continue
         }
         const names = [entry.label, ...(entry.alt ?? [])]
+        const sheet = entry.sheet ? shown(entry.sheet) : undefined
+        const place = group ? sectionTitle + SEARCH_PATH_SEPARATOR + group : sectionTitle
         docs.push({
             id: searchEntryId(entry),
             kind: "row",
             section: entry.section,
             title: shown(entry.label),
-            path: group ? sectionTitle + SEARCH_PATH_SEPARATOR + group : sectionTitle,
+            path: sheet ? place + SEARCH_PATH_SEPARATOR + sheet : place,
             note: shown(entry.note),
             group,
             labels: names.map(shown),
+            ...(sheet ? { sheet } : null),
             ...(entry.when ? { when: entry.when } : null),
             fields: { title: field(...names), note: field(entry.note), group: field(entry.group), section: field(section.title) },
         })

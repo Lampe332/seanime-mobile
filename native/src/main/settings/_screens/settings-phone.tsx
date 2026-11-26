@@ -121,7 +121,7 @@ export function SettingsPhone() {
     const openHit = React.useCallback((hit: SettingsSearchDoc) => {
         Keyboard.dismiss()
         setListTop(listOffset.current)
-        setFocus(previous => ({ section: hit.section, group: hit.group, labels: hit.labels, nonce: (previous?.nonce ?? 0) + 1 }))
+        setFocus(previous => ({ section: hit.section, group: hit.group, labels: hit.labels, ...(hit.sheet ? { sheet: hit.sheet } : null), nonce: (previous?.nonce ?? 0) + 1 }))
         setSection(hit.section)
     }, [])
     const clearQuery = React.useCallback(() => setQuery(""), [])

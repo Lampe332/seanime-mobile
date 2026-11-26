@@ -11,6 +11,7 @@ import { toast } from "@/components/ui/toast/toast-store"
 import { type Translate } from "@/lib/app-language"
 import { colors, accentInput } from "@/lib/theme/tokens"
 import { ConfirmSheet, LinkRow, LocalSwitch, type SelectOption, SelectRow, SettingsGroup } from "@/main/settings/_components/settings-kit"
+import { useSheetFocus } from "@/main/settings/_components/settings-page"
 import {
     addToken,
     type AutoSelectForm,
@@ -83,6 +84,13 @@ export function AutoSelectGroup({ t }: { t: Translate }) {
     const [open, setOpen] = React.useState(false)
     const [confirm, setConfirm] = React.useState(false)
     const saved = !!profile?.dbId
+    // A search hit on a row of the profile opens the sheet once the profile is there (its draft starts from it)
+    const hit = useSheetFocus(t("Auto-select profile", "Auto-Auswahl-Profil"), t("Auto-select", "Auto-Auswahl"))
+    const [openedHit, setOpenedHit] = React.useState<number | null>(null)
+    if (hit !== null && hit !== openedHit && !isLoading && !isError) {
+        setOpenedHit(hit)
+        setOpen(true)
+    }
 
     return <SettingsGroup title={t("Auto-select", "Auto-Auswahl")}
         note={t("Applies when the app picks a torrent for you while streaming, with torrents or debrid.",

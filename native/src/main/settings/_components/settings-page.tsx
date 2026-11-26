@@ -7,7 +7,7 @@ import { haptic } from "@/lib/feedback"
 import { useThemeColors } from "@/lib/theme/appearance"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { type TourScrollHost, TourScrollContext } from "@/main/_features/tour/tour-targets"
-import { activeJumpIndex, chipRowOffset, focusChipId, jumpScrollMetrics, type JumpScrollEvent, miniCardRightPad, SETTINGS_WIDE_COLUMN_WIDTH, settingsColumnMaxWidth } from "@/main/settings/_lib/settings-page-layout"
+import { activeJumpIndex, chipRowOffset, focusChipId, jumpLayoutFromWindow, jumpScrollMetrics, type JumpScrollEvent, miniCardRightPad, SETTINGS_WIDE_COLUMN_WIDTH, settingsColumnMaxWidth } from "@/main/settings/_lib/settings-page-layout"
 import type { LucideIcon } from "lucide-react-native"
 import ArrowLeft from "lucide-react-native/icons/arrow-left"
 import React from "react"
@@ -49,7 +49,7 @@ export function useJumpTarget(label: string | undefined) {
  * What a search hit opens the page on: the group by its title and the row by its names, all as the page shows them. A
  * new `nonce` runs the jump again (the same hit tapped twice on a tablet).
  */
-export type SettingsPageFocus = { group?: string, labels?: readonly string[], nonce: number }
+export type SettingsPageFocus = { group?: string, labels?: readonly string[], sheet?: string, nonce: number }
 /** The matching row hands the page its view; the page scrolls it into sight */
 export type RowReveal = (row: React.RefObject<ViewRef | null>) => void
 
@@ -61,6 +61,17 @@ export function useRowFocus(label: string, group: string | undefined) {
     if (!context?.focus.labels?.includes(label)) return null
     if (context.focus.group !== undefined && group !== undefined && context.focus.group !== group) return null
     return { nonce: context.focus.nonce, reveal: context.reveal }
+}
+
+/**
+ * For the control that opens a sheet: the hit's nonce when its row stands in this sheet (SettingsSearchEntry.sheet), so
+ * the control opens the sheet and the row glows there. The page itself stays on the group of the control.
+ */
+export function useSheetFocus(sheet: string, group: string | undefined): number | null {
+    const context = React.useContext(SettingsFocusContext)
+    if (context?.focus.sheet !== sheet) return null
+    if (context.focus.group !== undefined && group !== undefined && context.focus.group !== group) return null
+    return context.focus.nonce
 }
 
 /*
@@ -130,6 +141,8 @@ export function SettingsPage({ icon: Icon, title, summary, onBack, jump = true, 
 
     const frameRef = React.useRef<ViewRef>(null)
     const scrollRef = React.useRef<ScrollRef>(null)
+    // The top of the rows' content: positions are taken against it, a stale offset cannot shift them (T1)
+    const contentTopRef = React.useRef<ViewRef>(null)
     const chipRowRef = React.useRef<ScrollRef>(null)
     const offset = React.useRef(0)
     const viewport = React.useRef(0)
@@ -186,21 +199,27 @@ export function SettingsPage({ icon: Icon, title, summary, onBack, jump = true, 
         refreshActive()
     }, [chips, tops, refreshActive])
 
+    // Also takes the offset anew: after a rotation Android moved it without a scroll event
     const measure = React.useCallback(() => {
         const frame = frameRef.current
+        const contentTop = contentTopRef.current
         const list = chipsRef.current
-        if (!frame || list.length === 0) return
-        frame.measureInWindow((_frameX, frameY) => {
-            const next: Record<string, number> = {}
+        if (!frame || !contentTop || list.length === 0) return
+        frame.measureInWindow((_frameX, frameY) => contentTop.measureInWindow((_contentX, contentY) => {
+            const ys: Record<string, number> = {}
             let left = list.length
             const done = () => {
                 left -= 1
                 if (left > 0) return
+                const { scrollY, tops: next } = jumpLayoutFromWindow({ frameY, contentY, targetYs: ys })
+                offset.current = scrollY
                 setTops(previous => {
                     const keys = Object.keys(next)
                     const same = keys.length === Object.keys(previous).length && keys.every(key => previous[key] === next[key])
                     return same ? previous : next
                 })
+                // unchanged tops run no effect; the offset may still have moved
+                refreshActive()
             }
             for (const target of list) {
                 const node = target.ref.current
@@ -209,12 +228,12 @@ export function SettingsPage({ icon: Icon, title, summary, onBack, jump = true, 
                     continue
                 }
                 node.measureInWindow((_x, y) => {
-                    next[target.id] = Math.round(offset.current + y - frameY)
+                    ys[target.id] = y
                     done()
                 })
             }
-        })
-    }, [])
+        }))
+    }, [refreshActive])
 
     // Measured once the groups have laid out (the effect above has handed over the new chips)
     React.useEffect(() => {
@@ -225,10 +244,10 @@ export function SettingsPage({ icon: Icon, title, summary, onBack, jump = true, 
 
     /** Scrolls the rows so that the view stands `lead(its height)` under their top edge */
     const scrollToNode = React.useCallback((node: ViewRef, lead: (height: number) => number) => {
-        const frame = frameRef.current
-        if (!frame) return
-        frame.measureInWindow((_frameX, frameY) => node.measureInWindow((_x, y, _width, nodeHeight) => {
-            scrollRef.current?.scrollTo({ y: Math.max(0, offset.current + y - frameY - lead(nodeHeight)), animated: !reducedMotion })
+        const contentTop = contentTopRef.current
+        if (!contentTop) return
+        contentTop.measureInWindow((_contentX, contentY) => node.measureInWindow((_x, y, _width, nodeHeight) => {
+            scrollRef.current?.scrollTo({ y: Math.max(0, y - contentY - lead(nodeHeight)), animated: !reducedMotion })
         }))
     }, [reducedMotion])
 
@@ -262,7 +281,10 @@ export function SettingsPage({ icon: Icon, title, summary, onBack, jump = true, 
         focusTimer.current = setTimeout(attempt, 50)
     }, [])
     const focusGroup = focus?.group
+    // a row in a sheet glows there (useSheetFocus); the page stays on its group, the jump below
+    const focusSheet = focus?.sheet
     const reveal = React.useCallback<RowReveal>(row => {
+        if (focusSheet) return
         revealed.current = true
         whenLaidOut(() => {
             // the row stands a third down, so the line at the top still crosses the group before: its chip is lit instead
@@ -271,7 +293,7 @@ export function SettingsPage({ icon: Icon, title, summary, onBack, jump = true, 
             if (chip !== null) setActiveId(chip)
             if (row.current) scrollToNode(row.current, rowHeight => Math.max(24, (viewport.current - rowHeight) / 3))
         })
-    }, [focusGroup, scrollToNode, whenLaidOut])
+    }, [focusGroup, focusSheet, scrollToNode, whenLaidOut])
     const focusContext = React.useMemo(() => focus ? { focus, reveal } : null, [focus, reveal])
     React.useEffect(() => {
         const group = focus?.group
@@ -308,8 +330,15 @@ export function SettingsPage({ icon: Icon, title, summary, onBack, jump = true, 
     const side = pane ? "" : "px-4"
     const cardPad = miniCardRightPad({ frameX: frameBox.x, frameWidth: frameBox.width, maxWidth: column?.maxWidth, windowWidth,
         card: mini?.kind === "card" ? mini : null })
+    const frameWidth = React.useRef(0)
     const readFrame = () => frameRef.current?.measureInWindow((x, _y, width) => {
         setFrameBox(previous => previous.x === x && previous.width === width ? previous : { x, width })
+        // A new width (rotation) moves every group: a pinned chip no longer stands for what shows, the tops are measured anew
+        if (frameWidth.current > 0 && width !== frameWidth.current) {
+            pinned.current = false
+            if (showChips) requestAnimationFrame(measure)
+        }
+        frameWidth.current = width
     })
 
     const page = (
@@ -382,6 +411,7 @@ export function SettingsPage({ icon: Icon, title, summary, onBack, jump = true, 
                     contentContainerStyle={{ ...column, paddingBottom: bottomPad ?? ownBottom, ...(cardPad > 0 ? { paddingRight: Math.max(pane ? 0 : 16, cardPad) } : null) }}
                     contentContainerClassName={`gap-6 ${side}`}
                 >
+                    <View ref={contentTopRef} collapsable={false} pointerEvents="none" className="absolute left-0 top-0 h-px w-px" />
                     {children}
                 </ScrollView>
             </View>

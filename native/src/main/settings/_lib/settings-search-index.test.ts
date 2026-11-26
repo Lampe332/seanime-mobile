@@ -29,7 +29,7 @@ const STATE = /\b(isLoading|isPending|isError|isFetching|loadFailed)\b|"loading"
 const BUSY = (text: Pair) => text[0].endsWith("…")
 
 type Props = Record<string, Pair[]>
-type Scope = { section: SettingsSectionId, group?: Pair, props: Props, stack: string[], when: SearchCondition[], inSheet?: boolean }
+type Scope = { section: SettingsSectionId, group?: Pair, props: Props, stack: string[], when: SearchCondition[], inSheet?: boolean, sheet?: Pair }
 
 function parse(dir: string, file: string) {
     return ts.createSourceFile(file, readFileSync(join(SETTINGS_DIR, dir, file), "utf8"), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
@@ -138,11 +138,12 @@ function extract(): { entries: SettingsSearchEntry[], sections: string[], condit
             const [label, ...alt] = names.length > 1 ? names.filter(name => !BUSY(name)) : names
             // a note that depends on a state: the last one is the default ("special ? note : usual note")
             const note = attrs.note?.at(-1)
-            if (label) add({ section: scope.section, ...(scope.group ? { group: scope.group } : null), label, ...(note ? { note } : null), ...(alt.length ? { alt } : null), ...(scope.when.length ? { when: scope.when } : null) })
+            if (label) add({ section: scope.section, ...(scope.group ? { group: scope.group } : null), label, ...(note ? { note } : null), ...(alt.length ? { alt } : null), ...(scope.when.length ? { when: scope.when } : null), ...(scope.sheet ? { sheet: scope.sheet } : null) })
             return
         }
         let inner = scope
-        if (tag === SHEET) inner = { ...scope, inSheet: true }
+        // a row in a sheet is found under the sheet's title, so the hit can open the sheet before it jumps to the row
+        if (tag === SHEET) inner = { ...scope, inSheet: true, ...(attrs.title?.[0] ? { sheet: attrs.title[0] } : null) }
         else if (tag === "SettingsGroup" && !scope.inSheet) {
             const title = attrs.title?.[0]
             inner = { ...scope, group: title }
@@ -176,6 +177,7 @@ function render(entries: SettingsSearchEntry[]): string {
         if (entry.note) parts.push(`note: ${pair(entry.note)}`)
         if (entry.alt) parts.push(`alt: [${entry.alt.map(pair).join(", ")}]`)
         if (entry.when) parts.push(`when: [${entry.when.map(quote).join(", ")}]`)
+        if (entry.sheet) parts.push(`sheet: ${pair(entry.sheet)}`)
         return `    { ${parts.join(", ")} },`
     })
     return [
@@ -222,7 +224,8 @@ describe("settings search index", () => {
 
     it("holds rows of every kind, rows from factories and the rows of a sheet", () => {
         expect(row("Accent color")).toMatchObject({ section: "ui" })
-        expect(row("Multiple subtitle tracks")).toMatchObject({ section: "torrents", group: ["Auto-select", "Auto-Auswahl"] })
+        expect(row("Multiple subtitle tracks")).toMatchObject({ section: "torrents", group: ["Auto-select", "Auto-Auswahl"], sheet: ["Auto-select profile", "Auto-Auswahl-Profil"] })
+        expect(row("Accent color")?.sheet).toBeUndefined()
         expect(row("Player for files")?.note?.[0]).toBe("Plays in the app with subtitles, progress tracking and skipping.")
     })
 

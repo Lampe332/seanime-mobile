@@ -42,6 +42,23 @@ export function activeJumpIndex({ tops, scrollY, viewportHeight, contentHeight, 
     return active
 }
 
+/**
+ * The rows' offset and the groups' tops in them, from views measured in the window against the top of the rows' content.
+ * Not from the last scroll event: a rotation lays the rows out anew and Android moves their offset without one (Pixel
+ * Tablet T1: the page stood at its top while the stale offset still met the end rule, "Debrid" stayed lit).
+ */
+export function jumpLayoutFromWindow({ frameY, contentY, targetYs }: {
+    /** the window y of the rows' visible top */
+    frameY: number
+    /** the window y of the top of the rows' content: above frameY by the offset */
+    contentY: number
+    targetYs: Readonly<Record<string, number>>
+}): { scrollY: number, tops: Record<string, number> } {
+    const tops: Record<string, number> = {}
+    for (const [id, y] of Object.entries(targetYs)) tops[id] = Math.round(y - contentY)
+    return { scrollY: Math.max(0, frameY - contentY), tops }
+}
+
 /** What a scroll event of the rows says about them; every event carries the sizes of that moment, not of the last layout */
 export interface JumpScrollEvent {
     contentOffset: { y: number }

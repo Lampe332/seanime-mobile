@@ -1,10 +1,33 @@
 import { describe, expect, it } from "vitest"
-import { activeJumpIndex, chipRowOffset, focusChipId, jumpScrollMetrics, miniCardRightPad, pickerListMaxHeight, settingsColumnMaxWidth } from "./settings-page-layout"
+import { activeJumpIndex, chipRowOffset, focusChipId, jumpLayoutFromWindow, jumpScrollMetrics, miniCardRightPad, pickerListMaxHeight, settingsColumnMaxWidth } from "./settings-page-layout"
 
 describe("the settings column", () => {
     it("keeps the phone at 640 and lets a tablet fill up to 960", () => {
         expect(settingsColumnMaxWidth(false)).toBe(640)
         expect(settingsColumnMaxWidth(true)).toBe(960)
+    })
+})
+
+describe("the jump layout after a rotation", () => {
+    // Torrents & debrid in portrait after the jump to "Auto-select" in landscape: the rows went back to their top
+    const portrait = jumpLayoutFromWindow({
+        frameY: 220,
+        contentY: 220,
+        targetYs: { providers: 220, streaming: 520, autoSelect: 980, downloads: 1260, debrid: 1610 },
+    })
+
+    it("reads the offset from the content's top, not from the last scroll event", () => {
+        expect(portrait.scrollY).toBe(0)
+        expect(portrait.tops).toEqual({ providers: 0, streaming: 300, autoSelect: 760, downloads: 1040, debrid: 1390 })
+        expect(jumpLayoutFromWindow({ frameY: 220, contentY: -540.4, targetYs: { a: -540.4 } })).toEqual({ scrollY: 760.4, tops: { a: 0 } })
+    })
+
+    it("lights the group at the top again instead of the last one", () => {
+        const tops = Object.values(portrait.tops)
+        const sizes = { viewportHeight: 1900, contentHeight: 2300 }
+        // the landscape offset kept the end rule on: "Debrid" lit at the top of the page
+        expect(activeJumpIndex({ tops, scrollY: 500, ...sizes })).toBe(4)
+        expect(activeJumpIndex({ tops, scrollY: portrait.scrollY, ...sizes })).toBe(0)
     })
 })
 
