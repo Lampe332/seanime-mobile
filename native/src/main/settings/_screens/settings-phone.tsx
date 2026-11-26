@@ -238,7 +238,7 @@ function TwoPanes({ t, shown, onOpen, query, onQuery, onHit, focus }: {
             {/* A tap on a hit counts while the keyboard is still up */}
             <ScrollView style={{ width: listWidth, flexGrow: 0 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled"
                 contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}>
-                <SettingsSearch t={t} sections={SEARCH_SECTIONS} query={query} onQuery={onQuery} onOpen={onHit} compact={!wide}>
+                <SettingsSearch t={t} sections={SEARCH_SECTIONS} query={query} onQuery={onQuery} onOpen={onHit} compact={!wide} tablet>
                     <SectionList t={t} onOpen={open} current={shown} notes={wide} compact={wide && window.height <= 900} />
                 </SettingsSearch>
             </ScrollView>

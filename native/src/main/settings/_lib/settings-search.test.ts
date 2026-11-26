@@ -1,4 +1,4 @@
-import { buildSearchDocs, normalizeSearch, searchSettings, type SettingsSearchEntry, type SettingsSearchSection } from "@/main/settings/_lib/settings-search"
+import { buildSearchDocs, normalizeSearch, SEARCH_CONDITIONS, type SearchCondition, type SearchConditions, searchSettings, type SettingsSearchEntry, type SettingsSearchSection } from "@/main/settings/_lib/settings-search"
 import { SETTINGS_SEARCH_INDEX } from "@/main/settings/_lib/settings-search-index"
 import { describe, expect, it } from "vitest"
 
@@ -78,7 +78,7 @@ describe("searchSettings", () => {
         expect(titles("list", en)).toEqual(["Appearance", "Sorting", "Café mode"])
     })
 
-    it("ranks a whole name before its start, a word's start and the inside of a word", () => {
+    it("ranks a whole name before its start and a word's start, and never matches inside a word", () => {
         const docs = buildSearchDocs([
             { section: "ui", label: ["Resort", "Resort"] },
             { section: "ui", label: ["Auto sort", "Auto sort"] },
@@ -92,7 +92,34 @@ describe("searchSettings", () => {
             { section: "ui", label: ["Sorting", "Sorting"] },
             { section: "ui", label: ["Sort", "Sort"] },
         ], SECTIONS, english => english)
-        expect(titles("sort", withArea)).toEqual(["Sort", "Sorting", "Auto sort", "Resort"])
+        expect(titles("sort", withArea)).toEqual(["Sort", "Sorting", "Auto sort"])
+    })
+
+    it("matches only at the start of a word, also with several words", () => {
+        const docs = buildSearchDocs([
+            { section: "ui", label: ["App lock", "App-Sperre"] },
+            { section: "ui", label: ["Locked rows", "Gesperrte Zeilen"] },
+            { section: "ui", label: ["Show status bar", "Statusleiste zeigen"], note: ["Clock and battery", "Uhr und Akku"] },
+        ], SECTIONS, english => english)
+        expect(titles("lock", docs)).toEqual(["Locked rows", "App lock"])
+        expect(titles("rows lock", docs)).toEqual(["Locked rows"])
+        expect(titles("status lock", docs)).toEqual([])
+        expect(titles("ock", docs)).toEqual([])
+    })
+
+    it("leaves out a row the page does not show right now", () => {
+        const docs = buildSearchDocs([
+            { section: "ui", group: ["Banner", "Banner"], when: ["SettingsUISection:!tablet"] },
+            { section: "ui", group: ["Banner", "Banner"], label: ["Banner image", "Bannerbild"], when: ["SettingsUISection:!tablet"] },
+            { section: "ui", group: ["Banner", "Banner"], label: ["Banner position", "Bannerausschnitt"], when: ["SettingsUISection:!tablet", "BannerGroup:!!shown"] },
+            { section: "ui", label: ["Banner style", "Bannerstil"] },
+        ], SECTIONS, english => english)
+        const all = Object.fromEntries(SEARCH_CONDITIONS.map(condition => [condition, true])) as Record<SearchCondition, boolean>
+        const find = (conditions?: SearchConditions) => searchSettings(docs, "banner", undefined, conditions).map(doc => doc.title)
+        expect(find()).toEqual(["Banner", "Banner image", "Banner position", "Banner style"])
+        expect(find(all)).toEqual(["Banner", "Banner image", "Banner position", "Banner style"])
+        expect(find({ ...all, "BannerGroup:!!shown": false })).toEqual(["Banner", "Banner image", "Banner style"])
+        expect(find({ ...all, "SettingsUISection:!tablet": false })).toEqual(["Banner style"])
     })
 
     it("puts areas before groups before rows on the same score, then keeps the settings' order", () => {
@@ -107,7 +134,7 @@ describe("searchSettings", () => {
     })
 
     it("stops at the limit", () => {
-        expect(titles("e", de, 2)).toHaveLength(2)
+        expect(titles("s", de, 2)).toHaveLength(2)
     })
 
     it("finds real settings in the stored index", () => {

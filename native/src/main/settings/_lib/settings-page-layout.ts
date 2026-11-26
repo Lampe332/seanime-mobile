@@ -36,6 +36,14 @@ export function activeJumpIndex({ tops, scrollY, viewportHeight, contentHeight, 
     return active
 }
 
+/**
+ * The chip lit after a search jump: the hit's group, which the jump puts a third down (under the line the previous group
+ * still holds), or none when the group has no chip. It stays lit until the next drag.
+ */
+export function focusChipId(chipIds: readonly string[], group: string | undefined): string | null {
+    return group !== undefined && chipIds.includes(group) ? group : null
+}
+
 /** The sheet of all options is as tall as its options, at most this share of the screen; past it its options scroll */
 export const PICKER_MAX_SHARE = 0.85
 

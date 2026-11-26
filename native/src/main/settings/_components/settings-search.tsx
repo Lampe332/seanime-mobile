@@ -3,9 +3,13 @@ import { cn } from "@/components/ui/core/styling"
 import { Muted, Text } from "@/components/ui/text/text"
 import { type AppLanguage, getAppLanguage, translate, type Translate } from "@/lib/app-language"
 import { useThemeColors } from "@/lib/theme/appearance"
+import { BANNER_PRESET_ASSETS } from "@/lib/theme/banner-presets"
+import { resolveBanner } from "@/lib/theme/home-banner"
+import { useSettingValue, useThemeValue } from "@/main/settings/_components/settings-kit"
 import type { SettingsSectionId } from "@/main/settings/_lib/settings-phone"
-import { buildSearchDocs, searchSettings, type SettingsSearchDoc, type SettingsSearchSection } from "@/main/settings/_lib/settings-search"
+import { buildSearchDocs, type SearchConditions, searchSettings, type SettingsSearchDoc, type SettingsSearchSection } from "@/main/settings/_lib/settings-search"
 import { SETTINGS_SEARCH_INDEX } from "@/main/settings/_lib/settings-search-index"
+import { useRowValue } from "@/main/settings/_screens/settings-torrents"
 import type { LucideIcon } from "lucide-react-native"
 import React from "react"
 import { Pressable, View } from "react-native"
@@ -29,7 +33,30 @@ function searchDocs(language: AppLanguage, sections: readonly SearchSection[]) {
     return built.docs
 }
 
-export function SettingsSearch({ t, sections, query, onQuery, onOpen, compact, children }: {
+/** The states the pages show rows under (SEARCH_CONDITIONS), read as the pages read them */
+function useSearchConditions(tablet: boolean): SearchConditions {
+    const banner = !!resolveBanner(useThemeValue("libraryScreenCustomBannerImage"), BANNER_PRESET_ASSETS)
+    const hideSpoilers = useThemeValue("hideAnimeSpoilers")
+    const adult = useSettingValue("anilist.enableAdultContent", false)
+    const cacheDisabled = useSettingValue("anilist.disableCacheLayer", false)
+    const stream = useRowValue("torrentstream", "enabled", false)
+    const streamAutoSelect = useRowValue("torrentstream", "autoSelect", false)
+    const debrid = useRowValue("debrid", "enabled", false)
+    const debridAutoSelect = useRowValue("debrid", "streamAutoSelect", false)
+    return React.useMemo(() => ({
+        "SettingsUISection:!tablet": !tablet,
+        "BannerGroup:!!shown": banner,
+        "SettingsAppSection:hideSpoilers": !!hideSpoilers,
+        "SettingsAppSection:adult": !!adult,
+        "SettingsAppSection:!cacheDisabled": !cacheDisabled,
+        "StreamingGroup:enabled": !!stream,
+        "StreamingGroup:autoSelect": !!streamAutoSelect,
+        "DebridGroup:enabled": !!debrid,
+        "DebridGroup:autoSelect": !!debridAutoSelect,
+    }), [tablet, banner, hideSpoilers, adult, cacheDisabled, stream, streamAutoSelect, debrid, debridAutoSelect])
+}
+
+export function SettingsSearch({ t, sections, query, onQuery, onOpen, compact, tablet = false, children }: {
     t: Translate
     sections: readonly SearchSection[]
     query: string
@@ -37,13 +64,17 @@ export function SettingsSearch({ t, sections, query, onQuery, onOpen, compact, c
     onOpen: (hit: SettingsSearchDoc) => void
     /** the narrow list pane of a tablet: no icons, so the texts keep their room */
     compact?: boolean
+    /** the areas show beside the list (SectionContent `tablet`) */
+    tablet?: boolean
     /** the list of areas, shown while the field is empty */
     children: React.ReactNode
 }) {
     const language = getAppLanguage()
     const word = React.useDeferredValue(query)
     const searching = word.trim() !== ""
-    const hits = React.useMemo(() => searching ? searchSettings(searchDocs(language, sections), word) : NO_HITS, [language, searching, sections, word])
+    const conditions = useSearchConditions(tablet)
+    const hits = React.useMemo(() => searching ? searchSettings(searchDocs(language, sections), word, undefined, conditions) : NO_HITS,
+        [conditions, language, searching, sections, word])
     return (
         <View className="gap-4">
             <SearchField value={query} onChangeText={onQuery} placeholder={t("Search settings", "Einstellungen durchsuchen")} />

@@ -88,7 +88,7 @@ function useSaveRow<K extends Kind>(kind: K) {
 }
 
 /** A field of the row as shown: the value being saved, else the stored one. */
-function useRowValue<K extends Kind, F extends keyof Row<K>>(kind: K, field: F, fallback: Row<K>[F]): Row<K>[F] {
+export function useRowValue<K extends Kind, F extends keyof Row<K>>(kind: K, field: F, fallback: Row<K>[F]): Row<K>[F] {
     const status = useServerStatus()
     const pending = useAtomValue(pendingAtom)
     const key = `${kind}:${String(field)}`

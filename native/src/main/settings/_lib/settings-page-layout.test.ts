@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { activeJumpIndex, chipRowOffset, pickerListMaxHeight, settingsColumnMaxWidth } from "./settings-page-layout"
+import { activeJumpIndex, chipRowOffset, focusChipId, pickerListMaxHeight, settingsColumnMaxWidth } from "./settings-page-layout"
 
 describe("the settings column", () => {
     it("keeps the phone at 640 and lets a tablet fill up to 960", () => {
@@ -50,5 +50,21 @@ describe("the chip row", () => {
         expect(chipRowOffset({ chipX: 20, chipWidth: 100, rowWidth: 300, contentWidth: 1000 })).toBe(0)
         expect(chipRowOffset({ chipX: 900, chipWidth: 100, rowWidth: 300, contentWidth: 1000 })).toBe(700)
         expect(chipRowOffset({ chipX: 100, chipWidth: 80, rowWidth: 400, contentWidth: 300 })).toBe(0)
+    })
+})
+
+describe("focusChipId", () => {
+    const chips = ["Colors", "Sorting", "Cards and episodes", "Carousel"]
+
+    it("lights the hit's group after a jump, not the group the line at the top still crosses", () => {
+        // the row lands a third down: the line still crosses "Sorting", the chip must say "Cards and episodes"
+        expect(chips[activeJumpIndex({ tops: [0, 400, 900, 1600], scrollY: 700, viewportHeight: 1200, contentHeight: 3000 })]).toBe("Sorting")
+        expect(focusChipId(chips, "Cards and episodes")).toBe("Cards and episodes")
+    })
+
+    it("lights nothing for a hit without a group or a group without a chip", () => {
+        expect(focusChipId(chips, undefined)).toBeNull()
+        expect(focusChipId(chips, "Banner")).toBeNull()
+        expect(focusChipId([], "Sorting")).toBeNull()
     })
 })

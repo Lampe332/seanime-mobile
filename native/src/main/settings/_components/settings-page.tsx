@@ -7,7 +7,7 @@ import { haptic } from "@/lib/feedback"
 import { useThemeColors } from "@/lib/theme/appearance"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { type TourScrollHost, TourScrollContext } from "@/main/_features/tour/tour-targets"
-import { activeJumpIndex, chipRowOffset, SETTINGS_WIDE_COLUMN_WIDTH, settingsColumnMaxWidth } from "@/main/settings/_lib/settings-page-layout"
+import { activeJumpIndex, chipRowOffset, focusChipId, SETTINGS_WIDE_COLUMN_WIDTH, settingsColumnMaxWidth } from "@/main/settings/_lib/settings-page-layout"
 import type { LucideIcon } from "lucide-react-native"
 import ArrowLeft from "lucide-react-native/icons/arrow-left"
 import React from "react"
@@ -217,13 +217,17 @@ export function SettingsPage({ icon: Icon, title, summary, onBack, jump = true, 
         clearTimeout(focusTimer.current)
         focusTimer.current = setTimeout(attempt, 50)
     }, [])
+    const focusGroup = focus?.group
     const reveal = React.useCallback<RowReveal>(row => {
         revealed.current = true
         whenLaidOut(() => {
-            pinned.current = false
+            // the row stands a third down, so the line at the top still crosses the group before: its chip is lit instead
+            const chip = focusChipId(chipsRef.current.map(target => target.id), focusGroup)
+            pinned.current = chip !== null
+            if (chip !== null) setActiveId(chip)
             if (row.current) scrollToNode(row.current, rowHeight => Math.max(24, (viewport.current - rowHeight) / 3))
         })
-    }, [scrollToNode, whenLaidOut])
+    }, [focusGroup, scrollToNode, whenLaidOut])
     const focusContext = React.useMemo(() => focus ? { focus, reveal } : null, [focus, reveal])
     React.useEffect(() => {
         const group = focus?.group

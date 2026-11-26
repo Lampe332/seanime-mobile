@@ -9,6 +9,24 @@ import type { SettingsSectionId } from "@/main/settings/_lib/settings-phone"
 /** A text as the pages write it: t("English", "Deutsch") */
 export type Pair = readonly [en: string, de: string]
 
+/**
+ * The states a page shows a row under (`{condition && <Row />}`), named "Component:condition" as the source writes them.
+ * The index notes them on the rows; a hit is offered only while each holds. A condition missing here is not checked.
+ */
+export const SEARCH_CONDITIONS = [
+    "SettingsUISection:!tablet",
+    "BannerGroup:!!shown",
+    "SettingsAppSection:hideSpoilers",
+    "SettingsAppSection:adult",
+    "SettingsAppSection:!cacheDisabled",
+    "StreamingGroup:enabled",
+    "StreamingGroup:autoSelect",
+    "DebridGroup:enabled",
+    "DebridGroup:autoSelect",
+] as const
+export type SearchCondition = typeof SEARCH_CONDITIONS[number]
+export type SearchConditions = Readonly<Record<SearchCondition, boolean>>
+
 /** One group (no `label`) or one row of an area, as the source names it */
 export type SettingsSearchEntry = {
     section: SettingsSectionId
@@ -17,6 +35,8 @@ export type SettingsSearchEntry = {
     note?: Pair
     /** the row's other names (a label that depends on a state) */
     alt?: readonly Pair[]
+    /** shown only while these hold */
+    when?: readonly SearchCondition[]
 }
 
 export type SettingsSearchSection = { id: SettingsSectionId, title: Pair, summary: Pair }
@@ -32,6 +52,7 @@ export type SettingsSearchDoc = {
     /** the group's title and the row's names as the page shows them: what the page jumps to */
     group?: string
     labels?: string[]
+    when?: readonly SearchCondition[]
     /** normalised, the English text included */
     fields: { title: string, note: string, group: string, section: string }
 }
@@ -87,6 +108,7 @@ export function buildSearchDocs(entries: readonly SettingsSearchEntry[], section
                 path: sectionTitle,
                 note: shown(entry.note),
                 group,
+                ...(entry.when ? { when: entry.when } : null),
                 fields: { title: field(entry.group), note: field(entry.note), group: "", section: field(section.title) },
             })
             continue
@@ -101,6 +123,7 @@ export function buildSearchDocs(entries: readonly SettingsSearchEntry[], section
             note: shown(entry.note),
             group,
             labels: names.map(shown),
+            ...(entry.when ? { when: entry.when } : null),
             fields: { title: field(...names), note: field(entry.note), group: field(entry.group), section: field(section.title) },
         })
     }
@@ -116,37 +139,44 @@ const NO_MATCH = 99
 const KIND_ORDER = { section: 0, group: 1, row: 2 } as const
 
 /**
- * How well one word fits a document, lower is better: the name (0 whole, 1 its start, 2 the start of one of its words,
- * 3 inside a word), then the note (5, 6), the group's title (7) and the area's name (8).
+ * How well one word fits a document, lower is better: the name (0 whole, 1 its start, 2 the start of one of its words),
+ * then the note (5), the group's title (7) and the area's name (8). A word only fits at the start of a word ("lock" finds
+ * "App lock", never "Clock").
  */
 function wordScore(fields: SettingsSearchDoc["fields"], word: string): number {
     const title = fields.title
     if (title === word) return 0
     if (title.startsWith(word)) return 1
     if (title.includes(" " + word)) return 2
-    if (title.includes(word)) return 3
-    if (fields.note.startsWith(word) || fields.note.includes(" " + word)) return 5
-    if (fields.note.includes(word)) return 6
-    if (fields.group.includes(word)) return 7
-    if (fields.section.includes(word)) return 8
+    if (atWordStart(fields.note, word)) return 5
+    if (atWordStart(fields.group, word)) return 7
+    if (atWordStart(fields.section, word)) return 8
     return NO_MATCH
 }
+
+const atWordStart = (text: string, word: string) => text.startsWith(word) || text.includes(" " + word)
+
+/** Whether the page shows the document's row right now */
+const isShown = (doc: SettingsSearchDoc, conditions: SearchConditions | undefined) =>
+    !conditions || !doc.when || doc.when.every(condition => conditions[condition])
 
 export const SEARCH_RESULT_LIMIT = 30
 
 /**
  * The documents that hold every word of the query, best first: by the weakest word's score, then areas before groups
  * before rows, then the order of the settings themselves. An empty query finds nothing (the list of areas shows instead).
+ * With `conditions`, a row the page does not show right now is left out.
  */
-export function searchSettings(docs: readonly SettingsSearchDoc[], query: string, limit = SEARCH_RESULT_LIMIT): SettingsSearchDoc[] {
+export function searchSettings(docs: readonly SettingsSearchDoc[], query: string, limit = SEARCH_RESULT_LIMIT, conditions?: SearchConditions): SettingsSearchDoc[] {
     const normal = normalizeSearch(query)
     if (!normal) return []
     const words = normal.split(" ")
     const hits: { doc: SettingsSearchDoc, score: number, order: number }[] = []
     docs.forEach((doc, order) => {
+        if (!isShown(doc, conditions)) return
         // the whole query as typed ranks as one word when it fits the name ("next episode")
         let score = words.length > 1 ? wordScore(doc.fields, normal) : NO_MATCH
-        if (score > 3) {
+        if (score > 2) {
             score = 0
             for (const word of words) {
                 const one = wordScore(doc.fields, word)
