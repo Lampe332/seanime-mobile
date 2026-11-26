@@ -42,12 +42,12 @@ describe("palette", () => {
         expect(contrastRatio(WHITE, ramp[500])).toBeGreaterThanOrEqual(4.5)
         expect(contrastRatio(WHITE, ramp[600])).toBeGreaterThanOrEqual(4.5)
         for (const amoled of [false, true]) {
-            const { surfaces: s } = buildPalette(id, amoled)
+            const { surfaces: s, soft } = buildPalette(id, amoled)
             for (const ground of [s.background, s.smSurface, s.smSurfaceRaised, s.smSurfaceControl]) {
                 expect(contrastRatio(ramp[300], ground)).toBeGreaterThanOrEqual(4.5)
                 expect(contrastRatio(ramp[400], ground)).toBeGreaterThanOrEqual(4.5)
                 // accent text on the soft accent fill (chips, selected rows)
-                expect(contrastRatio(ramp[300], blend(ramp[400], 0.18, ground))).toBeGreaterThanOrEqual(4.5)
+                expect(contrastRatio(ramp[300], blend(ramp[400], soft, ground))).toBeGreaterThanOrEqual(4.5)
             }
             const bar = s.navBar
             expect(contrastRatio(nav.active, blend(nav.tint, 0.18, bar))).toBeGreaterThanOrEqual(4.5)
@@ -185,13 +185,13 @@ describe("an own accent colour", () => {
 
     it.each(OWN)("%s: text meets WCAG AA (4.5:1) on and beside the accent", hex => {
         for (const amoled of [false, true]) {
-            const { ramp, nav, surfaces: s } = buildPalette(own(hex), amoled)
+            const { ramp, nav, surfaces: s, soft } = buildPalette(own(hex), amoled)
             expect(contrastRatio(WHITE, ramp[500])).toBeGreaterThanOrEqual(4.5)
             expect(contrastRatio(WHITE, ramp[600])).toBeGreaterThanOrEqual(4.5)
             for (const ground of [s.background, s.smSurface, s.smSurfaceRaised, s.smSurfaceControl]) {
                 expect(contrastRatio(ramp[300], ground)).toBeGreaterThanOrEqual(4.5)
                 expect(contrastRatio(ramp[400], ground)).toBeGreaterThanOrEqual(4.5)
-                expect(contrastRatio(ramp[300], blend(ramp[400], 0.18, ground))).toBeGreaterThanOrEqual(4.5)
+                expect(contrastRatio(ramp[300], blend(ramp[400], soft, ground))).toBeGreaterThanOrEqual(4.5)
             }
             expect(contrastRatio(nav.active, blend(nav.tint, 0.18, s.navBar))).toBeGreaterThanOrEqual(4.5)
             expect(contrastRatio(nav.label, blend(nav.tint, 0.18, s.navBar))).toBeGreaterThanOrEqual(4.5)
@@ -207,6 +207,52 @@ describe("an own accent colour", () => {
         for (const step of STEPS) {
             const [x, y, z] = buildPalette(own("#808080"), false).ramp[step]
             expect([y, z]).toEqual([x, x])
+        }
+    })
+})
+
+describe("an on switch and the chosen tab stay clear with any own colour", () => {
+    const own = (hex: string) => customAccent(parseHexColor(hex)!)
+    /** the three colourless picks the device tests showed, and pale and vivid colours around them */
+    const COLOURLESS = ["#808080", "#ffffff", "#000000"]
+    const OTHERS = ["#8a8090", "#b0a090", "#c8b4ff", "#ffff00", "#00ff00", "#ff0000", "#000080", "#3a2f1e"]
+
+    it.each([...COLOURLESS, ...OTHERS])("%s: the on track stands off the off track and the row it sits on", hex => {
+        for (const amoled of [false, true]) {
+            const { ramp, surfaces: s } = buildPalette(own(hex), amoled)
+            // WCAG 1.4.11 (3:1 for controls)
+            expect(contrastRatio(ramp[400], s.smSurfaceControl)).toBeGreaterThanOrEqual(3)
+            expect(contrastRatio(ramp[400], s.smSurfaceRaised)).toBeGreaterThanOrEqual(3)
+        }
+    })
+
+    it.each(COLOURLESS)("%s: a monochrome accent: white knob at 3:1 on its track, the chosen tab clearly off the others", hex => {
+        for (const amoled of [false, true]) {
+            const palette = buildPalette(own(hex), amoled)
+            const { ramp, surfaces: s, soft } = palette
+            expect(palette.mono).toBe(true)
+            expect(contrastRatio(WHITE, ramp[400])).toBeGreaterThanOrEqual(3)
+            // without a hue, the chosen tab's wash alone has to set it off an unchosen tab (raised surface)
+            for (const ground of [s.background, s.smSurface]) {
+                expect(contrastRatio(blend(ramp[400], soft, ground), s.smSurfaceRaised)).toBeGreaterThanOrEqual(1.35)
+            }
+            // the light accent text and nav icon stay near the pick: neutral, bright
+            const [r, g, b] = palette.ramp[300]
+            expect([g, b]).toEqual([r, r])
+            expect(luminance(palette.ramp[300])).toBeGreaterThan(0.6)
+        }
+    })
+
+    it("eases pale colours towards that and leaves vivid ones and the presets as they were", () => {
+        const knob = (hex: string) => contrastRatio(WHITE, buildPalette(own(hex), false).ramp[400])
+        expect(knob("#8a8090")).toBeGreaterThanOrEqual(3)
+        expect(knob("#b0a090")).toBeGreaterThan(knob("#c8b4ff") - 0.01)
+        expect(buildPalette(own("#c8b4ff"), false).mono).toBe(false)
+        for (const id of ACCENT_IDS) {
+            const palette = buildPalette(id, false)
+            expect(palette.mono).toBe(false)
+            expect(palette.soft).toBe(0.18)
+            expect(palette.ramp[400]).toEqual(ACCENT_PRESETS[id].ramp[400])
         }
     })
 })

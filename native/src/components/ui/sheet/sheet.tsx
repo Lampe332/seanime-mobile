@@ -160,7 +160,8 @@ export function Sheet({ open, onOpenChange, title, description, children, footer
     const bottom = bottomClearance(keyboard, insets.bottom)
     const sheetMax = phoneSheetMaxHeight(window.height, bottom)
     const bodyMax = side
-        ? Math.max(120, window.height - (insets.top + 24) - 12 - keyboard - headHeight - (footer ? footHeight : 0) - 16)
+        // the side sheet ends above the navigation bar like the phone sheet, not behind it
+        ? Math.max(120, window.height - (insets.top + 24) - 12 - bottom - headHeight - (footer ? footHeight : 0) - 16)
         : sheetBodyMaxHeight({ sheetMax, topPadding: compact ? 16 : 20, headHeight, headGap: compact ? 12 : 16, footHeight: footer ? footHeight : 0 })
 
     return (
@@ -178,7 +179,7 @@ export function Sheet({ open, onOpenChange, title, description, children, footer
                                 entering={side ? sheetInSide : sheetInPhone}
                                 exiting={side ? sheetOutSide : sheetOutPhone}
                                 style={side
-                                    ? { height: "100%", paddingTop: insets.top + 24, paddingBottom: keyboard }
+                                    ? { height: "100%", paddingTop: insets.top + 24, paddingBottom: bottom }
                                     : { marginBottom: bottom + 8, width: Math.min(window.width - 16, 512), maxHeight: sheetMax }}
                                 className={cn(
                                     "bg-sm-surface",

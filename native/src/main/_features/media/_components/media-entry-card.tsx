@@ -29,7 +29,7 @@ import { useMediaPreviewModal } from "@/main/_features/media/_containers/media-p
 import { useLibraryExplorer } from "@/main/_features/library-explorer/library-explorer.atoms"
 import { usePlaylistMenuItem } from "@/main/_features/playlists/_components/playlist-menu-item"
 import { usePluginCardMenuItems } from "@/main/_features/plugin/plugin-actions"
-import { cardPillFit, cardScoreWidth, cardProgressBar, cardProgressLabel, cardProgressTotal, cardSeasonLine, cardUnwatchedCount, mediaEntryHref, userScoreColor } from "../_lib/media-card"
+import { cardPillFit, cardScoreWidth, cardProgressBar, cardProgressLabel, cardProgressTotal, cardSeasonLine, cardUnwatchedCount, mediaEntryHref } from "../_lib/media-card"
 
 /*
  * A cover card as on Android Home (media-entry-card.tsx + home-mobile.css): the 3:4 cover with 12dp corners, a faint
@@ -141,9 +141,10 @@ export const MediaEntryCard = React.memo(function MediaEntryCard({ media, type, 
                     <CardPill type={type} mediaId={media.id} label={label} unwatched={unwatched} progress={listData?.progress} width={width} badgeWidth={scoreWidth} />
                 )}
                 {!!score && (
-                    <View style={{ backgroundColor: userScoreColor(score), width: scoreWidth }} className="absolute bottom-0 right-0 h-7 flex-row items-center justify-center gap-1 rounded-tl-ui">
-                        <Star size={13} color="#ffffff" fill={score >= 90 ? "#ffffff" : "transparent"} />
-                        <Text className="text-sm font-bold text-white">{score / 10}</Text>
+                    // the dark mark of My lists (phone-cards CardMark) with the score in the accent, not a colour of its own
+                    <View style={{ width: scoreWidth }} className="absolute bottom-0 right-0 h-7 flex-row items-center justify-center gap-1 rounded-tl-ui bg-[rgba(12,12,14,0.82)]">
+                        <Star size={13} color={colors.smAccent} fill={score >= 90 ? colors.smAccent : "transparent"} />
+                        <Text className="text-sm font-bold text-sm-accent">{score / 10}</Text>
                     </View>
                 )}
             </View>

@@ -131,14 +131,25 @@ function toneAt(hue: number, chroma: number, target: number): RGB {
 
 const DARK_STEPS = [500, 600, 700, 800, 900, 950] as const
 
+/** Below this HSV saturation an own colour counts as colourless */
+const MONOCHROME_SATURATION = 0.1
+/** From this saturation on the hue alone sets an on switch apart, and the strong accent may be as bright as green's */
+const PALE_SATURATION = 0.35
+/** Luminance of a monochrome strong accent: white knob ≥ 3:1 on it, and it ≥ 4.5:1 on every surface */
+const MONOCHROME_STRONG = 0.28
+
 /**
  * A whole accent from any colour. Its hue and saturation are kept; the brightness of each step is set by what the step
  * has to carry, so every own colour reads like a preset: the fills under white text (500 and darker) get exactly the
  * luminance of violet's, the light steps (accent text and icons on the dark surfaces) violet's lightness and never less
  * than its luminance, and the strong accent stays below the brightest preset so the white switch knob still shows.
+ * A nearly colourless pick (grey, white, black) has no hue to tell an on switch or the chosen tab from the grey surfaces,
+ * so it is drawn as a monochrome accent: the strong accent sits where both the white knob (3:1) and accent text on the
+ * surfaces (4.5:1) still read, its tints are denser, and the nav pill is a light wash. Pale colours ease towards that.
  */
-function customPreset(color: RGB): AccentPreset & { chroma: number } {
+function customPreset(color: RGB): AccentPreset & { chroma: number, mono: boolean } {
     const [hue, chroma] = rgbToHsv(color)
+    const mono = chroma < MONOCHROME_SATURATION
     const violet = ACCENT_PRESETS.violet
     const light = (reference: RGB, cap?: number) => {
         const natural = tone(hue, chroma, toHsl(reference)[2])
@@ -148,17 +159,22 @@ function customPreset(color: RGB): AccentPreset & { chroma: number } {
     }
     const steps = {} as Record<Step, RGB>
     for (const step of [50, 100, 200, 300] as const) steps[step] = light(violet.ramp[step])
-    steps[400] = light(violet.ramp[400], luminance(ACCENT_PRESETS.green.ramp[400]))
+    // the less hue tells an on switch apart, the darker the strong accent under the white knob (only as far as needed)
+    const vividness = Math.min(1, Math.max(0, (chroma - MONOCHROME_SATURATION) / (PALE_SATURATION - MONOCHROME_SATURATION)))
+    const strongCap = MONOCHROME_STRONG + (luminance(ACCENT_PRESETS.green.ramp[400]) - MONOCHROME_STRONG) * vividness
+    const strong = light(violet.ramp[400])
+    steps[400] = luminance(strong) > strongCap ? toneAt(hue, chroma, strongCap) : strong
     for (const step of DARK_STEPS) steps[step] = toneAt(hue, chroma, luminance(violet.ramp[step]))
     return {
         ramp: steps,
-        nav: { active: light(violet.nav.active), label: light(violet.nav.label), tint: tone(hue, chroma, 0.6) },
+        nav: { active: light(violet.nav.active), label: light(violet.nav.label), tint: tone(hue, chroma, mono ? 0.9 : 0.6) },
         chroma,
+        mono,
     }
 }
 
-function resolveAccent(accent: AccentId): AccentPreset & { chroma: number } {
-    if (isPresetId(accent)) return { ...ACCENT_PRESETS[accent], chroma: 1 }
+function resolveAccent(accent: AccentId): AccentPreset & { chroma: number, mono: boolean } {
+    if (isPresetId(accent)) return { ...ACCENT_PRESETS[accent], chroma: 1, mono: false }
     return customPreset(customColor(accent) ?? ACCENT_PRESETS.violet.ramp[400])
 }
 
@@ -181,8 +197,10 @@ const rgba = (c: RGB, a: number) => `rgba(${c.join(", ")}, ${a})`
 const hexA = (c: RGB, a: number) => hex(c) + Math.round(a * 255).toString(16).padStart(2, "0")
 
 export function buildPalette(accent: AccentId, amoled: boolean) {
-    const { ramp: r, nav, chroma } = resolveAccent(accent)
+    const { ramp: r, nav, chroma, mono } = resolveAccent(accent)
     const s = amoled ? SURFACES.amoled : SURFACES.standard
+    /* the accent washes (chosen tab, pressed rows): a colourless accent needs a denser wash to stand off the grey surfaces */
+    const [soft, softer] = mono ? [0.36, 0.16] : [0.18, 0.08]
     const css: Record<string, string> = {
         "--color-brand": hex(r[500]),
         "--color-background": hex(s.background),
@@ -194,8 +212,8 @@ export function buildPalette(accent: AccentId, amoled: boolean) {
         "--color-sm-surface-sunken": hex(s.smSurfaceSunken),
         "--color-sm-accent": hex(r[300]),
         "--color-sm-accent-strong": hex(r[400]),
-        "--color-sm-accent-soft": hexA(r[400], 0.18),
-        "--color-sm-accent-softer": hexA(r[400], 0.08),
+        "--color-sm-accent-soft": hexA(r[400], soft),
+        "--color-sm-accent-softer": hexA(r[400], softer),
         "--color-sm-accent-line": hexA(r[300], 0.55),
         "--color-nav-bar": hexA(s.navBar, 0.985),
         "--color-nav-active": hex(nav.active),
@@ -218,8 +236,8 @@ export function buildPalette(accent: AccentId, amoled: boolean) {
         smSurfaceSunken: hex(s.smSurfaceSunken),
         smAccent: rgb(r[300]),
         smAccentStrong: rgb(r[400]),
-        smAccentSoft: rgba(r[400], 0.18),
-        smAccentSofter: rgba(r[400], 0.08),
+        smAccentSoft: rgba(r[400], soft),
+        smAccentSofter: rgba(r[400], softer),
         /** The strong accent fully clear (a border that fades out into the accent fill) */
         smAccentClear: rgba(r[400], 0),
         smAccentLine: rgba(r[300], 0.55),
@@ -229,7 +247,7 @@ export function buildPalette(accent: AccentId, amoled: boolean) {
         navActiveBg: rgba(nav.tint, 0.18),
         menuBorder: rgba(nav.tint, 0.22),
     }
-    return { css, js, swatch: hex(r[400]), surfaces: s, ramp: r, nav, amoled, chroma }
+    return { css, js, swatch: hex(r[400]), surfaces: s, ramp: r, nav, amoled, chroma, mono, soft }
 }
 
 export type Palette = ReturnType<typeof buildPalette>
