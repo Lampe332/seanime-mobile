@@ -265,6 +265,15 @@ describe("reading the server, as the settings page sees it", () => {
         await expect(readServer()).rejects.toThrow()
         expect(await serverOverview(environment)).toMatchObject({ reading: false, series: 4, problem: "unreachable" })
     })
+
+    it("never answers \"no series, not reading\" when the reading it started ended before it answered", async () => {
+        // the server answers at once, so the background reading ends while the overview still counts the old series
+        const first = await serverOverview(environment)
+        await readingsDone()
+        expect(background).toHaveLength(1)
+        expect(first.series === 0 && !first.reading).toBe(false)
+        expect(await serverOverview(environment)).toMatchObject({ reading: false, series: 4, problem: "" })
+    })
 })
 
 describe("the media server's token", () => {

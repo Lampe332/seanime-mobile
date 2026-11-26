@@ -803,6 +803,9 @@ export async function serverOverview(environment: Environment): Promise<ServerOv
     const session = await serverSession(environment)
     const shown = { signedIn: session !== null, serverName: settings.serverName, username: settings.username, url: settings.url, sendProgress: settings.sendProgress }
     if (!session) return { ...shown, reading: false, series: 0, matched: 0, unmatched: [], leftOutSeries: 0, leftOut: [], lastReadAt: null, problem: "" }
+    // a reading this overview starts can end before it answers (S22 26.11.: "No series yet" after signing in): the
+    // series it counts are then the old ones, so it still says "reading" once and the page asks again
+    const triedBefore = lastTry
     const state = await libraryState(environment, session)
     const unassigned = await unassignedServerShows(environment)
     const database = await environment.database()
@@ -826,7 +829,7 @@ export async function serverOverview(environment: Environment): Promise<ServerOv
     }).sort((a, b) => a.name.localeCompare(b.name) || (a.seasonName ?? "").localeCompare(b.seasonName ?? ""))
     return {
         ...shown,
-        reading: reading !== null,
+        reading: reading !== null || lastTry !== triedBefore,
         series: state.shows.length,
         matched: matched.size,
         leftOutSeries: state.shows.filter(show => !matched.has(show.series.id) && !unlisted.has(show.series.id)).length,

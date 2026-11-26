@@ -20,7 +20,7 @@ import { IN_APP_PLAYER_READY } from "@/main/_features/player/player-availability
 import { useHasTorrentProvider, useServerStatus } from "@/main/_hooks/use-server-status"
 import { useHandleEpisodeSection } from "@/main/entry/_lib/handle-episode-section"
 import { useHandlePlayMedia } from "@/main/entry/_lib/handle-play-media"
-import { isMediaServerEpisode } from "@/main/entry/_lib/media-server-play"
+import { isMediaServerEpisode, showsLibraryEpisodes } from "@/main/entry/_lib/media-server-play"
 import { PhoneDownloadedEpisodes } from "./phone-downloaded-episodes"
 import { useOfflineEpisodes } from "@/main/android-downloads/_lib/use-offline"
 import { __torrentSearch_selectionAtom, __torrentSearch_selectionEpisodeAtom } from "@/main/entry/_containers/torrent-search/torrent-search.atoms"
@@ -75,7 +75,7 @@ export function EpisodeSection({ entry, bottomSection }: { entry: Anime_Entry, b
         ? (episode: Anime_Episode) => playMediaFile({ path: episode.localFile?.path ?? "", mediaId: entry.mediaId, episode })
         : undefined
 
-    if ((!entry.listData && !entry._isNakamaEntry) || !entry.libraryData) {
+    if (!showsLibraryEpisodes(entry)) {
         // the heading belongs to the list under it (S22 15.11.: 56dp between them read as two blocks); the rest keeps 40dp
         return <View className="gap-10">
             <PhoneDownloadedEpisodes mediaId={entry.mediaId} />

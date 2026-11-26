@@ -18,6 +18,14 @@ export function isMediaServerEntry(entry: Anime_Entry | null | undefined): boole
     return (entry as ServerMarked | null | undefined)?._isMediaServerEntry === true
 }
 
+/**
+ * The library tab lists the entry's own episodes: it has files and is on the user's list, a Nakama host's or a media
+ * server's title. A server title need not be on the AniList list (S22 26.11.: Cowboy Bebop read "Not in your library").
+ */
+export function showsLibraryEpisodes(entry: Anime_Entry): boolean {
+    return !!entry.libraryData && (!!entry.listData || !!entry._isNakamaEntry || isMediaServerEntry(entry))
+}
+
 /** Which way a library episode starts: from the media server, from a Nakama host, or from this device */
 export function playRouteOf(episode: Anime_Episode): "mediaserver" | "nakama" | "local" {
     if (isMediaServerEpisode(episode)) return "mediaserver"

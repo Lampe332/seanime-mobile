@@ -142,9 +142,7 @@ function SignInForm({ t }: { t: Translate }) {
     return <View className="gap-6">
         <SettingsGroup title={t("Sign in", "Anmelden")}
             note={t("The address of your Jellyfin server and your Jellyfin user. The password only goes to the server and is not kept.",
-                "Die Adresse deines Jellyfin-Servers und dein Jellyfin-Nutzer. Das Passwort geht nur an den Server und wird nicht gespeichert.")}
-            notice={checked.ok && checked.unencrypted ? <Notice text={t("This address has no https://, so your password goes over the network unencrypted. Use https:// if your server supports it.",
-                "Diese Adresse hat kein https://, deshalb geht dein Passwort unverschlüsselt durchs Netzwerk. Nutze https://, wenn dein Server es unterstützt.")} /> : undefined}>
+                "Die Adresse deines Jellyfin-Servers und dein Jellyfin-Nutzer. Das Passwort geht nur an den Server und wird nicht gespeichert.")}>
             <View className="gap-2 bg-sm-surface px-0 py-1">
                 <TextInput {...accentInput} ref={addressRef} value={address} onChangeText={edit(setAddress)} onBlur={() => setAddressLeft(true)} editable={!isPending}
                     placeholder={t("e.g. http://192.168.1.20:8096", "z. B. http://192.168.1.20:8096")} placeholderTextColor={colors.smTextSubtle}
@@ -170,6 +168,9 @@ function SignInForm({ t }: { t: Translate }) {
                 {!!error && <Text accessibilityRole="alert" className="px-1 text-[13px] leading-[19.5px] text-sm-danger">{failureText(t, error)}</Text>}
             </View>
         </SettingsGroup>
+        {/* below the fields, so it never pushes them down while the address is typed */}
+        {checked.ok && checked.unencrypted && <Notice text={t("This address has no https://, so your password goes over the network unencrypted. Use https:// if your server supports it.",
+            "Diese Adresse hat kein https://, deshalb geht dein Passwort unverschlüsselt durchs Netzwerk. Nutze https://, wenn dein Server es unterstützt.")} />}
         <Button intent="primary" disabled={!ready} loading={isPending} onPress={submit}>
             {isPending ? t("Signing in…", "Melde an …") : t("Sign in", "Anmelden")}
         </Button>

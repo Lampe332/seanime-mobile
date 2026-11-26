@@ -1,6 +1,7 @@
 import { cn } from "@/components/ui/core/styling"
 import { Text } from "@/components/ui/text/text"
 import { usePressScale } from "@/components/ui/core/press"
+import { buttonAccessibility } from "./button-accessibility"
 import { cva, type VariantProps } from "class-variance-authority"
 import React from "react"
 import { ActivityIndicator, Pressable, type PressableProps, View } from "react-native"
@@ -64,7 +65,7 @@ export const ButtonSizeContext = React.createContext<"md" | "lg">("md")
 export function Button(props: ButtonProps) {
     const colors = useThemeColors()
     const contextSize = React.useContext(ButtonSizeContext)
-    const { intent = "primary", size = contextSize, className, wrapperClassName, labelClassName, children, leftIcon, rightIcon, loading, disabled, onPressIn, onPressOut, ...rest } = props
+    const { intent = "primary", size = contextSize, className, wrapperClassName, labelClassName, children, leftIcon, rightIcon, loading, disabled, onPressIn, onPressOut, accessibilityLabel, ...rest } = props
     const isDisabled = !!disabled || !!loading
     const { animatedStyle, pressIn, pressOut } = usePressScale()
     const resolvedIntent = intent ?? "primary"
@@ -72,7 +73,7 @@ export function Button(props: ButtonProps) {
         <Animated.View style={animatedStyle} className={wrapperClassName}>
             <Pressable
                 accessibilityRole="button"
-                accessibilityState={{ disabled: isDisabled, busy: !!loading }}
+                {...buttonAccessibility({ label: accessibilityLabel, children, disabled: isDisabled, loading: !!loading })}
                 disabled={isDisabled}
                 onPressIn={e => {
                     pressIn()
