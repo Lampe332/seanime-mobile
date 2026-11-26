@@ -1,7 +1,7 @@
 ## What's new?
 
-- 🎉 Settings: Every page has a new look with grouped cards, a short explanation under each setting and jump chips at the top
-- 🎉 Settings: A search field above the list finds any setting by its name or explanation and jumps to its row
+- 🎉 Settings: Every page has a new look with grouped cards, a short explanation under each setting and jump chips at the top. The marked tab stays right after a rotation or a sign-in
+- 🎉 Settings: A search field above the list finds any setting by its name or explanation and jumps to its row, also when the row is inside a sheet. The sheet opens, scrolls to the row and lights it
 - 🎉 Appearance: Pick one of six accent colors (violet stays the default) or your own from a color wheel or a #RRGGBB code. It changes everywhere at once, no restart needed
 - 🎉 Appearance: AMOLED black turns the dark backgrounds fully black. It is kept per device
 - 🎉 Appearance: Choose your banner from six pictures, one of your own photos, or none. The six pictures sync with your account, your own photo stays on this device
@@ -11,21 +11,25 @@
   - Years are counted by completion date. Finished titles without one are left out, and the page says how many
   - "Share image" turns the summary into a picture for the share sheet. It names only titles that are neither private nor adult
 - 🎉 Discover: "Because you watched ..." rows after Trending, built from AniList recommendations for the titles you finished last. Anything already on one of your lists is left out
-- 🎉 App lock: Under Settings, App, your phone's own lock (fingerprint, face or screen PIN) covers the app at start and after more than a minute away. The app shows no content in the recent apps screen while it is on, and screen readers stay on the lock screen
+- 🎉 App lock: Under Settings, App, your phone's own lock (fingerprint, face or screen PIN) covers the app at start and after more than a minute away. The app shows no content in the recent apps screen while it is on, and screen readers stay on the lock screen. If your phone has no screen lock, the setting says so
 - 🎉 Player: Anime4K upscaling under Settings, Playback: Off, Fast or Quality. It is off by default and stays on this device. If the shaders can't be loaded, the episode plays without them
 - 🎉 Profile: With an account, your profile picture is the same on all your devices. Without an account it stays on the device
 - 🎉 Media server: Sign in to a Jellyfin server under Settings, Media server with its address, user and password. Its series are matched to AniList titles and show up in your library, and the library never waits for the server
-  - The page shows the server's name, the number of series, what was matched and what was not
+  - The page shows the server's name, the number of series, what was matched and what was not. Long series lists show eight entries and a "Show all" button
   - The password is not kept, and the sign-in token goes into the phone's secure store. An address without https gets a warning
-- 🎉 Media server: Tap a server episode to play it in the player. It plays for titles that are not on your lists too. Server episodes carry a chip with the server's name, and file actions that only work for your own files are hidden for them
+- 🎉 Media server: Tap a server episode to play it in the player. If the server does not answer, the player says so instead of "loading failed". It plays for titles that are not on your lists too. Server episodes carry a chip with the server's name, and file actions that only work for your own files are hidden for them
 - 🎉 Media server: Text subtitles stored next to a server file are handed to the player
 - 🎉 Media server: A switch reports playback to the server: start, position, pause, seek and stop. The episode counts as played by the same rule the app uses for AniList
-- 🎉 Media server: Change match for a server series, from the entry menu, from the chip with the server's name or from the list of unmatched series. Pick another AniList title for the series or one season, say which AniList episode the server's first one is, mark it as belonging to nothing, or go back to the automatic match
-- 🎉 Media server: A series you marked as belonging to nothing is listed under "Left out" on the settings page, and a tap brings it back
-- ⚡️ Edit sheet: Choosing Completed or Watching fills an empty completion or start date with today, like AniList's own editor
+- 🎉 Media server: Change match for a server series, from the entry menu, from the chip with the server's name or from the list of unmatched series. Pick another AniList title for the series or one season, say which AniList episode the server's first one is, mark it as belonging to nothing, or go back to the automatic match. The sheet fits beside the keyboard
+- 🎉 Media server: A series you marked as belonging to nothing is listed under "Left out" on the settings page, which is always shown with its count, and a tap brings it back
+- ⚡️ Edit sheet: Choosing Completed or Watching fills an empty completion or start date with today, like AniList's own editor, and both dates stay when you change the status
 - ⚡️ Edit sheet: A start date after the completion date is marked and can't be saved
 - ⚡️ Home: The banner fades softly into the page, the continue-watching card's shade reaches every edge, and the score badge on cards matches My lists
 - ⚡️ Cards: Rows stop on a whole card, with an even peek of the next one
+- ⚡️ Performance: Pages you left are no longer redrawn in the background, so typing and opening screens take less work
+- ⚡️ Edit sheet and search: Both open without a hitch. Typing no longer redraws the whole page, the sheet fills in its fields right after it slides in, and the first search results come in a couple of rows at a time
+- ⚡️ Anime page: Opens lighter. The parts below the screen wait and the first ten episode rows come first
+- ⚡️ Discover and More menu: Open lighter. The More menu stays ready and only fades in and out
 - ⚡️ Translations: The new texts are translated into Spanish, French, Japanese, Brazilian Portuguese, Russian and Simplified Chinese
 - 🦺 Player: Play on the last frame of a finished episode starts it again. Before, it did nothing until you seeked back
 - 🦺 Edit sheet: Saving closes the sheet. If saving fails, it stays open with a note
@@ -41,4 +45,10 @@
 - 🦺 Settings: Fresh installs start with the spoiler sub-switches and the manga unread count on
 - 🦺 Online streaming: The big card of the current episode follows the spoiler settings like the episode list
 - 🦺 Cards: On a small card, the progress pill shortens or hides instead of running under the score badge
+- 🦺 Player: A player closed with X no longer starts the next episode
+- 🦺 Player: A tap on the timeline seeks to where you tapped and keeps a playing video playing
+- 🦺 More menu: One tap on the rail or bar closes it and switches, instead of needing a second tap
+- 🦺 Navigation: The right tab stays lit after you sign in, and the side rail lights Discover while you search
+- 🦺 Cards: Years stay readable, and titles break at × and / instead of being cut off
+- 🦺 Tablets: Toasts sit at the bottom right above the mini player instead of over the page's tabs. Phones keep them on top
 - 🏗️ Banner: The link field is gone, replaced by the pictures and your own photo. A link you saved before still shows
