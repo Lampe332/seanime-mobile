@@ -3412,5 +3412,9 @@
   "Nothing finished yet": "Rien de terminé pour l'instant",
   "Your year appears once an anime on your list is marked as completed.": "Ton année apparaît dès qu'un anime de ta liste est marqué comme terminé.",
   "1 finished title has no completion date and is not counted.": "1 titre terminé n'a pas de date de fin et n'est pas compté.",
-  "{0} finished titles have no completion date and are not counted.": "{0} titres terminés n'ont pas de date de fin et ne sont pas comptés."
+  "{0} finished titles have no completion date and are not counted.": "{0} titres terminés n'ont pas de date de fin et ne sont pas comptés.",
+  "Colors, cards, sorting, loading pages": "Couleurs, cartes, tri, chargement des pages",
+  "Anime you add show up here, sorted by status. They stay on this device.": "Les anime que vous ajoutez apparaissent ici, triés par statut. Ils restent sur cet appareil.",
+  "Manga you add show up here, sorted by status. They stay on this device.": "Les manga que vous ajoutez apparaissent ici, triés par statut. Ils restent sur cet appareil.",
+  "Shows what you watched and read this year": "Montre ce que vous avez regardé et lu cette année"
 }

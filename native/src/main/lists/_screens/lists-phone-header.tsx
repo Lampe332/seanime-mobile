@@ -45,10 +45,12 @@ function Spinning({ active: refreshing, children }: { active: boolean, children:
  * `.ps-icon-button` with its TabletLabel: a 48dp icon on the phone, icon and word as one pill on the tablet. `pressed`
  * (the stats switch) takes the accent; `square` is the 56dp tile beside Anime | Manga (`.pl-switch > .ps-icon-button`).
  */
-export function ListsAction({ icon: IconComponent, label, accessibilityLabel, onPress, pressed, disabled, dot, spinning, square }: {
+export function ListsAction({ icon: IconComponent, label, accessibilityLabel, accessibilityHint, onPress, pressed, disabled, dot, spinning, square }: {
     icon: Icon
     label: string
     accessibilityLabel?: string
+    /** what the tap opens, for an icon that shows no word on the phone */
+    accessibilityHint?: string
     onPress: () => void
     pressed?: boolean
     disabled?: boolean
@@ -65,6 +67,7 @@ export function ListsAction({ icon: IconComponent, label, accessibilityLabel, on
         <Pressable
             accessibilityRole={pressed === undefined ? "button" : "togglebutton"}
             accessibilityLabel={accessibilityLabel ?? label}
+            accessibilityHint={accessibilityHint}
             accessibilityState={{ disabled: !!disabled, busy: !!spinning, ...(pressed !== undefined ? { checked: pressed } : null) }}
             disabled={disabled}
             onPress={onPress}

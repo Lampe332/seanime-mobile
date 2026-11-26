@@ -3214,5 +3214,9 @@
   "Nothing finished yet": "还没有看完的作品",
   "Your year appears once an anime on your list is marked as completed.": "把列表中的动画标记为已看完后，就会显示你的这一年。",
   "1 finished title has no completion date and is not counted.": "有 1 部已看完的作品没有完成日期，未计入。",
-  "{0} finished titles have no completion date and are not counted.": "有 {0} 部已看完的作品没有完成日期，未计入。"
+  "{0} finished titles have no completion date and are not counted.": "有 {0} 部已看完的作品没有完成日期，未计入。",
+  "Colors, cards, sorting, loading pages": "颜色、卡片、排序、页面加载",
+  "Anime you add show up here, sorted by status. They stay on this device.": "你添加的动画会按状态显示在这里，并保存在此设备上。",
+  "Manga you add show up here, sorted by status. They stay on this device.": "你添加的漫画会按状态显示在这里，并保存在此设备上。",
+  "Shows what you watched and read this year": "显示你今年看过和读过的内容"
 }

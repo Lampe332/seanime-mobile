@@ -67,10 +67,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
  * own, so the list always stays where it is (settings audit ca7374a/75d7fca).
  */
 
-const SECTIONS: Record<SettingsSectionId, { icon: LucideIcon, titleEn: string, titleDe: string, summaryEn: string, summaryDe: string }> = {
+type SectionInfo = { icon: LucideIcon, titleEn: string, titleDe: string, summaryEn: string, summaryDe: string, tabletSummaryEn?: string, tabletSummaryDe?: string }
+
+const SECTIONS: Record<SettingsSectionId, SectionInfo> = {
     account: { icon: CircleUserRound, titleEn: "Account", titleDe: "Konto", summaryEn: "Sync settings and watch history between devices", summaryDe: "Einstellungen und Verlauf zwischen Geräten synchronisieren" },
     seanime: { icon: WandSparkles, titleEn: "App", titleDe: "App", summaryEn: "Episodes, language, backup, navigation, AniList", summaryDe: "Folgen, Sprache, Sicherung, Navigation, AniList" },
-    ui: { icon: Palette, titleEn: "Appearance", titleDe: "Darstellung", summaryEn: "Colors, banner, cards, sorting, loading pages", summaryDe: "Farben, Banner, Karten, Sortierung, vorab laden" },
+    ui: { icon: Palette, titleEn: "Appearance", titleDe: "Darstellung", summaryEn: "Colors, banner, cards, sorting, loading pages", summaryDe: "Farben, Banner, Karten, Sortierung, vorab laden",
+        // a tablet has no banner (settings-ui.tsx BannerGroup is phone only)
+        tabletSummaryEn: "Colors, cards, sorting, loading pages", tabletSummaryDe: "Farben, Karten, Sortierung, vorab laden" },
     playback: { icon: CirclePlay, titleEn: "Playback", titleDe: "Wiedergabe", summaryEn: "Player for your files, external player, next episode", summaryDe: "Player für deine Dateien, externer Player, nächste Folge" },
     library: { icon: Library, titleEn: "Local library", titleDe: "Lokale Bibliothek", summaryEn: "Folders, scanning, matching", summaryDe: "Ordner, Scannen, Zuordnung" },
     mediaserver: { icon: Server, titleEn: "Media server", titleDe: "Medienserver", summaryEn: "Jellyfin sign-in, series, matching", summaryDe: "Jellyfin-Anmeldung, Serien, Zuordnung" },
@@ -82,10 +86,19 @@ const SECTIONS: Record<SettingsSectionId, { icon: LucideIcon, titleEn: string, t
     about: { icon: Info, titleEn: "About", titleDe: "Über", summaryEn: "Version, updates, Discord, legal", summaryDe: "Version, Updates, Discord, Rechtliches" },
 }
 
+/** What an area holds on this device: a tablet names only what its page shows */
+function summaryPair(item: SectionInfo, tablet: boolean) {
+    return tablet && item.tabletSummaryEn && item.tabletSummaryDe
+        ? [item.tabletSummaryEn, item.tabletSummaryDe] as const
+        : [item.summaryEn, item.summaryDe] as const
+}
+
 /** The areas as the search names them and shows them in a hit */
-const SEARCH_SECTIONS = SETTINGS_SECTIONS.map(id => ({
-    id, icon: SECTIONS[id].icon, title: [SECTIONS[id].titleEn, SECTIONS[id].titleDe] as const, summary: [SECTIONS[id].summaryEn, SECTIONS[id].summaryDe] as const,
+const searchSections = (tablet: boolean) => SETTINGS_SECTIONS.map(id => ({
+    id, icon: SECTIONS[id].icon, title: [SECTIONS[id].titleEn, SECTIONS[id].titleDe] as const, summary: summaryPair(SECTIONS[id], tablet),
 }))
+const SEARCH_SECTIONS = searchSections(false)
+const TABLET_SEARCH_SECTIONS = searchSections(true)
 
 /** The area a search hit opened and where in it (settings-page.tsx `focus`) */
 type SectionFocus = SettingsPageFocus & { section: SettingsSectionId }
@@ -195,7 +208,8 @@ function SectionList({ t, onOpen, current, compact, notes = true }: {
             const item = SECTIONS[id]
             const Icon = item.icon
             const selected = id === current
-            return <Pressable key={id} accessibilityRole="button" accessibilityState={{ selected }} accessibilityLabel={`${t(item.titleEn, item.titleDe)}, ${t(item.summaryEn, item.summaryDe)}`}
+            const summary = t(...summaryPair(item, current !== undefined))
+            return <Pressable key={id} accessibilityRole="button" accessibilityState={{ selected }} accessibilityLabel={`${t(item.titleEn, item.titleDe)}, ${summary}`}
                 onPress={() => onOpen(id)}
                 className={cn("w-full flex-row items-center gap-3.5 px-4 active:bg-sm-surface-control",
                     current === undefined ? "min-h-16 py-3" : compact ? "min-h-[52px] py-2" : notes ? "min-h-[60px] py-3" : "min-h-14 py-3",
@@ -203,7 +217,7 @@ function SectionList({ t, onOpen, current, compact, notes = true }: {
                 <Icon size={22} color={colors.smAccent} />
                 <View className="min-w-0 flex-1 gap-0.5">
                     <Text className={cn("text-base", selected && "font-semibold")}>{t(item.titleEn, item.titleDe)}</Text>
-                    {notes && <Muted className={cn("text-[13px]", compact ? "leading-[17.5px]" : "leading-[19px]")}>{t(item.summaryEn, item.summaryDe)}</Muted>}
+                    {notes && <Muted className={cn("text-[13px]", compact ? "leading-[17.5px]" : "leading-[19px]")}>{summary}</Muted>}
                 </View>
                 {current === undefined && <ChevronRight size={18} color={colors.smTextSubtle} />}
             </Pressable>
@@ -242,12 +256,12 @@ function TwoPanes({ t, shown, onOpen, query, onQuery, onHit, focus }: {
             {/* A tap on a hit counts while the keyboard is still up */}
             <ScrollView style={{ width: listWidth, flexGrow: 0 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled"
                 contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}>
-                <SettingsSearch t={t} sections={SEARCH_SECTIONS} query={query} onQuery={onQuery} onOpen={onHit} compact={!wide} tablet>
+                <SettingsSearch t={t} sections={TABLET_SEARCH_SECTIONS} query={query} onQuery={onQuery} onOpen={onHit} compact={!wide} tablet>
                     <SectionList t={t} onOpen={open} current={shown} notes={wide} compact={wide && window.height <= 900} />
                 </SettingsSearch>
             </ScrollView>
             {/* Keyed by area: a new area starts at its top (the page also resets the reused native scroll view) */}
-            <SettingsPage key={shown} pane icon={current.icon} title={t(current.titleEn, current.titleDe)} summary={t(current.summaryEn, current.summaryDe)}
+            <SettingsPage key={shown} pane icon={current.icon} title={t(current.titleEn, current.titleDe)} summary={t(...summaryPair(current, true))}
                 bottomPad={paneBottom} focus={focus}>
                 <SectionContent id={shown} t={t} onOpen={open} tablet />
             </SettingsPage>

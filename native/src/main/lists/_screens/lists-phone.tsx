@@ -136,7 +136,8 @@ export function ListsPhone() {
         : null
     // "Your year" counts from the lists alone, so it shows for every account, the simulated one too
     const wrappedButton = (square: boolean) => serverStatus?.user
-        ? <ListsAction icon={Sparkles} label={t("Your year", "Dein Jahr")} square={square} onPress={() => router.push("/wrapped")} />
+        ? <ListsAction icon={Sparkles} label={t("Your year", "Dein Jahr")} square={square} onPress={() => router.push("/wrapped")}
+            accessibilityHint={t("Shows what you watched and read this year", "Zeigt, was du dieses Jahr geschaut und gelesen hast")} />
         : null
     // With Manga on, the stats switch sits next to Anime | Manga, whose choice it shows; without, it joins the header actions.
     // the list built anew for a type chosen here rises in; the first one comes with the page
@@ -390,8 +391,12 @@ function ListsCollection({ type, typeSwitch, refreshButton, statsButton, swapOnM
         </View>
     } else if (facts.total === 0) {
         body = <PhoneEmpty title={type === "anime" ? t("Your anime list is empty", "Deine Anime-Liste ist leer") : t("Your manga list is empty", "Deine Manga-Liste ist leer")}
-            text={type === "anime" ? t("Anime you add on AniList show up here, sorted by status.", "Anime, die du auf AniList hinzufügst, erscheinen hier nach Status sortiert.")
-                : t("Manga you add on AniList show up here, sorted by status.", "Manga, die du auf AniList hinzufügst, erscheinen hier nach Status sortiert.")}>
+            text={serverStatus?.user?.isSimulated
+                // the guest's entries stay on this device, nothing comes from AniList
+                ? type === "anime" ? t("Anime you add show up here, sorted by status. They stay on this device.", "Anime, die du hinzufügst, erscheinen hier nach Status sortiert. Sie bleiben auf diesem Gerät.")
+                    : t("Manga you add show up here, sorted by status. They stay on this device.", "Manga, die du hinzufügst, erscheinen hier nach Status sortiert. Sie bleiben auf diesem Gerät.")
+                : type === "anime" ? t("Anime you add on AniList show up here, sorted by status.", "Anime, die du auf AniList hinzufügst, erscheinen hier nach Status sortiert.")
+                    : t("Manga you add on AniList show up here, sorted by status.", "Manga, die du auf AniList hinzufügst, erscheinen hier nach Status sortiert.")}>
             <Button onPress={() => router.push(type === "anime" ? "/discover" : `/discover?type=manga&at=${Date.now()}`)}>
                 {type === "anime" ? t("Discover anime", "Anime entdecken") : t("Discover manga", "Manga entdecken")}
             </Button>

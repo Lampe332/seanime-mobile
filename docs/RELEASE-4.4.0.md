@@ -36,6 +36,7 @@
 - 🦺 Edit sheet: Saving closes the sheet. If saving fails, it stays open with a note
 - 🦺 Edit sheet: Score and progress take digits only and show the value that is saved. A score like 0.7 is no longer refused
 - 🦺 Edit sheet: The local guest list says "On this device" instead of "AniList"
+- 🦺 My Lists: An empty list in the local guest list says your titles stay on this device instead of pointing to AniList
 - 🦺 Library: "Streaming titles in your anime lists" now follows the online streaming, torrent streaming and debrid switches. With all three off, only titles with files on this device show
 - 🦺 Library: "Refresh the library automatically" works. When you come back to the app, it scans if files changed, at most every 10 minutes
 - 🦺 Library: Scanner rules work like the original Seanime: matching rules by a regex on the full path, hydration rules for episode, AniDB episode and type. The settings check the rules and say what is wrong

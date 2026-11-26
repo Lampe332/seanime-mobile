@@ -3214,5 +3214,9 @@
   "Nothing finished yet": "まだ完了した作品がありません",
   "Your year appears once an anime on your list is marked as completed.": "リストのアニメを完了にすると、あなたの1年が表示されます。",
   "1 finished title has no completion date and is not counted.": "完了済みの1作品は完了日がないため、数えられていません。",
-  "{0} finished titles have no completion date and are not counted.": "完了済みの{0}作品は完了日がないため、数えられていません。"
+  "{0} finished titles have no completion date and are not counted.": "完了済みの{0}作品は完了日がないため、数えられていません。",
+  "Colors, cards, sorting, loading pages": "色、カード、並べ替え、ページの読み込み",
+  "Anime you add show up here, sorted by status. They stay on this device.": "追加したアニメはステータス別にここに表示されます。この端末に保存されます。",
+  "Manga you add show up here, sorted by status. They stay on this device.": "追加したマンガはステータス別にここに表示されます。この端末に保存されます。",
+  "Shows what you watched and read this year": "今年見たものと読んだものを表示します"
 }
