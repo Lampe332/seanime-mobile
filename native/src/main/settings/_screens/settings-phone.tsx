@@ -21,6 +21,7 @@ import { InfoRow, LinkRow, SettingsGroup, SettingSwitch } from "@/main/settings/
 import { SettingsPage, type SettingsPageFocus } from "@/main/settings/_components/settings-page"
 import { SettingsSearch } from "@/main/settings/_components/settings-search"
 import { contactHref, DISCORD_INVITE, KOFI_URL, LEGAL, shortLink } from "@/main/settings/_lib/legal"
+import { focusFromHit } from "@/main/settings/_lib/settings-focus"
 import { sectionFromTab, SETTINGS_SECTIONS, type SettingsSectionId } from "@/main/settings/_lib/settings-phone"
 import type { SettingsSearchDoc } from "@/main/settings/_lib/settings-search"
 import { NO_TAPS, secretMessage, TAP_RESET_MS, tapHint, versionTap } from "@/main/settings/_lib/version-taps"
@@ -121,7 +122,7 @@ export function SettingsPhone() {
     const openHit = React.useCallback((hit: SettingsSearchDoc) => {
         Keyboard.dismiss()
         setListTop(listOffset.current)
-        setFocus(previous => ({ section: hit.section, group: hit.group, labels: hit.labels, ...(hit.sheet ? { sheet: hit.sheet } : null), nonce: (previous?.nonce ?? 0) + 1 }))
+        setFocus(previous => focusFromHit(hit, previous))
         setSection(hit.section)
     }, [])
     const clearQuery = React.useCallback(() => setQuery(""), [])

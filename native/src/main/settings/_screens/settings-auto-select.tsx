@@ -11,7 +11,7 @@ import { toast } from "@/components/ui/toast/toast-store"
 import { type Translate } from "@/lib/app-language"
 import { colors, accentInput } from "@/lib/theme/tokens"
 import { ConfirmSheet, LinkRow, LocalSwitch, type SelectOption, SelectRow, SettingsGroup } from "@/main/settings/_components/settings-kit"
-import { useSheetFocus } from "@/main/settings/_components/settings-page"
+import { SheetFocusCarry, usePageFocus, useSheetFocus } from "@/main/settings/_components/settings-page"
 import {
     addToken,
     type AutoSelectForm,
@@ -87,8 +87,12 @@ export function AutoSelectGroup({ t }: { t: Translate }) {
     // A search hit on a row of the profile opens the sheet once the profile is there (its draft starts from it)
     const hit = useSheetFocus(t("Auto-select profile", "Auto-Auswahl-Profil"), t("Auto-select", "Auto-Auswahl"))
     const [openedHit, setOpenedHit] = React.useState<number | null>(null)
+    // the sheet's rows get the page's focus only when the hit opened it: a later open by hand does not glow again
+    const pageFocus = usePageFocus()
+    const [fromHit, setFromHit] = React.useState(false)
     if (hit !== null && hit !== openedHit && !isLoading && !isError) {
         setOpenedHit(hit)
+        setFromHit(true)
         setOpen(true)
     }
 
@@ -98,9 +102,9 @@ export function AutoSelectGroup({ t }: { t: Translate }) {
         <LinkRow label={t("Auto-select profile", "Auto-Auswahl-Profil")} disabled={isLoading || isError}
             value={isLoading ? t("Loading…", "Lädt …") : isError ? t("Not available", "Nicht verfügbar") : saved ? t("Set", "Eingestellt") : t("Default", "Standard")}
             note={t("Release groups, languages, codecs, exclusions and more.", "Release-Gruppen, Sprachen, Codecs, Ausschlüsse und mehr.")}
-            onPress={() => setOpen(true)} />
+            onPress={() => { setFromHit(false); setOpen(true) }} />
         {saved && <LinkRow label={t("Reset profile", "Profil zurücksetzen")} tone="danger" onPress={() => setConfirm(true)} />}
-        {open && <AutoSelectSheet t={t} onClose={() => setOpen(false)} dbId={profile?.dbId ?? 0} stored={profileToForm(profile)} />}
+        {open && <AutoSelectSheet t={t} focus={fromHit ? pageFocus : null} onClose={() => setOpen(false)} dbId={profile?.dbId ?? 0} stored={profileToForm(profile)} />}
         <ConfirmSheet open={confirm} onOpenChange={setConfirm} title={t("Reset auto-select profile?", "Auto-Auswahl-Profil zurücksetzen?")}
             text={t("All your auto-select preferences are deleted. The app goes back to its default choice (1080p).",
                 "Alle deine Auto-Auswahl-Einstellungen werden gelöscht. Die App wählt dann wieder nach Standard (1080p).")}
@@ -110,7 +114,14 @@ export function AutoSelectGroup({ t }: { t: Translate }) {
 }
 
 /** The sheet is only mounted while open, so the draft starts from the stored profile each time */
-function AutoSelectSheet({ t, onClose, dbId, stored }: { t: Translate, onClose: () => void, dbId: number, stored: AutoSelectForm }) {
+function AutoSelectSheet({ t, focus, onClose, dbId, stored }: {
+    t: Translate
+    /** the page's focus, carried into the sheet's portal (SheetFocusCarry) */
+    focus: ReturnType<typeof usePageFocus>
+    onClose: () => void
+    dbId: number
+    stored: AutoSelectForm
+}) {
     const save = useSaveAutoSelectProfile()
     const { data: extensions } = useAnimeListTorrentProviderExtensions()
     const [draft, setDraft] = React.useState<AutoSelectForm>(stored)
@@ -151,69 +162,71 @@ function AutoSelectSheet({ t, onClose, dbId, stored }: { t: Translate, onClose: 
                 {save.isPending ? t("Saving…", "Wird gespeichert …") : t("Save", "Speichern")}
             </Button>
         </>}>
-        <SheetGroup title={t("Quality", "Qualität")}>
-            <Rows>
-                <ChipPicker label={t("Resolution", "Auflösung")} note={t("The first one counts most.", "Die erste zählt am meisten.")} chips={resolutionChips} selected={draft.resolutions} onToggle={toggle("resolutions")} />
-                <ChipPicker label={t("Providers (max. 3)", "Anbieter (max. 3)")} note={t("The torrent providers the choice prefers, the first one most.", "Die Torrent-Anbieter, die die Wahl bevorzugt, den ersten am meisten.")}
-                    chips={providerChips} selected={draft.providers} onToggle={toggle("providers", MAX_PROVIDERS)}
-                    empty={t("No torrent provider is installed.", "Kein Torrent-Anbieter installiert.")} />
-                <LocalSwitch label={t("Prefer larger files", "Größere Dateien bevorzugen")} checked={draft.preferLargerFiles} defaultChecked={false}
-                    note={t("When two torrents are otherwise equal, the larger one wins, even with fewer seeders. Set minimum seeders below to keep slow ones out.",
-                        "Sind zwei Torrents sonst gleich, gewinnt der größere, auch mit weniger Seedern. Mit der Mindestanzahl Seeder unten bleiben langsame draußen.")}
-                    onCheckedChange={value => set("preferLargerFiles", value)} />
-            </Rows>
-        </SheetGroup>
+        <SheetFocusCarry value={focus}>
+            <SheetGroup title={t("Quality", "Qualität")}>
+                <Rows>
+                    <ChipPicker label={t("Resolution", "Auflösung")} note={t("The first one counts most.", "Die erste zählt am meisten.")} chips={resolutionChips} selected={draft.resolutions} onToggle={toggle("resolutions")} />
+                    <ChipPicker label={t("Providers (max. 3)", "Anbieter (max. 3)")} note={t("The torrent providers the choice prefers, the first one most.", "Die Torrent-Anbieter, die die Wahl bevorzugt, den ersten am meisten.")}
+                        chips={providerChips} selected={draft.providers} onToggle={toggle("providers", MAX_PROVIDERS)}
+                        empty={t("No torrent provider is installed.", "Kein Torrent-Anbieter installiert.")} />
+                    <LocalSwitch label={t("Prefer larger files", "Größere Dateien bevorzugen")} checked={draft.preferLargerFiles} defaultChecked={false}
+                        note={t("When two torrents are otherwise equal, the larger one wins, even with fewer seeders. Set minimum seeders below to keep slow ones out.",
+                            "Sind zwei Torrents sonst gleich, gewinnt der größere, auch mit weniger Seedern. Mit der Mindestanzahl Seeder unten bleiben langsame draußen.")}
+                        onCheckedChange={value => set("preferLargerFiles", value)} />
+                </Rows>
+            </SheetGroup>
 
-        <SheetGroup title={t("Language, codec, source", "Sprache, Codec, Quelle")}>
-            <Rows>
-                <ChipPicker label={t("Languages", "Sprachen")} chips={languageChips} selected={draft.preferredLanguages} onToggle={toggle("preferredLanguages")} />
-                <LocalSwitch label={t("Skip torrents without a preferred language", "Torrents ohne bevorzugte Sprache ablehnen")} checked={draft.requireLanguage} defaultChecked={false}
-                    note={t("Torrents without one of the chosen languages are never picked.", "Torrents ohne eine der gewählten Sprachen werden nie gewählt.")}
-                    onCheckedChange={value => set("requireLanguage", value)} />
-            </Rows>
-            <Rows>
-                <ChipPicker label={t("Codecs", "Codecs")} chips={codecChips} selected={draft.preferredCodecs} onToggle={toggle("preferredCodecs")} />
-                <LocalSwitch label={t("Skip torrents without a preferred codec", "Torrents ohne bevorzugten Codec ablehnen")} checked={draft.requireCodec} defaultChecked={false}
-                    note={t("Torrents without one of the chosen codecs are never picked.", "Torrents ohne eine der gewählten Codecs werden nie gewählt.")}
-                    onCheckedChange={value => set("requireCodec", value)} />
-            </Rows>
-            <Rows>
-                <ChipPicker label={t("Sources", "Quellen")} chips={sourceChips} selected={draft.preferredSources} onToggle={toggle("preferredSources")} />
-                <LocalSwitch label={t("Skip torrents without a preferred source", "Torrents ohne bevorzugte Quelle ablehnen")} checked={draft.requireSource} defaultChecked={false}
-                    note={t("Torrents without one of the chosen sources are never picked.", "Torrents ohne eine der gewählten Quellen werden nie gewählt.")}
-                    onCheckedChange={value => set("requireSource", value)} />
-            </Rows>
-        </SheetGroup>
+            <SheetGroup title={t("Language, codec, source", "Sprache, Codec, Quelle")}>
+                <Rows>
+                    <ChipPicker label={t("Languages", "Sprachen")} chips={languageChips} selected={draft.preferredLanguages} onToggle={toggle("preferredLanguages")} />
+                    <LocalSwitch label={t("Skip torrents without a preferred language", "Torrents ohne bevorzugte Sprache ablehnen")} checked={draft.requireLanguage} defaultChecked={false}
+                        note={t("Torrents without one of the chosen languages are never picked.", "Torrents ohne eine der gewählten Sprachen werden nie gewählt.")}
+                        onCheckedChange={value => set("requireLanguage", value)} />
+                </Rows>
+                <Rows>
+                    <ChipPicker label={t("Codecs", "Codecs")} chips={codecChips} selected={draft.preferredCodecs} onToggle={toggle("preferredCodecs")} />
+                    <LocalSwitch label={t("Skip torrents without a preferred codec", "Torrents ohne bevorzugten Codec ablehnen")} checked={draft.requireCodec} defaultChecked={false}
+                        note={t("Torrents without one of the chosen codecs are never picked.", "Torrents ohne eine der gewählten Codecs werden nie gewählt.")}
+                        onCheckedChange={value => set("requireCodec", value)} />
+                </Rows>
+                <Rows>
+                    <ChipPicker label={t("Sources", "Quellen")} chips={sourceChips} selected={draft.preferredSources} onToggle={toggle("preferredSources")} />
+                    <LocalSwitch label={t("Skip torrents without a preferred source", "Torrents ohne bevorzugte Quelle ablehnen")} checked={draft.requireSource} defaultChecked={false}
+                        note={t("Torrents without one of the chosen sources are never picked.", "Torrents ohne eine der gewählten Quellen werden nie gewählt.")}
+                        onCheckedChange={value => set("requireSource", value)} />
+                </Rows>
+            </SheetGroup>
 
-        <SheetGroup title={t("Release groups and exclusions", "Release-Gruppen und Ausschlüsse")}>
-            <TokenList t={t} label={t("Preferred release groups", "Bevorzugte Release-Gruppen")} placeholder="SubsPlease" items={draft.releaseGroups}
-                onChange={value => set("releaseGroups", value)} note={t("The first group counts most.", "Die erste Gruppe zählt am meisten.")} />
-            <TokenList t={t} label={t("Excluded words", "Ausgeschlossene Begriffe")} placeholder="CamRip" items={draft.excludeTerms}
-                onChange={value => set("excludeTerms", value)} note={t("Torrents with one of these words in the name are never picked.", "Torrents mit einem dieser Wörter im Namen werden nie gewählt.")} />
-        </SheetGroup>
+            <SheetGroup title={t("Release groups and exclusions", "Release-Gruppen und Ausschlüsse")}>
+                <TokenList t={t} label={t("Preferred release groups", "Bevorzugte Release-Gruppen")} placeholder="SubsPlease" items={draft.releaseGroups}
+                    onChange={value => set("releaseGroups", value)} note={t("The first group counts most.", "Die erste Gruppe zählt am meisten.")} />
+                <TokenList t={t} label={t("Excluded words", "Ausgeschlossene Begriffe")} placeholder="CamRip" items={draft.excludeTerms}
+                    onChange={value => set("excludeTerms", value)} note={t("Torrents with one of these words in the name are never picked.", "Torrents mit einem dieser Wörter im Namen werden nie gewählt.")} />
+            </SheetGroup>
 
-        <SheetGroup title={t("Kind of release", "Art der Veröffentlichung")}>
-            <Rows>
-                {preferenceRow("multipleAudioPreference", t("Multiple audio tracks", "Mehrere Tonspuren"), t("Multi or dual audio releases.", "Multi- oder Dual-Audio-Releases."))}
-                {preferenceRow("multipleSubsPreference", t("Multiple subtitle tracks", "Mehrere Untertitel-Spuren"), t("Multi-subs releases.", "Releases mit vielen Untertiteln."))}
-                {preferenceRow("batchPreference", t("Batches", "Komplettpakete"), t("Whole seasons in one torrent.", "Ganze Staffeln in einem Torrent."))}
-                {preferenceRow("bestReleasePreference", t("Best releases", "Beste Releases"), t("Releases the provider marks as best.", "Releases, die der Anbieter als beste markiert."))}
-            </Rows>
-        </SheetGroup>
+            <SheetGroup title={t("Kind of release", "Art der Veröffentlichung")}>
+                <Rows>
+                    {preferenceRow("multipleAudioPreference", t("Multiple audio tracks", "Mehrere Tonspuren"), t("Multi or dual audio releases.", "Multi- oder Dual-Audio-Releases."))}
+                    {preferenceRow("multipleSubsPreference", t("Multiple subtitle tracks", "Mehrere Untertitel-Spuren"), t("Multi-subs releases.", "Releases mit vielen Untertiteln."))}
+                    {preferenceRow("batchPreference", t("Batches", "Komplettpakete"), t("Whole seasons in one torrent.", "Ganze Staffeln in einem Torrent."))}
+                    {preferenceRow("bestReleasePreference", t("Best releases", "Beste Releases"), t("Releases the provider marks as best.", "Releases, die der Anbieter als beste markiert."))}
+                </Rows>
+            </SheetGroup>
 
-        <SheetGroup title={t("Limits", "Grenzen")}>
-            <Field label={t("Minimum seeders", "Mindestanzahl Seeder")} value={draft.minSeeders} placeholder="0" numeric
-                onChange={value => set("minSeeders", value.replace(/[^0-9]/g, ""))}
-                note={t("Torrents with fewer seeders are never picked. Empty means no minimum.", "Torrents mit weniger Seedern werden nie gewählt. Leer heißt kein Minimum.")} />
-            <Field label={t("Minimum size", "Mindestgröße")} placeholder="200MB" value={draft.minSize} onChange={value => set("minSize", value)}
-                error={errors.minSize ? sizeError(t, errors.minSize) : undefined}
-                note={t("For example 200MB or 1.5GB. Empty means no limit.", "Zum Beispiel 200MB oder 1.5GB. Leer heißt keine Grenze.")} />
-            <Field label={t("Maximum size", "Maximalgröße")} placeholder="2GB" value={draft.maxSize} onChange={value => set("maxSize", value)}
-                error={errors.maxSize ? sizeError(t, errors.maxSize) : undefined} note={t("Empty means no limit.", "Leer heißt keine Grenze.")} />
-            <View className="flex-row">
-                <TextAction label={t("Clear all fields", "Alle Felder leeren")} onPress={() => setDraft({ ...EMPTY_FORM })} disabled={formEquals(draft, EMPTY_FORM)} />
-            </View>
-        </SheetGroup>
+            <SheetGroup title={t("Limits", "Grenzen")}>
+                <Field label={t("Minimum seeders", "Mindestanzahl Seeder")} value={draft.minSeeders} placeholder="0" numeric
+                    onChange={value => set("minSeeders", value.replace(/[^0-9]/g, ""))}
+                    note={t("Torrents with fewer seeders are never picked. Empty means no minimum.", "Torrents mit weniger Seedern werden nie gewählt. Leer heißt kein Minimum.")} />
+                <Field label={t("Minimum size", "Mindestgröße")} placeholder="200MB" value={draft.minSize} onChange={value => set("minSize", value)}
+                    error={errors.minSize ? sizeError(t, errors.minSize) : undefined}
+                    note={t("For example 200MB or 1.5GB. Empty means no limit.", "Zum Beispiel 200MB oder 1.5GB. Leer heißt keine Grenze.")} />
+                <Field label={t("Maximum size", "Maximalgröße")} placeholder="2GB" value={draft.maxSize} onChange={value => set("maxSize", value)}
+                    error={errors.maxSize ? sizeError(t, errors.maxSize) : undefined} note={t("Empty means no limit.", "Leer heißt keine Grenze.")} />
+                <View className="flex-row">
+                    <TextAction label={t("Clear all fields", "Alle Felder leeren")} onPress={() => setDraft({ ...EMPTY_FORM })} disabled={formEquals(draft, EMPTY_FORM)} />
+                </View>
+            </SheetGroup>
+        </SheetFocusCarry>
     </Sheet>
 }
 

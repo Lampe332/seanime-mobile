@@ -8,6 +8,7 @@ import { haptic } from "@/lib/feedback"
 import { useThemeColors } from "@/lib/theme/appearance"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { type TourScrollHost, TourScrollContext } from "@/main/_features/tour/tour-targets"
+import { isFocusedRow, revealsInSheet, type SettingsPageFocus, sheetFocusNonce } from "@/main/settings/_lib/settings-focus"
 import { activeJumpIndex, chipRowOffset, focusChipId, jumpLayoutFromWindow, jumpScrollMetrics, type JumpScrollEvent, miniCardRightPad, SETTINGS_WIDE_COLUMN_WIDTH, settingsColumnMaxWidth } from "@/main/settings/_lib/settings-page-layout"
 import type { LucideIcon } from "lucide-react-native"
 import ArrowLeft from "lucide-react-native/icons/arrow-left"
@@ -46,24 +47,20 @@ export function useJumpTarget(label: string | undefined) {
     return ref
 }
 
-/**
- * What a search hit opens the page on: the group by its title and the row by its names, all as the page shows them. A
- * new `nonce` runs the jump again (the same hit tapped twice on a tablet).
- */
-export type SettingsPageFocus = { group?: string, labels?: readonly string[], sheet?: string, nonce: number }
+export type { SettingsPageFocus }
 /** The matching row hands the page its view; the page scrolls it into sight */
 export type RowReveal = (row: React.RefObject<ViewRef | null>) => void
 
-const SettingsFocusContext = React.createContext<{ focus: SettingsPageFocus, reveal: RowReveal } | null>(null)
+type FocusContextValue = { focus: SettingsPageFocus, reveal: RowReveal }
+const SettingsFocusContext = React.createContext<FocusContextValue | null>(null)
 
 /** For a row of the kit: set when this row is the one the page was opened on */
 export function useRowFocus(label: string, group: string | undefined) {
     const context = React.useContext(SettingsFocusContext)
     // a row in a sheet is brought into sight by the sheet's own scroll; the page stays on the sheet's control
     const sheetScroll = useSheetScroll()
-    if (!context?.focus.labels?.includes(label)) return null
-    if (context.focus.group !== undefined && group !== undefined && context.focus.group !== group) return null
-    return { nonce: context.focus.nonce, reveal: context.focus.sheet && sheetScroll ? sheetScroll : context.reveal }
+    if (!context || !isFocusedRow(context.focus, label, group)) return null
+    return { nonce: context.focus.nonce, reveal: revealsInSheet(context.focus, !!sheetScroll) && sheetScroll ? sheetScroll : context.reveal }
 }
 
 /**
@@ -71,10 +68,21 @@ export function useRowFocus(label: string, group: string | undefined) {
  * the control opens the sheet and the row glows there. The page itself stays on the group of the control.
  */
 export function useSheetFocus(sheet: string, group: string | undefined): number | null {
-    const context = React.useContext(SettingsFocusContext)
-    if (context?.focus.sheet !== sheet) return null
-    if (context.focus.group !== undefined && group !== undefined && context.focus.group !== group) return null
-    return context.focus.nonce
+    return sheetFocusNonce(React.useContext(SettingsFocusContext)?.focus, sheet, group)
+}
+
+/** The page's focus where a sheet's body can take it along (SheetFocusCarry) */
+export function usePageFocus(): FocusContextValue | null {
+    return React.useContext(SettingsFocusContext)
+}
+
+/**
+ * A sheet's body renders in the @rn-primitives portal at the app root (PortalHost), outside the page's providers: its
+ * rows never saw the page's focus, the sheet opened on its top and nothing glowed. A sheet a hit opened hands the
+ * focus (usePageFocus, read outside the sheet) to its rows with this.
+ */
+export function SheetFocusCarry({ value, children }: { value: FocusContextValue | null, children: React.ReactNode }) {
+    return <SettingsFocusContext.Provider value={value}>{children}</SettingsFocusContext.Provider>
 }
 
 /*

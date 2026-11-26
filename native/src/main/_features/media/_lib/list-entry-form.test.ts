@@ -93,6 +93,24 @@ describe("list entry editor", () => {
         expect(chooseListStatus({ ...form, status: "CURRENT", completedAt: null }, "COMPLETED", undefined, "anime").completedAt).toBeNull()
     })
 
+    it("keeps both dates when the status leaves Completed and comes back (AniList clears nothing on a status change)", () => {
+        const today = new Date(2026, 10, 26, 9)
+        const started = new Date(2006, 9, 4)
+        const completed = new Date(2007, 5, 27)
+        const done = listEntryDefaults({ status: "COMPLETED", progress: 37, startedAt: "2006-10-04T00:00:00Z", completedAt: "2007-06-27T00:00:00Z" })
+        expect(done.completedAt).toEqual(completed)
+        for (const status of ["CURRENT", "PAUSED", "DROPPED", "PLANNING", "REPEATING"] as const) {
+            const away = chooseListStatus(done, status, { episodes: 37 } as never, "anime", today)
+            expect(away.startedAt).toEqual(started)
+            expect(away.completedAt).toEqual(completed)
+            // what Save sends: the date goes along, so neither the guest list nor AniList loses it
+            expect(listEntryPayload(away, 1535, "anime").completedAt).toEqual({ year: 2007, month: 6, day: 27 })
+            const back = chooseListStatus(away, "COMPLETED", { episodes: 37 } as never, "anime", today)
+            expect(back.completedAt).toEqual(completed)
+            expect(back.startedAt).toEqual(started)
+        }
+    })
+
     it("keeps stepper values in their limits", () => {
         expect(clampStep(7.26, { max: 10, decimals: true })).toBe(7.3)
         expect(clampStep(13, { max: 12 })).toBe(12)
