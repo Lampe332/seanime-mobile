@@ -1601,6 +1601,7 @@
   "Which part?": "哪一部分？",
   "Pick a season when only that one belongs to this anime.": "当只有某一季属于此动画时，请选择该季。",
   "Whole series": "整部剧集",
+  "No series left out": "没有排除的剧集",
   "Change it when the server counts on from an earlier season, for example 13 for a second season that starts at episode 13.": "当服务器从上一季接着计数时修改它，例如第二季从第 13 集开始则填 13。",
   "Episode 1 on the server is AniList episode": "服务器上的第 1 集对应 AniList 的第几集",
   "Enter an episode number of 1 or more.": "请输入 1 或更大的集数。",

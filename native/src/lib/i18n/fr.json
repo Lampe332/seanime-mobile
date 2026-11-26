@@ -1703,6 +1703,7 @@
   "Which part?": "Quelle partie ?",
   "Pick a season when only that one belongs to this anime.": "Choisis une saison si seule celle-ci correspond à cet anime.",
   "Whole series": "Série entière",
+  "No series left out": "Aucune série exclue",
   "Change it when the server counts on from an earlier season, for example 13 for a second season that starts at episode 13.": "Modifie-le si le serveur continue de compter depuis une saison précédente, par exemple 13 pour une deuxième saison qui commence à l'épisode 13.",
   "Episode 1 on the server is AniList episode": "L'épisode 1 du serveur correspond à l'épisode AniList n°",
   "Enter an episode number of 1 or more.": "Saisis un numéro d'épisode de 1 ou plus.",

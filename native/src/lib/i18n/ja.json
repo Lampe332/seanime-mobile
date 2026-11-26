@@ -1601,6 +1601,7 @@
   "Which part?": "どの部分？",
   "Pick a season when only that one belongs to this anime.": "そのシーズンだけがこのアニメに属する場合は、シーズンを選んでください。",
   "Whole series": "シリーズ全体",
+  "No series left out": "除外したシリーズはありません",
   "Change it when the server counts on from an earlier season, for example 13 for a second season that starts at episode 13.": "サーバーが前のシーズンから番号を続けている場合に変更します。例: 第13話から始まる第2シーズンなら 13。",
   "Episode 1 on the server is AniList episode": "サーバーの第1話は AniList の第何話か",
   "Enter an episode number of 1 or more.": "1 以上のエピソード番号を入力してください。",

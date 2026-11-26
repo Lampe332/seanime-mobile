@@ -224,7 +224,8 @@ function SignedIn({ t, status }: { t: Translate, status: MediaServerStatus }) {
                     <InfoRow label={t("Series on the server", "Serien auf dem Server")} value={String(status.series)} />
                     <InfoRow label={t("Matched", "Zugeordnet")} value={String(status.matched)} />
                     <InfoRow label={t("Not matched", "Nicht zugeordnet")} value={String(status.unmatched.length)} />
-                    {status.leftOutSeries > 0 && <InfoRow label={t("Left out", "Ausgelassen")} value={String(status.leftOutSeries)} />}
+                    {/* always there, like "Not matched": the settings search offers it (settings-search-index.ts) */}
+                    <InfoRow label={t("Left out", "Ausgelassen")} value={String(status.leftOutSeries)} />
                 </>}
             <InfoRow label={t("Last read", "Zuletzt eingelesen")} value={readAgo(t, status.lastReadAt, now)} />
             <LinkRow label={reading ? t("Reading…", "Lese ein …") : t("Read again", "Neu einlesen")} chevron={false} disabled={reading || logout.isPending}
@@ -239,13 +240,16 @@ function SignedIn({ t, status }: { t: Translate, status: MediaServerStatus }) {
                 note={show.suggestion ? t(`Suggestion: ${show.suggestion.title}`, `Vorschlag: ${show.suggestion.title}`) : t("No suggestion", "Kein Vorschlag")}
                 onPress={() => { setMatching(subjectOfUnmatched(show)); setMatchOpen(true) }} />} />
         </SettingsGroup>}
-        {status.leftOut.length > 0 && <SettingsGroup title={t("Left out", "Ausgelassen")}
+        {/* shown even when empty: the settings search leads here, and the note says what the group is for */}
+        <SettingsGroup title={t("Left out", "Ausgelassen")}
             note={t("Series you marked as belonging to nothing. They stay out of your library.",
                 "Serien, die du als „gehört zu nichts“ markiert hast. Sie bleiben aus deiner Bibliothek heraus.")}>
-            <SeriesRows t={t} items={status.leftOut} render={item => <LinkRow key={item.itemId} label={item.year ? `${item.name} (${item.year})` : item.name}
-                note={item.seasonName !== null ? leftSeasonName(t, item) : t("Whole series", "Ganze Serie")}
-                onPress={() => { setMatching(subjectOfLeftOut(item)); setMatchOpen(true) }} />} />
-        </SettingsGroup>}
+            {status.leftOut.length === 0
+                ? <InfoRow label={t("No series left out", "Keine Serie ausgelassen")} />
+                : <SeriesRows t={t} items={status.leftOut} render={item => <LinkRow key={item.itemId} label={item.year ? `${item.name} (${item.year})` : item.name}
+                    note={item.seasonName !== null ? leftSeasonName(t, item) : t("Whole series", "Ganze Serie")}
+                    onPress={() => { setMatching(subjectOfLeftOut(item)); setMatchOpen(true) }} />} />}
+        </SettingsGroup>
         {/* kept in state: the series leaves its group once saved, the sheet stays until it closes */}
         {!!matching && <MediaServerMatchSheet subject={matching} open={matchOpen} onOpenChange={setMatchOpen} />}
 
