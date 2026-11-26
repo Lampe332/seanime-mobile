@@ -13,8 +13,8 @@ import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { useTourTarget } from "@/main/_features/tour/tour-targets"
 import * as DialogPrimitive from "@rn-primitives/dialog"
 import React from "react"
-import { Keyboard, Pressable, ScrollView, StyleSheet, View } from "react-native"
-import Animated from "react-native-reanimated"
+import { Keyboard, Pressable, StyleSheet, View } from "react-native"
+import Animated, { useAnimatedStyle, useSharedValue } from "react-native-reanimated"
 import Svg, { Path } from "react-native-svg"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
@@ -153,16 +153,23 @@ export function Sheet({ open, onOpenChange, title, description, children, footer
     // The body's own max height: the sheet's room less its head, foot and paddings. Yoga does not shrink a ScrollView
     // reliably inside a parent that only has a maxHeight: once the body grew while open (results arriving, a section
     // turned on) it took its full content height, the sheet ran off the screen and the body no longer scrolled.
-    const [headHeight, setHeadHeight] = React.useState(0)
-    const [footHeight, setFootHeight] = React.useState(0)
+    // Head and foot heights live in shared values, not state: their onLayout lands during the enter animation, and a
+    // re-render there laid the whole sheet out again mid-flight (edit sheet 19 % janky frames on open, 31 % on close).
+    const headHeight = useSharedValue(0)
+    const footHeight = useSharedValue(0)
     // an open keyboard lifts the phone sheet onto it and shortens the side sheet (lib/keyboard-room.ts)
     const keyboard = useKeyboardHeight()
     const bottom = bottomClearance(keyboard, insets.bottom)
     const sheetMax = phoneSheetMaxHeight(window.height, bottom)
-    const bodyMax = side
+    // the room before head and foot; both are linear in it, so the worklet only subtracts them
+    const bodyBase = side
         // the side sheet ends above the navigation bar like the phone sheet, not behind it
-        ? Math.max(120, window.height - (insets.top + 24) - 12 - bottom - headHeight - (footer ? footHeight : 0) - 16)
-        : sheetBodyMaxHeight({ sheetMax, topPadding: compact ? 16 : 20, headHeight, headGap: compact ? 12 : 16, footHeight: footer ? footHeight : 0 })
+        ? window.height - (insets.top + 24) - 12 - bottom - 16
+        : sheetBodyMaxHeight({ sheetMax, topPadding: compact ? 16 : 20, headHeight: 0, headGap: compact ? 12 : 16, footHeight: 0 })
+    const hasFooter = !!footer
+    const bodyStyle = useAnimatedStyle(() => ({
+        maxHeight: Math.max(120, bodyBase - headHeight.get() - (hasFooter ? footHeight.get() : 0)),
+    }))
 
     return (
         <DialogPrimitive.Root open={open} onOpenChange={onOpenChange} style={OUT_OF_FLOW}>
@@ -192,13 +199,12 @@ export function Sheet({ open, onOpenChange, title, description, children, footer
                                 {!!tourTarget && <View ref={tourRef} collapsable={false} pointerEvents="none" style={StyleSheet.absoluteFill} />}
                                 {/* the side sheet runs under the status bar; its close button sits below it */}
                                 <CloseButton top={side ? insets.top + 8 : 8} />
-                                <View onLayout={event => setHeadHeight(event.nativeEvent.layout.height)}>
+                                <View onLayout={event => headHeight.set(event.nativeEvent.layout.height)}>
                                     <Header title={title} description={description} large compact={compact} workspace={side && workspace} titleIcon={titleIcon} />
                                 </View>
-                                <ScrollView
-                                    // only as tall as its content; it scrolls once it reaches the sheet's room (see bodyMax)
-                                    style={{ maxHeight: bodyMax }}
-                                    className={cn("shrink", compact ? "mt-3" : "mt-4", side && workspace ? "grow" : "grow-0")}
+                                <Animated.ScrollView
+                                    // only as tall as its content; it scrolls once it reaches the sheet's room (see bodyStyle)
+                                    style={[{ flexShrink: 1, marginTop: compact ? 12 : 16, flexGrow: side && workspace ? 1 : 0 }, bodyStyle]}
                                     keyboardShouldPersistTaps="handled"
                                     showsVerticalScrollIndicator={false}
                                 >
@@ -210,8 +216,8 @@ export function Sheet({ open, onOpenChange, title, description, children, footer
                                     <View className={dense ? "gap-4" : "gap-5"} onStartShouldSetResponder={claimTouch}>
                                         {children}
                                     </View>
-                                </ScrollView>
-                                {!!footer && <View onLayout={event => setFootHeight(event.nativeEvent.layout.height)} style={{ paddingTop: sheetFooterTop({ compact, dense }) }}
+                                </Animated.ScrollView>
+                                {!!footer && <View onLayout={event => footHeight.set(event.nativeEvent.layout.height)} style={{ paddingTop: sheetFooterTop({ compact, dense }) }}
                                     className="flex-row gap-2 bg-sm-surface">
                                     {/* `.ps-sheet-actions > *` / `.mex-sheet-actions` buttons are 52dp; compact and workspace ones 48dp */}
                                     <ButtonSizeContext.Provider value={compact || workspace ? "md" : "lg"}>{footer}</ButtonSizeContext.Provider>

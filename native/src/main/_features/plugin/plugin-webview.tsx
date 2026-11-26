@@ -1,3 +1,4 @@
+import { DURATION } from "@/lib/motion"
 import { WSEvents } from "@/lib/server/ws-events"
 import { useWebsocketMessageListener } from "@/main/_hooks/handle-websockets"
 import { useLocalSearchParams } from "expo-router"
@@ -28,6 +29,16 @@ type Webview = { webviewId: string, extensionId: string, slot: string, html: str
 type WebViewInstance = WebView<object>
 const PluginWebView = WebView as unknown as React.ComponentType<WebViewProps & React.RefAttributes<WebViewInstance>>
 
+// Mounted/unmounted per slot keep their order although an unmount waits: a mount right after one is sent after it
+const slotQueue = new Map<string, number>()
+function sendInOrder(slot: string, delay: number, run: () => void) {
+    const at = Math.max(Date.now() + delay, slotQueue.get(slot) ?? 0)
+    slotQueue.set(slot, at)
+    const wait = at - Date.now()
+    if (wait <= 0) run()
+    else setTimeout(run, wait)
+}
+
 export function PluginWebviewSlot({ slot }: { slot: string }) {
     const send = usePluginSend()
     const params = useLocalSearchParams<{ id?: string }>()
@@ -38,11 +49,13 @@ export function PluginWebviewSlot({ slot }: { slot: string }) {
     // the slot tells the plugins it is there (again for the screen slot when it shows another plugin)
     React.useEffect(() => {
         if (slot === "screen" && !screenExtensionId) return
-        send(PluginClientEvents.WebviewMounted, { slot }, "")
+        sendInOrder(slot, 0, () => send(PluginClientEvents.WebviewMounted, { slot }, ""))
         return () => {
-            send(PluginClientEvents.WebviewUnmounted, { slot }, "")
+            // The slot leaves with a sheet or a page; telling the plugins (and their answer) waits until that animation
+            // ran, so the close does not share its frames with the socket message.
+            sendInOrder(slot, DURATION.sheetPhone, () => send(PluginClientEvents.WebviewUnmounted, { slot }, ""))
             // the next plugin's page starts without this one's
-            setWebviews(new Map())
+            React.startTransition(() => setWebviews(new Map()))
         }
     }, [send, slot, screenExtensionId])
 

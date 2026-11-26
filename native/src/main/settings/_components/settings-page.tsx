@@ -63,6 +63,39 @@ export function useRowFocus(label: string, group: string | undefined) {
     return { nonce: context.focus.nonce, reveal: context.reveal }
 }
 
+/*
+ * A page mounts its first groups with it and the rest a few per frame after, as a transition: an area of 20+ groups
+ * mounted in the frames of its slide-in and dropped them. Heading, note and jump target of every group are there at
+ * once (the chips and the page height start right); a page opened on a row (`focus`) mounts everything at once.
+ */
+const EAGER_GROUPS = 3
+const GROUPS_PER_FRAME = 2
+const GroupGateContext = React.createContext<{ next: () => number, limit: number } | null>(null)
+
+function GroupGate({ all, children }: { all: boolean, children: React.ReactNode }) {
+    const [counter] = React.useState(() => {
+        let count = 0
+        return { next: () => count++, count: () => count }
+    })
+    const [limit, setLimit] = React.useState(EAGER_GROUPS)
+    React.useEffect(() => {
+        if (all || limit === Infinity) return
+        const frame = requestAnimationFrame(() => React.startTransition(() => {
+            setLimit(limit >= counter.count() ? Infinity : limit + GROUPS_PER_FRAME)
+        }))
+        return () => cancelAnimationFrame(frame)
+    }, [all, counter, limit])
+    const value = React.useMemo(() => ({ next: counter.next, limit: all ? Infinity : limit }), [all, counter, limit])
+    return <GroupGateContext.Provider value={value}>{children}</GroupGateContext.Provider>
+}
+
+/** Whether a group's rows mount yet (GroupGate); outside a settings page always */
+export function useGroupReady() {
+    const gate = React.useContext(GroupGateContext)
+    const [index] = React.useState(() => gate?.next() ?? 0)
+    return !gate || index < gate.limit
+}
+
 /** Under this many titled groups a page is short enough to see at once */
 const JUMP_MIN_TARGETS = 3
 const AT_START = { x: 0, y: 0 }
@@ -359,7 +392,9 @@ export function SettingsPage({ icon: Icon, title, summary, onBack, jump = true, 
         <TourScrollContext value={tourScroll}>
             <SettingsJumpContext.Provider value={jump ? registry : null}>
                 <SettingsFocusContext.Provider value={focusContext}>
-                    {pane ? <View className="flex-1 items-center">{page}</View> : page}
+                    <GroupGate all={!!focus}>
+                        {pane ? <View className="flex-1 items-center">{page}</View> : page}
+                    </GroupGate>
                 </SettingsFocusContext.Provider>
             </SettingsJumpContext.Provider>
         </TourScrollContext>

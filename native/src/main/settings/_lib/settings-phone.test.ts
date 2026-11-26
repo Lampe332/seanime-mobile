@@ -111,7 +111,8 @@ describe("a notice above a group's rows", () => {
 
     it("stands on its own above the rows' rounded block, 8dp apart", () => {
         const kit = read("_components/settings-kit.tsx")
-        expect(kit).toMatch(/\{notice\}\s*<View className="gap-0\.5 overflow-hidden rounded-surface">\{children\}<\/View>/)
+        // notice and rows mount together once the group is let in (GroupGate staggers the page)
+        expect(kit).toMatch(/\{ready && notice\}\s*\{ready && <View className="gap-0\.5 overflow-hidden rounded-surface">\{children\}<\/View>\}/)
         expect(kit).toMatch(/<View className="min-w-0 gap-2">/)
     })
 

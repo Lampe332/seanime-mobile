@@ -88,8 +88,9 @@ describe("phone search: links", () => {
     it("focuses the field on the stamped arrival", () => {
         const screen = readFileSync(join(__dirname, "..", "_screens", "search-phone.tsx"), "utf8")
         expect(screen).toMatch(/const focusStamp = linkParams\.get\("focus"\)/)
-        expect(screen).toMatch(/if \(focusStamp\) inputRef\.current\?\.focus\(\)/)
-        expect(screen).toMatch(/autoFocus=\{!!focusStamp\}/)
+        // focused after the page swap, so the keyboard does not open in the middle of the transition
+        expect(screen).toMatch(/if \(!focusStamp\) return\s*const timer = setTimeout\(\(\) => inputRef\.current\?\.focus\(\), swapTiming\(isTablet\)\.duration\)/)
+        expect(screen).toMatch(/autoFocus=\{false\}/)
     })
 })
 

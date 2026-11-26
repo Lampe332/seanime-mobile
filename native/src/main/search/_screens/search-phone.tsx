@@ -15,7 +15,8 @@ import { Tabs } from "@/components/ui/tabs/tabs"
 import { Heading, Muted, Text } from "@/components/ui/text/text"
 import { useDebounce } from "@/hooks/use-debounce"
 import { type Translate, useTr } from "@/lib/app-language"
-import { colors } from "@/lib/theme/tokens"
+import { swapTiming } from "@/lib/motion"
+import { colors, sizes } from "@/lib/theme/tokens"
 import { useThemeColors } from "@/lib/theme/appearance"
 import { useThemeSettings } from "@/lib/theme/theme-hooks"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
@@ -108,7 +109,7 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
     const top = usePageTop()
     const pageTint = usePhonePageTint()
     const barHeight = useNavBarHeight()
-    const { rail, isTablet } = useTabletLayout()
+    const { rail, isTablet, window } = useTabletLayout()
     const pageBottom = usePageBottomPad((rail ? 32 : barHeight + 32) + insets.bottom)
     const { height } = useWindowDimensions()
     const offlineAware = useOfflineAware()
@@ -141,11 +142,14 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
     const commitTitle = React.useCallback((title: string) => update(current => withSearchTitle(current, title)), [update])
     // A result opens over this screen, which stays mounted: the field lets go of the focus when the screen does (SearchField)
     // The magnifier of Home and Discover stamps its link (searchHeadLink): each tap puts the typing into the field, the
-    // first one as the screen mounts (autoFocus), a later one on the mounted screen
+    // first one once the screen has slid in (the keyboard rising inside the page transition shared its frames: first
+    // open on the tablet 28 % janky), a later one on the mounted screen at the same delay
     const focusStamp = linkParams.get("focus")
     React.useEffect(() => {
-        if (focusStamp) inputRef.current?.focus()
-    }, [focusStamp])
+        if (!focusStamp) return
+        const timer = setTimeout(() => inputRef.current?.focus(), swapTiming(isTablet).duration)
+        return () => clearTimeout(timer)
+    }, [focusStamp, isTablet])
 
     // The query follows the state one render later: a sort or filter tap first draws its chip, then (interruptible) the
     // new results, instead of both in one long frame
@@ -207,7 +211,9 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
     const sort = activeSearchSort(state)
 
     // The grid: columns from the content width (onLayout), the cards are the cells' width
-    const [contentWidth, setContentWidth] = React.useState(0)
+    // starts at the width the column will have (window less rail or capped at 1152, less the 16dp gutters), so the first
+    // frame already has its grid; onLayout only corrects it (from 0 the grid came one layout pass late)
+    const [contentWidth, setContentWidth] = React.useState(() => (rail ? window.width - sizes.tabletRail : Math.min(window.width, 1152)) - 32)
     const grid = useGridColumns(contentWidth)
     // titles AniList does not have (TVmaze), under their own heading after the results; anime only
     const others = useSearchOtherSources(title, state.type === "anime")
@@ -283,7 +289,7 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
                         <SearchTitleInput title={state.title} onCommit={commitTitle} onEmptyChange={setFieldEmpty} onSubmit={text => {
                             commitTitle(text)
                             remember(text)
-                        }} inputRef={inputRef} autoFocus={!!focusStamp}
+                        }} inputRef={inputRef} autoFocus={false}
                             placeholder={state.type === "anime" ? t("Search anime", "Anime suchen") : t("Search manga", "Manga suchen")} />
                     </View>
                 </View>

@@ -16,7 +16,7 @@ import { useThemeColors } from "@/lib/theme/appearance"
 import { THEME_DEFAULT_VALUES } from "@/lib/theme/theme-hooks"
 import { serverStatusAtom } from "@/main/_atoms/server-status.atoms"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
-import { type RowReveal, useJumpTarget, useRowFocus } from "@/main/settings/_components/settings-page"
+import { type RowReveal, useGroupReady, useJumpTarget, useRowFocus } from "@/main/settings/_components/settings-page"
 import { WIDE_MIN_WIDTH } from "@/lib/tablet-ui"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { pickerListMaxHeight } from "@/main/settings/_lib/settings-page-layout"
@@ -221,6 +221,8 @@ export function SettingsGroup({ title, note, notice, children }: {
 }) {
     // On a page with jump chips the title is one of them (settings-page.tsx)
     const ref = useJumpTarget(title)
+    // rows of groups further down mount after the page's first frames (settings-page.tsx GroupGate)
+    const ready = useGroupReady()
     return (
         <GroupTitleContext.Provider value={title}>
             <View className="min-w-0 gap-2">
@@ -229,8 +231,8 @@ export function SettingsGroup({ title, note, notice, children }: {
                 {/* 2.0.32 measured at the S22 (App area): ~6dp more above the heading and ~8dp more under it than the bare gap */}
                 {!!title && <Text accessibilityRole="header" className="mb-2 mt-1.5 px-1 text-[13px] font-semibold tracking-[0.26px] text-sm-text-muted">{title}</Text>}
                 {!!note && <Text className="-mt-1 px-1 text-[13px] leading-[19.5px] text-sm-text-subtle">{note}</Text>}
-                {notice}
-                <View className="gap-0.5 overflow-hidden rounded-surface">{children}</View>
+                {ready && notice}
+                {ready && <View className="gap-0.5 overflow-hidden rounded-surface">{children}</View>}
             </View>
         </GroupTitleContext.Provider>
     )
