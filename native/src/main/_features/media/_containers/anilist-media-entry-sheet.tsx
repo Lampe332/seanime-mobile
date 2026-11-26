@@ -6,6 +6,7 @@ import { cn } from "@/components/ui/core/styling"
 import { Dialog, Sheet } from "@/components/ui/sheet/sheet"
 import { Text } from "@/components/ui/text/text"
 import { useTr } from "@/lib/app-language"
+import { DURATION } from "@/lib/motion"
 import { colors, accentInput } from "@/lib/theme/tokens"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { PluginWebviewSlot } from "@/main/_features/plugin/plugin-webview"
@@ -111,6 +112,12 @@ function AnilistMediaEntrySheet({ media, listData, type, open, onOpenChange }: {
     const [form, setForm] = React.useState<ListEntryForm>(() => listEntryDefaults(listData))
     const [repeat, setRepeat] = React.useState<number | null>(listData.repeat || 0)
     const [confirmDelete, setConfirmDelete] = React.useState(false)
+    // The plugin slot (websocket message, listeners) mounts once the sheet stands, not in the frames that slide it in
+    const [slotReady, setSlotReady] = React.useState(false)
+    React.useEffect(() => {
+        const timer = setTimeout(() => setSlotReady(true), isTablet ? 200 : DURATION.sheetPhone)
+        return () => clearTimeout(timer)
+    }, [isTablet])
     const isGuest = useIsSimulatedUser()
     const { mutate, isPending: isEditing, isError: saveFailed } = useEditAnilistListEntry(media?.id, type)
     const { mutate: mutateRepeat, isPending: isRepeating, isError: repeatFailed } = useUpdateAnimeEntryRepeat(media?.id)
@@ -176,7 +183,7 @@ function AnilistMediaEntrySheet({ media, listData, type, open, onOpenChange }: {
             </View>
         </>}
         {/* a plugin's own HTML under the form (web anilist-media-entry-modal) */}
-        <PluginWebviewSlot slot="after-media-entry-form" />
+        {slotReady && <PluginWebviewSlot slot="after-media-entry-form" />}
     </View>
 
     const footer = <View className="flex-1 flex-row flex-wrap items-center justify-between gap-3">

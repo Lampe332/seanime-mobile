@@ -111,9 +111,12 @@ export function SettingsPhone() {
     const listOffset = React.useRef(0)
     const [listTop, setListTop] = React.useState(0)
     const open = React.useCallback((id: SettingsSectionId) => {
-        setListTop(listOffset.current)
-        setFocus(null)
-        setSection(id)
+        // low priority: the row's press shows first, the area's large mount follows without holding the tap's frame
+        React.startTransition(() => {
+            setListTop(listOffset.current)
+            setFocus(null)
+            setSection(id)
+        })
     }, [])
     const openHit = React.useCallback((hit: SettingsSearchDoc) => {
         Keyboard.dismiss()

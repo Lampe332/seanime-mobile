@@ -70,15 +70,35 @@ export function SettingsSearch({ t, sections, query, onQuery, onOpen, compact, t
     children: React.ReactNode
 }) {
     const language = getAppLanguage()
-    const word = React.useDeferredValue(query)
+    // The typed word lives here, so a keystroke re-renders the field and the hits, not the settings screen around them;
+    // the screen hears of it when the field empties or fills and before a hit opens (it keeps the word for Back).
+    const [text, setText] = React.useState(query)
+    const [shownQuery, setShownQuery] = React.useState(query)
+    if (query !== shownQuery) {
+        setShownQuery(query)
+        setText(query)
+    }
+    const onText = (value: string) => {
+        setText(value)
+        if ((value.trim() === "") !== (query.trim() === "")) onQuery(value)
+    }
+    const textRef = React.useRef(text)
+    React.useEffect(() => {
+        textRef.current = text
+    }, [text])
+    const openHit = React.useCallback((hit: SettingsSearchDoc) => {
+        if (textRef.current !== query) onQuery(textRef.current)
+        onOpen(hit)
+    }, [onOpen, onQuery, query])
+    const word = React.useDeferredValue(text)
     const searching = word.trim() !== ""
     const conditions = useSearchConditions(tablet)
     const hits = React.useMemo(() => searching ? searchSettings(searchDocs(language, sections), word, undefined, conditions) : NO_HITS,
         [conditions, language, searching, sections, word])
     return (
         <View className="gap-4">
-            <SearchField value={query} onChangeText={onQuery} placeholder={t("Search settings", "Einstellungen durchsuchen")} />
-            {query.trim() === "" || !searching ? children : <SearchHits t={t} hits={hits} sections={sections} onOpen={onOpen} compact={compact} />}
+            <SearchField value={text} onChangeText={onText} placeholder={t("Search settings", "Einstellungen durchsuchen")} />
+            {text.trim() === "" || !searching ? children : <SearchHits t={t} hits={hits} sections={sections} onOpen={openHit} compact={compact} />}
         </View>
     )
 }
@@ -104,19 +124,28 @@ const SearchHits = React.memo(function SearchHits({ t, hits, sections, onOpen, c
     }
     return (
         <View accessibilityLabel={t("Search results", "Suchergebnisse")} className="gap-0.5 overflow-hidden rounded-surface">
-            {hits.map(hit => {
-                const Icon = icons[hit.section]
-                return <Pressable key={hit.id} accessibilityRole="button" onPress={() => onOpen(hit)}
-                    accessibilityLabel={[hit.title, hit.path, hit.note].filter(Boolean).join(", ")}
-                    className={cn("min-h-16 w-full flex-row items-center bg-sm-surface-raised py-3 active:bg-sm-surface-control", compact ? "px-3.5" : "gap-3.5 px-4")}>
-                    {!compact && <Icon size={22} color={colors.smAccent} />}
-                    <View className="min-w-0 flex-1 gap-0.5">
-                        <Text className="text-base">{hit.title}</Text>
-                        {!!hit.path && <Text numberOfLines={1} className="text-xs font-medium text-sm-accent">{hit.path}</Text>}
-                        {!!hit.note && <Muted numberOfLines={3} className="text-[13px] leading-[19px]">{hit.note}</Muted>}
-                    </View>
-                </Pressable>
-            })}
+            {hits.map(hit => <HitRow key={hit.id} hit={hit} Icon={compact ? undefined : icons[hit.section]} accent={colors.smAccent} onOpen={onOpen} />)}
         </View>
+    )
+})
+
+/** One hit; the documents are built once per language, so a row re-renders only when its hit or the callbacks change */
+const HitRow = React.memo(function HitRow({ hit, Icon, accent, onOpen }: {
+    hit: SettingsSearchDoc
+    Icon?: LucideIcon
+    accent: string
+    onOpen: (hit: SettingsSearchDoc) => void
+}) {
+    return (
+        <Pressable accessibilityRole="button" onPress={() => onOpen(hit)}
+            accessibilityLabel={[hit.title, hit.path, hit.note].filter(Boolean).join(", ")}
+            className={cn("min-h-16 w-full flex-row items-center bg-sm-surface-raised py-3 active:bg-sm-surface-control", Icon ? "gap-3.5 px-4" : "px-3.5")}>
+            {Icon && <Icon size={22} color={accent} />}
+            <View className="min-w-0 flex-1 gap-0.5">
+                <Text className="text-base">{hit.title}</Text>
+                {!!hit.path && <Text numberOfLines={1} className="text-xs font-medium text-sm-accent">{hit.path}</Text>}
+                {!!hit.note && <Muted numberOfLines={3} className="text-[13px] leading-[19px]">{hit.note}</Muted>}
+            </View>
+        </Pressable>
     )
 })

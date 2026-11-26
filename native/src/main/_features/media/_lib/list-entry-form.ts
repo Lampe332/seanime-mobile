@@ -22,7 +22,8 @@ export function listEntryDefaults(listData: ListData | undefined): ListEntryForm
     return {
         status: listData?.status,
         score: listData?.score ? listData.score / 10 : null, // Returned score is 0-100
-        progress: listData?.progress ?? null,
+        // an entry without progress shows 0 as the detail page does; "–" only when there is no entry
+        progress: listData ? listData.progress ?? 0 : null,
         startedAt: listData?.startedAt ? normalizeDate(listData.startedAt) ?? null : null,
         completedAt: listData?.completedAt ? normalizeDate(listData.completedAt) ?? null : null,
     }

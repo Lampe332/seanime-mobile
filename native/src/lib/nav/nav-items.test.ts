@@ -209,8 +209,14 @@ describe("which entry the bar and the rail light up", () => {
     })
 
     // 4.2.0 E (Pixel Tablet): Extensions or Settings, opened from More, lit no entry at all
-    it("lights More on a page opened from More: its screens and Search of the default bar", () => {
-        for (const page of ["/settings", "/extensions", "/search", "/updates", "/schedule", "/history", "/manga", "/scan-summaries"]) {
+    // L3 (tablet rail): Search, reached from the magnifier of Home and Discover, lit More
+    it("lights Discover on Search while Discover is in the bar", () => {
+        expect(navHighlight(items, "/search", false)).toBe("discover")
+        expect(navHighlight(items, "/search", true)).toBe("menu")
+    })
+
+    it("lights More on a page opened from More", () => {
+        for (const page of ["/settings", "/extensions", "/updates", "/schedule", "/history", "/manga", "/scan-summaries"]) {
             expect(navHighlight(items, page, false)).toBe("menu")
         }
         // an anime or manga page is opened from a card, not from More
@@ -227,6 +233,8 @@ describe("which entry the bar and the rail light up", () => {
         ] }).filter(item => item.placement === "nav")
         expect(navHighlight(saved, "/settings", false)).toBe("settings")
         expect(navHighlight(saved, "/discover", false)).toBe("menu")
+        // without Discover in the bar Search is a page of More
+        expect(navHighlight(saved, "/search", false)).toBe("menu")
         expect(navHighlight(saved, "/extensions", false)).toBe("menu")
     })
 })

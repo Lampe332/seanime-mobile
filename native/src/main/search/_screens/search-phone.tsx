@@ -134,26 +134,11 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
         return next === prev.state ? prev : { ...prev, state: next }
     }), [setStored])
 
-    // Typing reaches the search after a pause (Enter and clearing at once); a title from a link replaces the field.
+    // The typed text lives in SearchTitleInput, so a keystroke re-renders only the field, not this screen and its list;
+    // the title reaches the state after a pause (Enter and clearing at once), a title from a link replaces the field.
     const inputRef = React.useRef<TextInputInstance>(null)
-    const [input, setInput] = React.useState(state.title)
-    const [shownTitle, setShownTitle] = React.useState(state.title)
-    if (state.title !== shownTitle) {
-        setShownTitle(state.title)
-        if (state.title.trim() !== input.trim()) setInput(state.title)
-    }
-    const debouncedInput = useDebounce(input, 400)
+    const [fieldEmpty, setFieldEmpty] = React.useState(state.title === "")
     const commitTitle = React.useCallback((title: string) => update(current => withSearchTitle(current, title)), [update])
-    React.useEffect(() => {
-        commitTitle(debouncedInput)
-    }, [debouncedInput, commitTitle])
-    const onInput = (value: string) => {
-        setInput(value)
-        if (value) return
-        commitTitle("")
-        // The ✕ goes away with the words; the field keeps the focus (and the keyboard) for new ones.
-        inputRef.current?.focus()
-    }
     // A result opens over this screen, which stays mounted: the field lets go of the focus when the screen does (SearchField)
     // The magnifier of Home and Discover stamps its link (searchHeadLink): each tap puts the typing into the field, the
     // first one as the screen mounts (autoFocus), a later one on the mounted screen
@@ -189,7 +174,6 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
         if (foundTitle.current) remember(foundTitle.current)
     }, [remember]))
     const searchRecent = (term: string) => {
-        setInput(term)
         commitTitle(term)
         remember(term)
         inputRef.current?.blur()
@@ -296,14 +280,14 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
                             items={[{ value: "anime", label: "Anime" }, { value: "manga", label: "Manga" }]} />
                     </View>
                     <View className={cn(!beside && "mt-3")} style={beside ? { flex: 1, maxWidth: TABLET_SEARCH_MAX_WIDTH } : undefined}>
-                        <SearchField value={input} onChangeText={onInput} onSubmit={() => {
-                            commitTitle(input)
-                            remember(input)
+                        <SearchTitleInput title={state.title} onCommit={commitTitle} onEmptyChange={setFieldEmpty} onSubmit={text => {
+                            commitTitle(text)
+                            remember(text)
                         }} inputRef={inputRef} autoFocus={!!focusStamp}
                             placeholder={state.type === "anime" ? t("Search anime", "Anime suchen") : t("Search manga", "Manga suchen")} />
                     </View>
                 </View>
-                {!input && recent.length > 0 && <RecentSearches t={t} terms={recent} onSearch={searchRecent}
+                {fieldEmpty && recent.length > 0 && <RecentSearches t={t} terms={recent} onSearch={searchRecent}
                     onRemove={term => setRecent(list => withoutRecentSearch(list, term))} onClear={() => setRecent([])} />}
                 <ChipRow label={t("Sort by", "Sortieren nach")} selected={[sort]}
                     chips={searchSortChips(state.type, !!title).map(option => ({ value: option.value, label: t(option.en, option.de) }))}
@@ -438,6 +422,40 @@ function ActiveFilters({ t, chips, onRemove, onClear }: { t: Translate, chips: S
             <View className="-ml-1"><TextAction label={t("Clear filters", "Filter zurücksetzen")} onPress={onClear} /></View>
         </ScrollView>
     )
+}
+
+/** The search field with its own text: typing re-renders this alone; the title is committed after a 400 ms pause */
+function SearchTitleInput({ title, onCommit, onSubmit, onEmptyChange, inputRef, autoFocus, placeholder }: {
+    title: string
+    onCommit: (title: string) => void
+    onSubmit: (text: string) => void
+    onEmptyChange: (empty: boolean) => void
+    inputRef: React.RefObject<TextInputInstance | null>
+    autoFocus: boolean
+    placeholder: string
+}) {
+    const [input, setInput] = React.useState(title)
+    const [shownTitle, setShownTitle] = React.useState(title)
+    if (title !== shownTitle) {
+        setShownTitle(title)
+        if (title.trim() !== input.trim()) setInput(title)
+    }
+    const debouncedInput = useDebounce(input, 400)
+    React.useEffect(() => {
+        onCommit(debouncedInput)
+    }, [debouncedInput, onCommit])
+    const empty = input === ""
+    React.useEffect(() => {
+        onEmptyChange(empty)
+    }, [empty, onEmptyChange])
+    const onInput = (value: string) => {
+        setInput(value)
+        if (value) return
+        onCommit("")
+        // The ✕ goes away with the words; the field keeps the focus (and the keyboard) for new ones.
+        inputRef.current?.focus()
+    }
+    return <SearchField value={input} onChangeText={onInput} onSubmit={() => onSubmit(input)} inputRef={inputRef} autoFocus={autoFocus} placeholder={placeholder} />
 }
 
 /** The last searches under the empty field: a tap searches again, the ✕ forgets one, "Clear" all (recent-searches.ts) */

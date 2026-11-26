@@ -132,7 +132,8 @@ export function isActive(item: NavItem, pathname: string) {
 
 /**
  * The one entry the bar (or the tablet rail) lights up: More while its panel is open, else the page's entry; a page
- * opened from More (its screens and the entries given back to it, Search in the default bar) lights More; null for a page
+ * opened from More (its screens and the entries given back to it) lights More, a floating Search lights Discover while
+ * Discover is in the bar (L3, tablet rail lit More); null for a page
  * that is neither (an anime page). 4.2.0 E (S22): the open panel lit More and Home at once; (Pixel Tablet) Settings or
  * Extensions lit nothing.
  */
@@ -141,6 +142,11 @@ export function navHighlight(items: NavItem[], pathname: string, menuOpen: boole
     if (menuOpen) return more
     const own = items.find(item => item.placement === "nav" && isActive(item, pathname))
     if (own) return own.id
+    // Search floats (a magnifier in the heads of Home and Discover): it belongs to Discover while that is in the bar
+    if (pathname === "/search" || pathname.startsWith("/search/")) {
+        const discover = items.find(item => item.placement === "nav" && navigationPath(item.href) === "/discover")
+        if (discover) return discover.id
+    }
     return MORE_PAGES.some(page => isActive(page, pathname)) ? more : null
 }
 

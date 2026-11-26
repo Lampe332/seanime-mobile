@@ -63,6 +63,9 @@ describe("list entry editor", () => {
         expect(formatFieldDate(form.startedAt)).toBe("2026-10-05")
         expect(form.completedAt).toBeNull()
         expect(listEntryDefaults({ score: 0 }).score).toBeNull()
+        // an entry without progress starts at 0 like the detail page; no entry at all stays empty
+        expect(listEntryDefaults({ status: "PLANNING" }).progress).toBe(0)
+        expect(listEntryDefaults(undefined).progress).toBeNull()
     })
 
     it("limits progress to the aired episodes of a running anime", () => {
