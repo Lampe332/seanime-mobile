@@ -134,7 +134,8 @@ function MainFrame() {
                 {rail && <NavRail {...navProps} short={shortRail} />}
                 <View className="flex-1">
                     <ContentGate pathname={pathname}>
-                        {/* every page rises in once as it comes (page-transition.tsx) */}
+                        {/* every page rises in once as it comes; a left page stays mounted and lets go of its native
+                            views after the switch (renderPage, page-transition.tsx) */}
                         <TabSlot renderFn={renderPage} detachInactiveScreens={false} />
                     </ContentGate>
                 </View>

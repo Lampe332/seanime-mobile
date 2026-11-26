@@ -358,7 +358,9 @@ function useMenuPanelMotion(open: boolean, rail: boolean) {
                 : [{ translateY: MENU_RISE * rest }, { scale: 1 - (1 - MENU_ENTER_SCALE) * rest }],
         }
     })
-    return { scrollRef, panelMotion, built, layer: open !== settled }
+    // the layer is let go only once the panel stands open: kept while it is closed, it is there before the open's first frame
+    // (allocated at the prebuild, not on the tap: 4.4.0 S22 atrace, allocateImageMemory 16 ms in the open's first frame)
+    return { scrollRef, panelMotion, built, layer: !open || open !== settled }
 }
 
 export function NavMenu({ open, onClose, pathname, onOpen, onSignIn, rail, barItems, actions = [], header }: {
@@ -419,7 +421,7 @@ export function NavMenu({ open, onClose, pathname, onOpen, onSignIn, rail, barIt
                 importantForAccessibility={open ? "auto" : "no-hide-descendants"}
                 // The panel fades and scales as one GPU layer: without it Android drew all rows into a fresh offscreen
                 // buffer for every frame of the fade (S22 framestats 09.11.: GPU 9–11 ms a frame, half the frames late);
-                // only while it moves, so a press on a row does not redraw the whole layer
+                // not while it stands open, so a press on a row does not redraw the whole layer
                 renderToHardwareTextureAndroid={layer}
                 style={[panelStyle, panelMotion, {
                     position: "absolute",

@@ -6,6 +6,7 @@ import { type TabSlotProps } from "expo-router/ui"
 import React from "react"
 import { StyleSheet, View } from "react-native"
 import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withSequence, withTiming } from "react-native-reanimated"
+import { Screen, ScreenContainer } from "react-native-screens"
 import { scheduleOnRN } from "react-native-worklets"
 
 /*
@@ -57,13 +58,44 @@ function PageEnter({ focused, children }: { focused: boolean, children: React.Re
     return <Animated.View renderToHardwareTextureAndroid={layered} style={[{ flex: 1 }, style]}>{children}</Animated.View>
 }
 
+/** How long a left page keeps its native views after the switch: past the incoming page's rise (PageEnter) */
+const DETACH_AFTER_SWAP_MS = 120
+
+/*
+ * A page's native views, attached to the window only while it is in front or just left. Kept attached, every visited
+ * page was in Android's draw tree at opacity 0: RenderThread walked all of them each frame (4.4.0 S22 atrace: ~3050
+ * views, prepareTree 21–35 ms a frame while typing in a search field). A left page lets go of its views once the
+ * incoming page has risen in (react-native-screens activityState 0: its fragment is removed, React keeps the tree, the
+ * state and the shadow tree's layout, so measureInWindow still answers for the cover's way back); the switch itself
+ * stays as cheap as before, the detach lands after the animation. A page coming back attaches in the render that
+ * focuses it, under its fade from 0. Each page has its own container, so the pages' order and their pointerEvents stay
+ * those of the slot's plain views (two screens in one container could stack a left one over the page in front).
+ */
+function PageViews({ focused, children }: { focused: boolean, children: React.ReactNode }) {
+    const isTablet = useIsTabletScreen()
+    const [attached, setAttached] = React.useState(focused)
+    if (focused && !attached) setAttached(true)
+    React.useEffect(() => {
+        if (focused || !attached) return
+        const timer = setTimeout(() => setAttached(false), swapTiming(isTablet).duration + DETACH_AFTER_SWAP_MS)
+        return () => clearTimeout(timer)
+    }, [focused, attached, isTablet])
+    return (
+        <ScreenContainer enabled style={StyleSheet.absoluteFill}>
+            <Screen enabled activityState={attached || focused ? 2 : 0} freezeOnBlur={false} style={StyleSheet.absoluteFill}>
+                {children}
+            </Screen>
+        </ScreenContainer>
+    )
+}
+
 /**
- * TabSlot's renderFn (with `detachInactiveScreens={false}`): a visited page stays attached and laid out under the current
- * one, only invisible (opacity 0), untouchable and hidden from accessibility. The default slot detached a left page's
- * native views (react-native-screens activityState 0) and attached them again on the way back: Android measured, laid
- * out and drew the whole page on the UI thread in the frame of the switch (S22 gfxinfo: slow UI-thread frames on every
- * tab change). Now a switch only flips the opacity and runs PageEnter. Pages are still mounted on their first visit only
- * (lazy, like the default).
+ * TabSlot's renderFn (with `detachInactiveScreens={false}`: the slot's own container stays a plain view): a visited page
+ * stays mounted under the current one, invisible (opacity 0), untouchable and hidden from accessibility, and its native
+ * views are taken off the window shortly after it is left (PageViews). The slot's default detached a left page in the
+ * frame of the switch and drew the returning one there too (S22 gfxinfo: slow UI-thread frames on every tab change), so
+ * the switch only flips the opacity and runs PageEnter; the detach waits for the animation. Pages are still mounted on
+ * their first visit only (lazy, like the default).
  */
 export const renderPage: NonNullable<TabSlotProps["renderFn"]> = (descriptor, { isFocused, loaded }) => {
     const { lazy = true, unmountOnBlur } = descriptor.options
@@ -80,9 +112,11 @@ export const renderPage: NonNullable<TabSlotProps["renderFn"]> = (descriptor, { 
             accessibilityElementsHidden={!isFocused}
         >
             {/* a text field on a page left behind lets go of the keyboard (page-focus.ts) */}
-            <PageFocusContext.Provider value={isFocused}>
-                <PageEnter focused={isFocused}>{descriptor.render()}</PageEnter>
-            </PageFocusContext.Provider>
+            <PageViews focused={isFocused}>
+                <PageFocusContext.Provider value={isFocused}>
+                    <PageEnter focused={isFocused}>{descriptor.render()}</PageEnter>
+                </PageFocusContext.Provider>
+            </PageViews>
         </View>
     )
 }
