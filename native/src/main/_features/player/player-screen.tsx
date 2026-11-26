@@ -91,6 +91,7 @@ import {
     scrubDown,
     scrubMove,
     scrubUp,
+    playAfterBarSeek,
     SEEK_BACK_SECONDS,
     SEEK_FORWARD_SECONDS,
     remoteEpisode,
@@ -444,6 +445,8 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
 
     // a seek's target until mpv reports it: a 2nd double tap right after the 1st starts there, not at the old time
     const pendingSeek = React.useRef<PendingSeek>(null)
+    // whether the video played when a finger went down on the time bar
+    const playingAtBarTouch = React.useRef(false)
     const seekTo = React.useCallback((time: number) => {
         const target = clampTime(time, timeRef.current.duration)
         playedRef.current = { played: target, previous: target, seeking: false }
@@ -1306,12 +1309,15 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
                             highlight={highlightSkips}
                             track={vc.track}
                             thumbSize={vc.thumb}
+                            onTouchDown={() => (playingAtBarTouch.current = playingRef.current)}
                             onScrubStart={() => {
                                 if (hideTimer.current) clearTimeout(hideTimer.current)
                                 setVisible(true)
                             }}
                             onScrubEnd={target => {
                                 if (target !== null) seekTo(target)
+                                // the seek never leaves a playing video paused (box, S22 4.4.0: tap → 0:01 and paused)
+                                if (playAfterBarSeek(playingAtBarTouch.current, target)) mpv.current?.play().catch(() => {})
                                 scheduleHide()
                             }}
                         />
@@ -1452,7 +1458,7 @@ function LiveMiniPlayer({ timeStore, duration, ...props }: Omit<React.ComponentP
     return <MiniPlayer progress={progress} {...props} />
 }
 
-function TimeBar({ position, duration, buffered, pieces, highlight, track, thumbSize, onScrubStart, onScrubEnd }: {
+function TimeBar({ position, duration, buffered, pieces, highlight, track, thumbSize, onTouchDown, onScrubStart, onScrubEnd }: {
     position: number
     duration: number
     buffered: number
@@ -1460,6 +1466,7 @@ function TimeBar({ position, duration, buffered, pieces, highlight, track, thumb
     highlight: boolean
     track: number
     thumbSize: number
+    onTouchDown: () => void
     onScrubStart: () => void
     onScrubEnd: (target: number | null) => void
 }) {
@@ -1484,7 +1491,10 @@ function TimeBar({ position, duration, buffered, pieces, highlight, track, thumb
             onLayout={e => (width.current = e.nativeEvent.layout.width)}
             onStartShouldSetResponder={() => duration > 0}
             onResponderTerminationRequest={() => scrubRef.current.phase !== "scrubbing"}
-            onResponderGrant={e => setScrub(scrubDown(e.nativeEvent.locationX, e.nativeEvent.locationY))}
+            onResponderGrant={e => {
+                onTouchDown()
+                setScrub(scrubDown(e.nativeEvent.locationX, e.nativeEvent.locationY))
+            }}
             onResponderMove={e => {
                 const current = scrubRef.current
                 const next = scrubMove(current, e.nativeEvent.locationX, e.nativeEvent.locationY, width.current)

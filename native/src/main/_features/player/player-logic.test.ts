@@ -34,6 +34,7 @@ import {
     scrubDown,
     scrubMove,
     scrubUp,
+    playAfterBarSeek,
     shouldSendCompleted,
     TRACK_LIST_READS,
     playsFromStart,
@@ -80,6 +81,20 @@ describe("time bar", () => {
         let s = scrubDown(0, 0)
         s = scrubMove(s, 900, 0, 400)
         expect(scrubUp(s, 900, 400, 1000)).toBe(1000)
+    })
+
+    it("a tap in the box jumps to where the finger went down, even when the lift reports x 0", () => {
+        // S22 4.4.0: a tap in the middle of the box's bar went to 0:01
+        expect(scrubUp(scrubDown(200, 10), 0, 400, 1440)).toBe(720)
+        // a bar not measured yet never jumps to the start
+        expect(scrubUp(scrubDown(200, 10), 200, 0, 1440)).toBeNull()
+    })
+
+    it("a seek from the bar keeps a playing video playing, a paused one paused", () => {
+        expect(playAfterBarSeek(true, 720)).toBe(true)
+        expect(playAfterBarSeek(false, 720)).toBe(false)
+        // no seek (vertical swipe, cancel): nothing changes
+        expect(playAfterBarSeek(true, null)).toBe(false)
     })
 })
 

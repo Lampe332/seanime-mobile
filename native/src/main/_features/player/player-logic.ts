@@ -100,14 +100,20 @@ export function scrubMove(state: ScrubState, x: number, y: number, width: number
 }
 
 /**
- * Where the video goes when the finger lifts: a touch that never moved sideways is a tap and jumps to where it landed; a
- * scrub goes to its target. Null = leave the video where it is.
+ * Where the video goes when the finger lifts: a touch that never moved sideways is a tap and jumps to where it went
+ * down (Android's lift event can report x 0 in the box: the tap went to 0:01); a scrub goes to its target. A bar not
+ * measured yet never jumps to the start. Null = leave the video where it is.
  */
-export function scrubUp(state: ScrubState, x: number, width: number, duration: number): number | null {
-    if (duration <= 0) return null
-    if (state.phase === "pending") return clampTime(ratioAt(x, width) * duration, duration)
+export function scrubUp(state: ScrubState, _x: number, width: number, duration: number): number | null {
+    if (duration <= 0 || width <= 0) return null
+    if (state.phase === "pending") return clampTime(ratioAt(state.startX, width) * duration, duration)
     if (state.phase === "scrubbing") return clampTime(state.ratio * duration, duration)
     return null
+}
+
+/** A seek from the time bar keeps playing what played when the finger went down */
+export function playAfterBarSeek(playingAtTouch: boolean, target: number | null): boolean {
+    return playingAtTouch && target !== null
 }
 
 /** Android took the touch over (Home or Back gesture): never a jump. */
