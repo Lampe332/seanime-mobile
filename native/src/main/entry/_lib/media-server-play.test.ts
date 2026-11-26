@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { Anime_Entry, Anime_Episode } from "@/api/generated/types"
-import { isMediaServerEntry, mediaServerPlayError, playRouteOf, showsLibraryEpisodes } from "./media-server-play"
+import { isMediaServerEntry, mediaServerPlayError, mediaServerStreamError, playRouteOf, showsLibraryEpisodes } from "./media-server-play"
 
 const episode = (marks: Record<string, unknown>) => ({ type: "main", progressNumber: 1, ...marks }) as unknown as Anime_Episode
 const english = (en: string) => en
@@ -27,6 +27,12 @@ describe("why a server episode did not start", () => {
         expect(mediaServerPlayError("Not signed in to a media server", german)).toContain("nicht beim Medienserver angemeldet")
         expect(mediaServerPlayError("The episode is not in the media server's library", english)).toContain("no longer on the media server")
         expect(mediaServerPlayError("Network request failed", german)).toBe("Die Folge konnte nicht vom Medienserver gestartet werden.")
+    })
+
+    it("turns mpv's \"loading failed\" into the server not answering, and leaves other player errors alone", () => {
+        expect(mediaServerStreamError("loading failed", english)).toContain("media server did not answer")
+        expect(mediaServerStreamError("Loading failed", german)).toContain("Medienserver hat nicht geantwortet")
+        expect(mediaServerStreamError("unrecognized file format", english)).toBeNull()
     })
 })
 

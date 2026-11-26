@@ -4,6 +4,7 @@ import { useGetAnimeEntry } from "@/api/hooks/anime_entries.hooks"
 import { useRemoveMediaServerMapping, useSaveMediaServerMapping } from "@/api/hooks/mediaserver.hooks"
 import { ActionRow, FORMAT_LABELS, PickRow, RowGroup, SearchField } from "@/components/shared/phone-kit"
 import { Button } from "@/components/ui/button/button"
+import { useKeyboardHeight } from "@/components/ui/core/use-keyboard-height"
 import { Sheet, SheetGroup } from "@/components/ui/sheet/sheet"
 import { toast } from "@/components/ui/toast/toast-store"
 import { Muted, Text } from "@/components/ui/text/text"
@@ -98,6 +99,11 @@ export function MediaServerMatchSheet({ subject, open, onOpenChange, cover }: {
     const [firstEpisode, setFirstEpisode] = React.useState("1")
     const [query, setQuery] = React.useState("")
     const search = useDebounce(query.trim(), 400)
+    // Searching with the keyboard up (a tablet on its side keeps little room): the field leads the body, the series'
+    // summary and the hint give way, and the sheet is not held at its open height
+    const keyboard = useKeyboardHeight()
+    const [searchFocused, setSearchFocused] = React.useState(false)
+    const searchingUp = searchFocused && keyboard > 0
     const asId = /^\d+$/.test(search) ? Number(search) : 0
 
     const { data: results, isFetching: searching } = useAnilistListAnime({
@@ -119,6 +125,7 @@ export function MediaServerMatchSheet({ subject, open, onOpenChange, cover }: {
         setSeasonId(season)
         setFirstEpisode(String(startFirstEpisode(subject, matchItemId(subject, season))))
         setQuery("")
+        setSearchFocused(false)
     }
     // an earlier failure is not shown again (reset outside the render: it updates the mutations' observers)
     const forgetFailure = React.useEffectEvent(() => {
@@ -165,18 +172,19 @@ export function MediaServerMatchSheet({ subject, open, onOpenChange, cover }: {
     }
 
     return (
-        <Sheet title={t("Change match", "Zuordnung ändern")} open={open} onOpenChange={onOpenChange} className="min-h-[78%]"
+        <Sheet title={t("Change match", "Zuordnung ändern")} open={open} onOpenChange={onOpenChange} className={keyboard > 0 ? undefined : "min-h-[78%]"}
             footer={<Button wrapperClassName="flex-1" disabled={!anime || episode === null || busy} onPress={saveMatch}>
                 {save.isPending ? t("Saving…", "Wird gespeichert…") : part ? t(`Save match for ${part}`, `Zuordnung für ${part} speichern`) : t("Save match", "Zuordnung speichern")}
             </Button>}>
-            <View accessible className="gap-0.5 rounded-surface bg-sm-surface-raised px-4 py-3">
+            {!searchingUp && <View accessible className="gap-0.5 rounded-surface bg-sm-surface-raised px-4 py-3">
                 <Text className="text-[15px] font-semibold">{subject.year ? `${subject.name} (${subject.year})` : subject.name}</Text>
                 <Muted>{[ruleText(t, subject.rule, leftPart), plural(t, subject.episodes, ["1 episode", "{0} episodes"], ["1 Folge", "{0} Folgen"])].join(" · ")}</Muted>
-            </View>
+            </View>}
 
             <SheetGroup title={t("Which anime is it?", "Welcher Anime ist es?")}
-                note={search ? undefined : t("Search by title or enter an AniList ID.", "Suche nach Titel oder gib eine AniList-ID ein.")}>
-                <SearchField value={query} onChangeText={setQuery} placeholder={t("Title or AniList ID", "Titel oder AniList-ID")} />
+                note={search || searchingUp ? undefined : t("Search by title or enter an AniList ID.", "Suche nach Titel oder gib eine AniList-ID ein.")}>
+                <SearchField value={query} onChangeText={setQuery} placeholder={t("Title or AniList ID", "Titel oder AniList-ID")}
+                    onFocus={() => setSearchFocused(true)} />
                 {loading && !choices.length
                     ? <Muted accessibilityRole="progressbar">{t("Looking…", "Suche…")}</Muted>
                     : !choices.length
@@ -205,7 +213,7 @@ export function MediaServerMatchSheet({ subject, open, onOpenChange, cover }: {
                     "Ändere sie, wenn der Server ab einer früheren Staffel weiterzählt, zum Beispiel 13 für eine zweite Staffel, die bei Folge 13 beginnt.")}>
                 <View className="gap-1.5">
                     <Text className="text-[13px] font-medium text-sm-text-muted">{t("Episode 1 on the server is AniList episode", "Folge 1 auf dem Server ist bei AniList Folge")}</Text>
-                    <TextInput {...accentInput} value={firstEpisode} onChangeText={v => setFirstEpisode(v.replace(/[^0-9]/g, ""))} placeholder="1" keyboardType="number-pad"
+                    <TextInput {...accentInput} value={firstEpisode} onChangeText={v => setFirstEpisode(v.replace(/[^0-9]/g, ""))} placeholder="1" keyboardType="number-pad" onFocus={() => setSearchFocused(false)}
                         placeholderTextColor={colors.smTextSubtle} accessibilityLabel={t("Episode 1 on the server is AniList episode", "Folge 1 auf dem Server ist bei AniList Folge")}
                         className="min-h-12 rounded-surface-sm bg-sm-surface-raised px-4 font-sans text-base text-sm-text" />
                     {episode === null && <Text accessibilityRole="alert" className="text-sm text-sm-danger">{t("Enter an episode number of 1 or more.", "Gib eine Folgennummer ab 1 ein.")}</Text>}

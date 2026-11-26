@@ -118,6 +118,7 @@ import {
     HUD_PLACE, playerView, progressFraction, viewTurn,
 } from "./player-chrome"
 import { streamStartError } from "@/main/_features/native-player/stream-start-error"
+import { isMediaServerEpisode, mediaServerStreamError } from "@/main/entry/_lib/media-server-play"
 import { useNavBarHeight } from "@/components/navigation/app-navigation"
 import { usePlayerPlaylist } from "./use-player-playlist"
 import { type OfflinePlayback, offlinePositionToSave, offlineWatched } from "@/main/android-downloads/_lib/offline-playback"
@@ -911,7 +912,9 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
     const errorText = playbackError ?? videoError
     // the server's reason of a failed start ("abort-open", e.g. "timeout waiting for torrent info") in the user's words;
     // errorText itself stays the reason (offersOtherTorrent reads it)
-    const errorShown = errorText ? streamStartError(errorText, t) : null
+    // a server episode's file that does not open (mpv "loading failed") is the media server not answering
+    const serverEpisode = !offline && !online && isMediaServerEpisode(info?.episode)
+    const errorShown = errorText ? (serverEpisode && mediaServerStreamError(errorText, t)) || streamStartError(errorText, t) : null
     // a server stream that is or may become a torrent stream (before "watch" the kind is not known): its state is shown
     const torrentStream = !offline && !online && (!info || info.streamType === "torrent")
     const pickAnotherTorrent = usePickAnotherTorrent()

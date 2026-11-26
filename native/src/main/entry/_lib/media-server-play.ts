@@ -33,6 +33,17 @@ export function playRouteOf(episode: Anime_Episode): "mediaserver" | "nakama" | 
     return "local"
 }
 
+/**
+ * The player's error of a server episode in the app's language, or null for the player's own text. mpv has only
+ * "loading failed" when the file does not open; for a server episode that is the server not answering (switched off,
+ * out of reach). Worded like Settings › Media server's "did not answer".
+ */
+export function mediaServerStreamError(reason: string, t: (english: string, german: string) => string): string | null {
+    if (!/loading failed/i.test(reason)) return null
+    return t("The media server did not answer. Check that the server is running and reachable.",
+        "Der Medienserver hat nicht geantwortet. Prüfe, ob der Server läuft und erreichbar ist.")
+}
+
 /** The core's reason why a server episode did not start, in the app's language (never carries the token) */
 export function mediaServerPlayError(message: string, t: (english: string, german: string) => string): string {
     if (message.includes("address is missing")) return t("The media server's address is missing. Add it in the settings.", "Die Adresse des Medienservers fehlt. Trage sie in den Einstellungen ein.")
