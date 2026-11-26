@@ -2,6 +2,51 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 4.4.0 (versionCode 40400)
+
+- 🎉 Settings: Every page has a new look with grouped cards, a short explanation under each setting and jump chips at the top
+- 🎉 Settings: A search field above the list finds any setting by its name or explanation and jumps to its row
+- 🎉 Appearance: Pick one of six accent colors (violet stays the default) or your own from a color wheel or a #RRGGBB code. It changes everywhere at once, no restart needed
+- 🎉 Appearance: AMOLED black turns the dark backgrounds fully black. It is kept per device
+- 🎉 Appearance: Choose your banner from six pictures, one of your own photos, or none. The six pictures sync with your account, your own photo stays on this device
+- 🎉 Appearance: Card size small, normal or large for every cover, kept per device
+- 🎉 Appearance: "Scroll carousels automatically" (the feature banner too) and "Smaller episode cards" for Home
+- 🎉 Your year: A review of a year from your lists. Pick a year to see the titles you finished, episodes, estimated watch time, top genres and studios, best rated, first and last title, busiest month, formats and manga. Open it from My lists or from the card on top of the stats page, also with the local guest list
+  - Years are counted by completion date. Finished titles without one are left out, and the page says how many
+  - "Share image" turns the summary into a picture for the share sheet. It names only titles that are neither private nor adult
+- 🎉 Discover: "Because you watched ..." rows after Trending, built from AniList recommendations for the titles you finished last. Anything already on one of your lists is left out
+- 🎉 App lock: Under Settings, App, your phone's own lock (fingerprint, face or screen PIN) covers the app at start and after more than a minute away. The app shows no content in the recent apps screen while it is on, and screen readers stay on the lock screen
+- 🎉 Player: Anime4K upscaling under Settings, Playback: Off, Fast or Quality. It is off by default and stays on this device. If the shaders can't be loaded, the episode plays without them
+- 🎉 Profile: With an account, your profile picture is the same on all your devices. Without an account it stays on the device
+- 🎉 Media server: Sign in to a Jellyfin server under Settings, Media server with its address, user and password. Its series are matched to AniList titles and show up in your library, and the library never waits for the server
+  - The page shows the server's name, the number of series, what was matched and what was not
+  - The password is not kept, and the sign-in token goes into the phone's secure store. An address without https gets a warning
+- 🎉 Media server: Tap a server episode to play it in the player. It plays for titles that are not on your lists too. Server episodes carry a chip with the server's name, and file actions that only work for your own files are hidden for them
+- 🎉 Media server: Text subtitles stored next to a server file are handed to the player
+- 🎉 Media server: A switch reports playback to the server: start, position, pause, seek and stop. The episode counts as played by the same rule the app uses for AniList
+- 🎉 Media server: Change match for a server series, from the entry menu, from the chip with the server's name or from the list of unmatched series. Pick another AniList title for the series or one season, say which AniList episode the server's first one is, mark it as belonging to nothing, or go back to the automatic match
+- 🎉 Media server: A series you marked as belonging to nothing is listed under "Left out" on the settings page, and a tap brings it back
+- ⚡️ Edit sheet: Choosing Completed or Watching fills an empty completion or start date with today, like AniList's own editor
+- ⚡️ Edit sheet: A start date after the completion date is marked and can't be saved
+- ⚡️ Home: The banner fades softly into the page, the continue-watching card's shade reaches every edge, and the score badge on cards matches My lists
+- ⚡️ Cards: Rows stop on a whole card, with an even peek of the next one
+- ⚡️ Translations: The new texts are translated into Spanish, French, Japanese, Brazilian Portuguese, Russian and Simplified Chinese
+- 🦺 Player: Play on the last frame of a finished episode starts it again. Before, it did nothing until you seeked back
+- 🦺 Edit sheet: Saving closes the sheet. If saving fails, it stays open with a note
+- 🦺 Edit sheet: Score and progress take digits only and show the value that is saved. A score like 0.7 is no longer refused
+- 🦺 Edit sheet: The local guest list says "On this device" instead of "AniList"
+- 🦺 Library: "Streaming titles in your anime lists" now follows the online streaming, torrent streaming and debrid switches. With all three off, only titles with files on this device show
+- 🦺 Library: "Refresh the library automatically" works. When you come back to the app, it scans if files changed, at most every 10 minutes
+- 🦺 Library: Scanner rules work like the original Seanime: matching rules by a regex on the full path, hydration rules for episode, AniDB episode and type. The settings check the rules and say what is wrong
+- 🦺 Torrent streaming and debrid: A preferred resolution of "1080" now matches a "1080p" torrent
+- 🦺 Settings: The status bar, preload mode, player for files and external player link stay on each device and no longer sync with your account
+- 🦺 Nakama: A file without a chosen player app says so instead of opening an empty link
+- 🦺 Tablets: Side sheets end above the navigation bar instead of running under it
+- 🦺 Settings: Fresh installs start with the spoiler sub-switches and the manga unread count on
+- 🦺 Online streaming: The big card of the current episode follows the spoiler settings like the episode list
+- 🦺 Cards: On a small card, the progress pill shortens or hides instead of running under the score badge
+- 🏗️ Banner: The link field is gone, replaced by the pictures and your own photo. A link you saved before still shows
+
 ## 4.3.2 (versionCode 40302)
 
 - 🎉 Search: Titles AniList doesn't have show up under "More sources" with a TVmaze label. Each one opens its own page, and you can watch it with online streams or torrents
