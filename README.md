@@ -64,7 +64,7 @@
 
 <p align="center">
   <img src="docs/images/readme/info-02.webp" alt="Watch it your way: online streaming with Sub or Dub, torrents built in, debrid, and offline downloads" width="49%">
-  <img src="docs/images/readme/info-05.webp" alt="45 features, each one listed on seanimemobile.com. It starts empty, and you add your own sources." width="49%">
+  <img src="docs/images/readme/info-05.webp" alt="The 45 features of version 4.3.1, each one listed on seanimemobile.com. It starts empty, and you add your own sources." width="49%">
 </p>
 
 <table>
@@ -73,11 +73,12 @@
   <tr><td><b>Read</b></td><td>Manga, online or offline, as a long strip, page by page, or two pages side by side. The Manga tab picks up where you stopped.</td></tr>
   <tr><td><b>Track</b></td><td>Your AniList lists and progress stay in sync. If AniList is down, or stops accepting your sign-in, your changes wait on the phone and go out later.</td></tr>
   <tr><td><b>Schedule</b></td><td>See what airs in the next two weeks, and get a notification when a new episode is out.</td></tr>
-  <tr><td><b>Sync</b></td><td>An optional Seanime account keeps settings, watch positions, history, playlists and extensions the same on all your devices. Your devices encrypt everything before it is uploaded. <a href="#account-and-sync">How it works</a>.</td></tr>
+  <tr><td><b>Sync</b></td><td>An optional Seanime account keeps settings, watch positions, history, playlists, extensions and your profile picture the same on all your devices. Your devices encrypt everything before it is uploaded. <a href="#account-and-sync">How it works</a>.</td></tr>
   <tr><td><b>Cast</b></td><td>Send an episode to your TV over DLNA, or play your PC's Seanime library through Nakama.</td></tr>
+  <tr><td><b>Media server</b></td><td>Sign in to your own Jellyfin server. Its series get matched to AniList titles, show up in your library and play in the app's player, with text subtitles from the server. A wrong match can be fixed by hand.</td></tr>
 </table>
 
-The [website](https://seanimemobile.com) lists all 45 features and has a tap-through tour of the app.
+The [website](https://seanimemobile.com) lists all 51 features and has a tap-through tour of the app.
 
 <details>
 <summary>The smaller things</summary>
@@ -106,6 +107,12 @@ The [website](https://seanimemobile.com) lists all 45 features and has a tap-thr
 - Tap the studio on an anime page, or a staff member or author under *About*, to see everything they worked on.
 - Subtitles come in two larger sizes and with a *Bold* switch. Plain subtitles without a background box get an outline.
 - The *Support on Ko-fi* link is in *Settings → About* and at the bottom of *More*.
+- *Settings → Playback* has Anime4K upscaling, Fast or Quality. It runs on the device and is off until you switch it on.
+- *Your year* sums up a year of your lists: finished titles, episodes, estimated watch time, top genres and studios, the busiest month. Open it from *My lists* or the stats page. *Share image* turns it into a picture for Android's share menu.
+- Discover has *Because you watched* rows after Trending, built from AniList recommendations for the titles you finished last.
+- *Settings → App* has an app lock. It uses your phone's own fingerprint, face or screen lock, and the recent apps screen shows no preview while it's on.
+- Appearance: six accent colors or your own, AMOLED black, a banner from six pictures or your own photo, and three card sizes.
+- A search field above the settings finds any setting by name and jumps to its row.
 
 </details>
 
@@ -166,7 +173,7 @@ Some features needed the built-in server of the older versions and did not come 
 
 ## Account and sync
 
-The account is optional. Without one, the app works as it always did and never contacts the account server. With one, your settings, watch positions, history, playlists, extensions and their settings, and the keys you saved (AniList token, debrid key, Nakama password) stay the same on all your phones and tablets. Downloads, a device's own keys and the changes still waiting for AniList stay on each device. Your AniList lists stay at AniList.
+The account is optional. Without one, the app works as it always did and never contacts the account server. With one, your settings, watch positions, history, playlists, extensions and their settings, your profile picture, your media server settings and the keys you saved (AniList token, debrid key, Nakama password) stay the same on all your phones and tablets. Downloads, a device's own keys, the media server's sign-in token, your own banner photo and the changes still waiting for AniList stay on each device. Your AniList lists stay at AniList.
 
 Create an account under *Settings → Account* or from the profile head at the top of *More*: an email address and a password of at least 10 characters, then confirm the address from the mail within 7 days. Sync runs every 5 minutes while the app is open, when you start or leave it, and on *Sync now*.
 
@@ -197,6 +204,8 @@ What this does not protect against, and the rest of the design, is written down 
 ## Privacy
 
 Once a day the app sends a random install ID and its version to `api.seanimemobile.com/v1/ping`, so we can count how many people use it. The server keeps only a hash of that ID with the day and the version for 400 days, never your IP address, email or account. You can turn it off under *Settings → App → Privacy → Send anonymous usage count*. The [privacy page](https://seanimemobile.com/privacy) explains what else the app sends where and which permissions it uses for what.
+
+If you add a Jellyfin server, the app talks only to the address you enter. Your password is used to sign in and not saved, and *Report progress to the server* is off by default. The app lock only learns whether you unlocked your phone's lock, never a fingerprint or face.
 
 ## If you know Seanime
 
