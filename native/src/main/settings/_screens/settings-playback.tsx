@@ -42,18 +42,8 @@ export function SettingsPlaybackSection({ t }: { t: Translate }) {
                 onChange={value => setDownloadedMediaPlayback(value as PlaybackDownloadedMedia)} />
         </SettingsGroup>
 
-        <SettingsGroup title={t("Next episode", "Nächste Folge")}>
-            <LocalSwitch label={t("Play the next episode automatically", "Nächste Folge automatisch abspielen")} checked={autoNext} onCheckedChange={setAutoNext}
-                defaultChecked
-                note={t("Starts 5 seconds after an episode ends. Same switch as Auto next in the player menu.",
-                    "Startet 5 Sekunden nach dem Ende einer Folge. Derselbe Schalter wie „Nächste Folge automatisch“ im Player-Menü.")} />
-        </SettingsGroup>
-
-        <Anime4kGroup t={t} />
-
-        <SeekGroup t={t} />
-
         <SettingsGroup title={t("External player", "Externer Player")}
+            // right under "Player for files": picking "External player" there needs the app chosen here
             note={t("Used for files when chosen above, and in the episode menu. Only on this device.", "Für Dateien, wenn oben gewählt, und im Folgenmenü. Nur auf diesem Gerät.")}
             notice={external && !externalPlayerLink ? <Notice text={t("Choose a player app first.", "Wähle zuerst eine Player-App.")} /> : undefined}>
             <SelectRow label={t("Player app", "Player-App")} value={playerApp} defaultValue="none"
@@ -80,6 +70,17 @@ export function SettingsPlaybackSection({ t }: { t: Translate }) {
                 defaultChecked={false}
                 note={t("Library files only. Helps with special characters in file names.", "Nur Bibliotheksdateien. Hilft bei Sonderzeichen in Dateinamen.")} />
         </SettingsGroup>
+
+        <SettingsGroup title={t("Next episode", "Nächste Folge")}>
+            <LocalSwitch label={t("Play the next episode automatically", "Nächste Folge automatisch abspielen")} checked={autoNext} onCheckedChange={setAutoNext}
+                defaultChecked
+                note={t("Starts 5 seconds after an episode ends. Same switch as Auto next in the player menu.",
+                    "Startet 5 Sekunden nach dem Ende einer Folge. Derselbe Schalter wie „Nächste Folge automatisch“ im Player-Menü.")} />
+        </SettingsGroup>
+
+        <Anime4kGroup t={t} />
+
+        <SeekGroup t={t} />
     </>
 }
 

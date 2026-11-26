@@ -75,6 +75,11 @@ export function useHandlePlayMedia() {
             if ((!forcePlaybackMethod && downloadedMediaPlayback === PlaybackDownloadedMedia.ExternalPlayerLink) ||
                 (forcePlaybackMethod && forcePlaybackMethod === "externalPlayerLink")
             ) {
+                // like a library file below: without a chosen app there is nothing to open
+                if (!externalPlayerLink) {
+                    toast.error(tr("External player link is not set.", "Kein Link für den externen Player festgelegt."))
+                    return
+                }
                 const link = new ExternalPlayerLink(externalPlayerLink)
                 link.setEpisodeNumber(episode.progressNumber)
                 link.setMediaTitle(episode.baseAnime?.title?.userPreferred)
