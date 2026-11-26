@@ -111,6 +111,14 @@ describe("focusChipId", () => {
         expect(focusChipId(chips, "Banner")).toBeNull()
         expect(focusChipId([], "Sorting")).toBeNull()
     })
+
+    // 4.4.0 D2 (Media server): the group hit "Left out" scrolled to its group, but the page ends before it reaches the top,
+    // so the scroll alone lit "Series"; the jump now lights the group's chip like a tapped one
+    it("lights the chip of a group hit that cannot reach the top", () => {
+        const chips = ["Series", "Left out", "Progress"]
+        expect(activeJumpIndex({ tops: [0, 400, 600], scrollY: 300, viewportHeight: 900, contentHeight: 1300 })).toBe(0)
+        expect(focusChipId(chips, "Left out")).toBe("Left out")
+    })
 })
 
 describe("the room beside the mini player card", () => {

@@ -236,5 +236,19 @@ describe("which entry the bar and the rail light up", () => {
         // without Discover in the bar Search is a page of More
         expect(navHighlight(saved, "/search", false)).toBe("menu")
         expect(navHighlight(saved, "/extensions", false)).toBe("menu")
+        // My Lists given back to More: the yearly review opened from it lights More too
+        expect(navHighlight(saved, "/wrapped", false)).toBe("menu")
+    })
+
+    // 4.4.0 D3 (tablet rail): Your year, opened from My Lists, lit no entry
+    it("lights the entry a page without one is opened from", () => {
+        expect(navHighlight(items, "/wrapped", false)).toBe("lists")
+        expect(navHighlight(items, "/wrapped", true)).toBe("menu")
+        // custom sources open from Extensions, a page of More, or its own entry when the bar holds it
+        expect(navHighlight(items, "/custom-sources", false)).toBe("menu")
+        const withExtensions = [...items, { id: "extensions", href: "/extensions", label: "Extensions", matchExact: false, placement: "nav" as const }]
+        expect(navHighlight(withExtensions, "/custom-sources", false)).toBe("extensions")
+        // a staff's, studio's or episode list page is opened from an anime page
+        for (const page of ["/staff", "/studio", "/medialinks"]) expect(navHighlight(items, page, false)).toBeNull()
     })
 })

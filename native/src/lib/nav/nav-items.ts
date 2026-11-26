@@ -142,12 +142,24 @@ export function navHighlight(items: NavItem[], pathname: string, menuOpen: boole
     if (menuOpen) return more
     const own = items.find(item => item.placement === "nav" && isActive(item, pathname))
     if (own) return own.id
-    // Search floats (a magnifier in the heads of Home and Discover): it belongs to Discover while that is in the bar
-    if (pathname === "/search" || pathname.startsWith("/search/")) {
-        const discover = items.find(item => item.placement === "nav" && navigationPath(item.href) === "/discover")
-        if (discover) return discover.id
+    // a page opened from another one lights that one's entry (Search, a magnifier in the heads of Home and Discover: Discover)
+    const parent = parentPage(pathname)
+    if (parent) {
+        const entry = items.find(item => item.placement === "nav" && isActive(item, parent))
+        if (entry) return entry.id
     }
-    return MORE_PAGES.some(page => isActive(page, pathname)) ? more : null
+    return MORE_PAGES.some(page => isActive(page, pathname) || (!!parent && isActive(page, parent))) ? more : null
+}
+
+/**
+ * Pages without an entry of their own and the page they are opened from: Search floats in the heads of Discover, the
+ * yearly review opens from My Lists, the custom sources from Extensions. An anime's, staff's or studio's page has none.
+ */
+const PARENT_PAGES: Record<string, string> = { "/search": "/discover", "/wrapped": "/lists", "/custom-sources": "/extensions" }
+
+function parentPage(pathname: string): string | null {
+    const key = Object.keys(PARENT_PAGES).find(page => pathname === page || pathname.startsWith(page + "/"))
+    return key ? PARENT_PAGES[key] : null
 }
 
 const NAV_LABELS_DE: Record<string, string> = {

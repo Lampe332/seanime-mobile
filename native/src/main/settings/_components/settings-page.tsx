@@ -313,8 +313,14 @@ export function SettingsPage({ icon: Icon, title, summary, onBack, jump = true, 
         const timer = setTimeout(() => {
             if (revealed.current) return
             whenLaidOut(() => {
-                const node = chipsRef.current.find(target => target.id === group)?.ref.current
-                if (node) scrollToNode(node, () => 4)
+                const list = chipsRef.current
+                const node = list.find(target => target.id === group)?.ref.current
+                if (!node) return
+                // like a tapped chip: a group near the end ("Left out") cannot reach the top, so the scroll alone lit the one before
+                const chip = focusChipId(list.map(target => target.id), group)
+                pinned.current = chip !== null
+                if (chip !== null) setActiveId(chip)
+                scrollToNode(node, () => 4)
             })
         }, focus.labels ? 300 : 0)
         return () => {
