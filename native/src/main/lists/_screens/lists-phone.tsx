@@ -107,7 +107,9 @@ export function ListsPhone() {
     const router = useRouter()
     const serverStatus = useServerStatus()
     const enableManga = !!serverStatus?.settings?.library?.enableManga
-    const canStats = !!serverStatus?.user && !serverStatus.user.isSimulated
+    // a real AniList account: the guest (simulated user) keeps its lists on the phone, so it has no stats and nothing to refresh
+    const hasAniList = !!serverStatus?.user && !serverStatus.user.isSimulated
+    const canStats = hasAniList
     const [storedType, setType] = useAtom(typeAtom)
     const type: ListType = storedType === "manga" && enableManga ? "manga" : "anime"
     // The stats show the chosen type; Back or the switch again returns to the list, and every visit starts on the list.
@@ -126,7 +128,7 @@ export function ListsPhone() {
     // pull to refresh: the same "Refresh AniList" (read only), its spinner held by the page until AniList answered
     const pullRefresh = () => refreshing ? Promise.resolve() : refreshAsync()
 
-    const refreshButton = <ListsAction icon={RefreshCcw} label={t("Refresh", "Aktualisieren")} spinning={refreshing}
+    const refreshButton = hasAniList && <ListsAction icon={RefreshCcw} label={t("Refresh", "Aktualisieren")} spinning={refreshing}
         accessibilityLabel={refreshing ? t("Refreshing AniList", "AniList wird aktualisiert") : t("Refresh AniList", "AniList aktualisieren")}
         onPress={() => { if (!refreshing) refresh() }} />
     const statsButton = (square: boolean) => canStats

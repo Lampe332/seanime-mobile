@@ -7,6 +7,7 @@ import {
     datesOutOfOrder,
     formatFieldDate,
     listEntryDefaults,
+    listEntryDirty,
     listEntryPayload,
     listStatusOptions,
     parseStepInput,
@@ -249,5 +250,33 @@ describe("edit sheet: start date after the completion date", () => {
         // the bug as reported: Completed fills today, then a later start makes it unsavable until fixed
         const reported = { ...chooseListStatus({ ...base, status: "CURRENT" }, "COMPLETED", undefined, "anime", today), startedAt: new Date(2026, 10, 26) }
         expect(datesOutOfOrder(reported)).toBe(true)
+    })
+})
+
+describe("listEntryDirty", () => {
+    const listData = { status: "CURRENT" as const, score: 70, progress: 4, repeat: 1, startedAt: "2026-10-05", completedAt: undefined }
+
+    it("an opened form (also while the sheet still slides in) is unchanged", () => {
+        expect(listEntryDirty(listEntryDefaults(listData), 1, listData)).toBe(false)
+        expect(listEntryDirty(listEntryDefaults(undefined), 0, undefined)).toBe(false)
+        // a fresh Date object for the same day is no change
+        const form = listEntryDefaults(listData)
+        expect(listEntryDirty({ ...form, startedAt: new Date(form.startedAt!.getTime()) }, 1, listData)).toBe(false)
+    })
+
+    it("any changed value counts", () => {
+        const form = listEntryDefaults(listData)
+        expect(listEntryDirty({ ...form, status: "COMPLETED" }, 1, listData)).toBe(true)
+        expect(listEntryDirty({ ...form, score: 7.5 }, 1, listData)).toBe(true)
+        expect(listEntryDirty({ ...form, progress: 5 }, 1, listData)).toBe(true)
+        expect(listEntryDirty({ ...form, startedAt: null }, 1, listData)).toBe(true)
+        expect(listEntryDirty({ ...form, completedAt: new Date(2026, 10, 1) }, 1, listData)).toBe(true)
+        expect(listEntryDirty(form, 2, listData)).toBe(true)
+    })
+
+    it("a value changed back to where it started is unchanged", () => {
+        const form = listEntryDefaults(listData)
+        expect(listEntryDirty({ ...form, progress: 4 }, 1, listData)).toBe(false)
+        expect(listEntryDirty(listEntryDefaults({ ...listData, repeat: 0 }), null, { ...listData, repeat: 0 })).toBe(false)
     })
 })

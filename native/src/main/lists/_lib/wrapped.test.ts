@@ -112,6 +112,9 @@ describe("getWrappedView", () => {
     it("adds the episodes and minutes of finished titles and of titles started in the year", () => {
         // 12 + 25 (no progress: all episodes) + 12 (a rewatch: the whole title, not its 3 so far), plus 5 of the running title started in 2024
         expect(view.episodes).toBe(54)
+        // the running title adds watched episodes, not a finished title (the page labels them "episodes watched")
+        expect(view.titles).toBe(3)
+        expect(view.topRated.concat(view.first ?? [], view.last ?? []).some(item => item.id === 7)).toBe(false)
         // 12*24 + 25*24 (no duration) + 12*24 + 5*20
         expect(view.minutes).toBe(1276)
         expect(view.meanScore).toBe(83)

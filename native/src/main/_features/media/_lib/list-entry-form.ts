@@ -29,6 +29,22 @@ export function listEntryDefaults(listData: ListData | undefined): ListEntryForm
     }
 }
 
+const sameDay = (a: Date | null, b: Date | null) => (a?.getTime() ?? null) === (b?.getTime() ?? null)
+
+/**
+ * The form differs from the entry it opened with (closing then asks before throwing it away). Only values count: the
+ * sheet's light first frames (stage) show the same values. A score or progress typed back to its start is unchanged.
+ */
+export function listEntryDirty(form: ListEntryForm, repeat: number | null, listData: ListData | undefined): boolean {
+    const start = listEntryDefaults(listData)
+    return form.status !== start.status
+        || form.score !== start.score
+        || form.progress !== start.progress
+        || !sameDay(form.startedAt, start.startedAt)
+        || !sameDay(form.completedAt, start.completedAt)
+        || (repeat ?? 0) !== (listData?.repeat || 0)
+}
+
 /** Highest progress without a known total: no anime runs past 9999 episodes, no manga past 99999 chapters */
 export const PROGRESS_CEILING = { anime: 9999, manga: 99999 } as const
 

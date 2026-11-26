@@ -651,19 +651,21 @@ export function ChoiceRows({ label, children }: { label: string, children: React
 }
 
 /** Asks before something that cannot be undone. */
-export function ConfirmSheet({ open, onOpenChange, title, text, action, danger, onConfirm }: {
+export function ConfirmSheet({ open, onOpenChange, title, text, action, cancel, danger, onConfirm }: {
     open: boolean
     onOpenChange: (open: boolean) => void
     title: string
     text: string
     action: string
+    /** the label of the button that keeps things as they are (default "Cancel") */
+    cancel?: string
     danger?: boolean
     onConfirm: () => void
 }) {
     const t = useTr()
     return <Sheet title={title} open={open} onOpenChange={onOpenChange}
         footer={<>
-            <Button intent="secondary" wrapperClassName="flex-1" onPress={() => onOpenChange(false)}>{t("Cancel", "Abbrechen")}</Button>
+            <Button intent="secondary" wrapperClassName="flex-1" onPress={() => onOpenChange(false)}>{cancel ?? t("Cancel", "Abbrechen")}</Button>
             <Button intent={danger ? "danger" : "primary"} wrapperClassName="flex-1" onPress={() => {
                 onOpenChange(false)
                 onConfirm()

@@ -25,7 +25,9 @@ import {
     submitListEntry,
     entryButton,
     addingDone,
+    listEntryDirty,
 } from "@/main/_features/media/_lib/list-entry-form"
+import { ConfirmSheet } from "@/main/settings/_components/settings-kit"
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker"
 import CalendarDays from "lucide-react-native/icons/calendar-days"
 import ListPlus from "lucide-react-native/icons/list-plus"
@@ -112,6 +114,7 @@ function AnilistMediaEntrySheet({ media, listData, type, open, onOpenChange }: {
     const [form, setForm] = React.useState<ListEntryForm>(() => listEntryDefaults(listData))
     const [repeat, setRepeat] = React.useState<number | null>(listData.repeat || 0)
     const [confirmDelete, setConfirmDelete] = React.useState(false)
+    const [confirmDiscard, setConfirmDiscard] = React.useState(false)
     // The sheet mounts in the frame its slide starts. The fields come in light (values as text, no icons, no TextInput)
     // and turn into the real controls once it stands; the plugin slot (websocket message, listeners) a frame after that.
     // S22 trace 26.11.: the full form in the first frame (10 Svg, 3 TextInput) took 24 ms main + 10 ms draw.
@@ -142,6 +145,12 @@ function AnilistMediaEntrySheet({ media, listData, type, open, onOpenChange }: {
         saveRepeat: (body, options) => mutateRepeat(body, options),
         close: () => onOpenChange(false),
     })
+
+    // X, Back and a tap beside it: changed values ask first; Save and Remove close through onOpenChange directly
+    const requestOpenChange = (next: boolean) => {
+        if (!next && listEntryDirty(form, repeat, listData)) setConfirmDiscard(true)
+        else onOpenChange(next)
+    }
 
     const pickDate = (field: "startedAt" | "completedAt") => DateTimePickerAndroid.open({
         value: form[field] ?? new Date(),
@@ -215,9 +224,16 @@ function AnilistMediaEntrySheet({ media, listData, type, open, onOpenChange }: {
     const title = media?.title?.userPreferred || ""
     // where the entry lives: the guest's lists are kept on the phone only
     const where = isGuest ? t("On this device", "Auf diesem Gerät") : "AniList"
-    return isTablet
-        ? <Dialog title={title} description={where} open={open} onOpenChange={onOpenChange} footer={footer}>{body}</Dialog>
-        : <Sheet title={title} description={where} open={open} onOpenChange={onOpenChange} footer={footer}>{body}</Sheet>
+    return <>
+        {isTablet
+            ? <Dialog title={title} description={where} open={open} onOpenChange={requestOpenChange} footer={footer}>{body}</Dialog>
+            : <Sheet title={title} description={where} open={open} onOpenChange={requestOpenChange} footer={footer}>{body}</Sheet>}
+        <ConfirmSheet open={confirmDiscard} onOpenChange={setConfirmDiscard}
+            title={t("Discard changes?", "Änderungen verwerfen?")}
+            text={t("Your changes to this entry are not saved yet.", "Deine Änderungen an diesem Eintrag sind noch nicht gespeichert.")}
+            action={t("Discard", "Verwerfen")} cancel={t("Keep editing", "Weiter bearbeiten")} danger
+            onConfirm={() => onOpenChange(false)} />
+    </>
 }
 
 function Field({ label, children }: { label: string, children: React.ReactNode }) {

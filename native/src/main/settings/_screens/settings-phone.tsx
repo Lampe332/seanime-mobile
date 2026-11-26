@@ -70,7 +70,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
 const SECTIONS: Record<SettingsSectionId, { icon: LucideIcon, titleEn: string, titleDe: string, summaryEn: string, summaryDe: string }> = {
     account: { icon: CircleUserRound, titleEn: "Account", titleDe: "Konto", summaryEn: "Sync settings and watch history between devices", summaryDe: "Einstellungen und Verlauf zwischen Geräten synchronisieren" },
     seanime: { icon: WandSparkles, titleEn: "App", titleDe: "App", summaryEn: "Episodes, language, backup, navigation, AniList", summaryDe: "Folgen, Sprache, Sicherung, Navigation, AniList" },
-    ui: { icon: Palette, titleEn: "Appearance", titleDe: "Darstellung", summaryEn: "Sorting, cards, loading pages", summaryDe: "Sortierung, Karten, Seiten laden" },
+    ui: { icon: Palette, titleEn: "Appearance", titleDe: "Darstellung", summaryEn: "Colors, banner, cards, sorting, loading pages", summaryDe: "Farben, Banner, Karten, Sortierung, Seiten laden" },
     playback: { icon: CirclePlay, titleEn: "Playback", titleDe: "Wiedergabe", summaryEn: "Player for your files, external player, next episode", summaryDe: "Player für deine Dateien, externer Player, nächste Folge" },
     library: { icon: Library, titleEn: "Local library", titleDe: "Lokale Bibliothek", summaryEn: "Folders, scanning, matching", summaryDe: "Ordner, Scannen, Zuordnung" },
     mediaserver: { icon: Server, titleEn: "Media server", titleDe: "Medienserver", summaryEn: "Jellyfin sign-in, series, matching", summaryDe: "Jellyfin-Anmeldung, Serien, Zuordnung" },

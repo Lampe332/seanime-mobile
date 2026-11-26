@@ -99,7 +99,10 @@ function MainFrame() {
     }
     // "Refresh AniList" always closes the sidebar list (main-sidebar.tsx); a second tap while it runs does nothing
     const { mutate: refreshAnimeCollection, isPending: isRefreshingAnimeCollection } = useRefreshAnimeCollection()
-    menuActions.push({ id: "refresh-anilist", label: "Refresh AniList", icon: "refresh", onPress: () => { if (!isRefreshingAnimeCollection) refreshAnimeCollection() } })
+    // a guest has no AniList to refresh (lists-phone.tsx hides its button the same way)
+    if (user && !user.isSimulated) {
+        menuActions.push({ id: "refresh-anilist", label: "Refresh AniList", icon: "refresh", onPress: () => { if (!isRefreshingAnimeCollection) refreshAnimeCollection() } })
+    }
     // A plugin's own page has its Menu entry (main-sidebar.tsx usePluginSidebarItems)
     const pluginPages = useAtomValue(__plugin_sidebarItemsAtom)
     for (const item of pluginPages) {

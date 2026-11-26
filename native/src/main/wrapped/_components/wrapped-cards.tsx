@@ -43,13 +43,16 @@ export function wrappedFormats(t: Translate) {
     }
 }
 
-/** The heart of the page: how many titles the year closed, with episodes, estimated time and the mean score under it. */
+/**
+ * The heart of the page: how many titles the year closed, with episodes, estimated time and the mean score under it.
+ * Episodes and time also count the running titles started in the year (getWrappedView), so they say "watched", not "finished".
+ */
 export function WrappedOverview({ t, view }: { t: Translate, view: WrappedView }) {
     const f = wrappedFormats(t)
     const glow = accentGlow(HERO_GLOW, 320, usePalette())
     const time = watchTime(view.minutes)
     const stats = [
-        view.episodes > 0 && { key: "episodes", value: f.number(view.episodes), label: plural(t, view.episodes, ["episode", "episodes"], ["Folge", "Folgen"]) },
+        view.episodes > 0 && { key: "episodes", value: f.number(view.episodes), label: plural(t, view.episodes, ["episode watched", "episodes watched"], ["Folge gesehen", "Folgen gesehen"]) },
         time.hours > 0 && {
             key: "hours", value: f.number(time.hours), label: plural(t, time.hours, ["hour", "hours"], ["Stunde", "Stunden"]),
             note: time.days !== null ? f.days(time.days) : undefined,
