@@ -81,3 +81,13 @@ export function customizeInHomeHead(layout: { rail: boolean, windowWidth: number
     if (layout.rail) return true
     return layout.windowWidth - HOME_HEAD_PADDING >= HOME_TITLE_ROOM + HOME_HEAD_MAX_ACTIONS * HEAD_ACTION
 }
+
+/**
+ * Where the tap-outside catcher of the open More panel lies: everywhere but the navigation itself (the rail on the left,
+ * the bar at the bottom), so a tap on an entry there closes the panel and opens the page at once, and a tap on More closes it.
+ */
+export function moreBackdropInsets(rail: boolean, railWidth: number, barHeight: number, bottomInset: number) {
+    return rail
+        ? { top: 0, bottom: 0, left: railWidth, right: 0 }
+        : { top: 0, bottom: barHeight + bottomInset, left: 0, right: 0 }
+}

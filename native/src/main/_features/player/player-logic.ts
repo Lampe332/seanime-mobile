@@ -158,7 +158,9 @@ export type EndAction = "stop-sleep" | "countdown" | "play-next" | "none"
  * What happens when an episode ends. The sleep timer "end of episode" wins and stops; with auto next the next episode
  * waits for a 5 s countdown when there is one, otherwise the playlist decides (web handleEnded).
  */
-export function endAction(sleepTimer: SleepTimer, autoNext: boolean, hasNextEpisode: boolean): EndAction {
+export function endAction(sleepTimer: SleepTimer, autoNext: boolean, hasNextEpisode: boolean, closing = false): EndAction {
+    // a player the user closed (X, Back out of the mini player) starts nothing more: closed means stopped
+    if (closing) return "none"
     if (sleepTimer === "episode") return "stop-sleep"
     if (!autoNext) return "none"
     return hasNextEpisode ? "countdown" : "play-next"

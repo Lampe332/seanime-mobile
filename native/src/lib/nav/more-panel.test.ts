@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 import { translate } from "@/lib/app-language"
-import { customizeInHomeHead, moreProfile, type MoreProfileInput, moreSupportRow, profileHeadOpens } from "./more-panel"
+import { customizeInHomeHead, moreBackdropInsets, moreProfile, type MoreProfileInput, moreSupportRow, profileHeadOpens } from "./more-panel"
 
 const en = (english: string, german: string) => translate("en", english, german)
 const de = (english: string, german: string) => translate("de", english, german)
@@ -100,5 +100,14 @@ describe("signing in to AniList from More", () => {
         const head = read("components/navigation/more-profile-head.tsx")
         expect(head).toMatch(/onPress=\{signIn \? onSignIn : onPress\}/)
         expect(read("components/navigation/app-navigation.tsx")).toMatch(/<MoreProfileHead onPress=\{[^}]*\}\s*onSignIn=/)
+    })
+})
+
+describe("moreBackdropInsets", () => {
+    it("leaves the rail free on the tablet", () => {
+        expect(moreBackdropInsets(true, 88, 64, 24)).toEqual({ top: 0, bottom: 0, left: 88, right: 0 })
+    })
+    it("leaves the bar and the gesture area under it free on the phone", () => {
+        expect(moreBackdropInsets(false, 88, 64, 24)).toEqual({ top: 0, bottom: 88, left: 0, right: 0 })
     })
 })

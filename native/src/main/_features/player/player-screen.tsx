@@ -332,6 +332,9 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
     const playedRef = React.useRef({ played: 0, previous: 0, seeking: false })
     const completedRef = React.useRef(false)
     const endedRef = React.useRef(false)
+    // set the moment close() starts: mpv may still report the end (or a countdown tick lands) while it lets go of its
+    // surface, and nothing may start after X
+    const closingRef = React.useRef(false)
     const playingRef = React.useRef(false)
     // mpv keeps its pause flag across files, so an episode picked while the last one was paused would load paused: with
     // "Auto play" it starts on load instead (old <video autoplay>), unless a pause came in while it loaded (r21)
@@ -345,6 +348,7 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
         playingRef.current = false
         endedRef.current = false
         skippedRef.current = null
+        closingRef.current = false
     }, [info?.id])
 
     // ── Source: wait for the watch history so continuity can start at the last position (web handleCanPlay) ──
@@ -608,7 +612,9 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
 
     // ── Auto next countdown and sleep timer ──
     // Progress re-renders several times a second; the timers below depend only on their own value so they keep running
-    const playNext = React.useEffectEvent(() => playlist.playEpisode("next"))
+    const playNext = React.useEffectEvent(() => {
+        if (!closingRef.current) playlist.playEpisode("next")
+    })
     React.useEffect(() => {
         if (countdown === null) return
         const timer = setTimeout(() => {
@@ -644,7 +650,7 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
         endedRef.current = true
         events.ended(autoNext)
         saveOffline(0, true, true)
-        switch (endAction(sleepTimer, autoNext, playlist.hasNextEpisode)) {
+        switch (endAction(sleepTimer, autoNext, playlist.hasNextEpisode, closingRef.current)) {
             case "stop-sleep":
                 setSleepTimer(null)
                 toast.info(t("Sleep timer: stopped after this episode", "Sleep-Timer: nach dieser Folge gestoppt"))
@@ -691,6 +697,7 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
     // closing: the player goes black and the screen turns back at once; mpv lets go of its surface meanwhile
     const [closing, setClosing] = React.useState(false)
     const close = React.useCallback(async () => {
+        closingRef.current = true
         setCountdown(null)
         setClosing(true)
         setMenuOpen(false)

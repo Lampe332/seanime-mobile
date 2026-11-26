@@ -8,7 +8,7 @@ import { Text } from "@/components/ui/text/text"
 import { appLanguageAtom, translate } from "@/lib/app-language"
 import { MobileIcon, type MobileIconName } from "@/lib/mobile-icons"
 import { MAX_NAV_ITEMS, navHighlight, menuTargets, navIcon, navItemLabel, navItemTabLabel, navLabel, type NavItem } from "@/lib/nav/nav-items"
-import { moreSupportRow } from "@/lib/nav/more-panel"
+import { moreBackdropInsets, moreSupportRow } from "@/lib/nav/more-panel"
 import { useAllNavItems } from "@/lib/nav/nav-store"
 import { openTab } from "@/lib/helpers/browser"
 import Heart from "lucide-react-native/icons/heart"
@@ -406,9 +406,11 @@ export function NavMenu({ open, onClose, pathname, onOpen, onSignIn, rail, barIt
         <View pointerEvents={open ? "box-none" : "none"} style={StyleSheet.absoluteFill}>
             {/* next to the rail the panel floats over the page: the page dims as under the sheets (sheet.tsx bg-black/80, the
                 rail stays lit); the phone's panel keeps its undimmed page */}
-            {open && <Pressable accessibilityLabel={navLabel("More", language)} onPress={onClose} style={StyleSheet.absoluteFill}>
+            {/* the catcher leaves the rail/bar free: a tap on an entry there closes the panel and opens the page in one go */}
+            {open && <Pressable accessibilityLabel={navLabel("More", language)} onPress={onClose}
+                style={{ position: "absolute", ...moreBackdropInsets(rail, sizes.tabletRail, barHeight, insets.bottom) }}>
                 {rail && <Animated.View pointerEvents="none" entering={scrimIn} exiting={scrimOut}
-                    style={[StyleSheet.absoluteFill, { left: sizes.tabletRail }]} className="bg-black/80" />}
+                    style={StyleSheet.absoluteFill} className="bg-black/80" />}
             </Pressable>}
             {/* The panel stays built once opened and only fades out: building every row anew on each open cost the S22
                 11 % late frames (framestats 26.11.). Hidden it takes no touches and is left out for screen readers. */}

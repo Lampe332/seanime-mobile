@@ -194,6 +194,11 @@ describe("auto next and sleep timer", () => {
         expect(endAction(null, true, false)).toBe("play-next")
         expect(endAction(Date.now() + 1000, false, true)).toBe("none")
     })
+    it("a closed player starts nothing: no countdown, no next episode", () => {
+        expect(endAction(null, true, true, true)).toBe("none")
+        expect(endAction(null, true, false, true)).toBe("none")
+        expect(endAction("episode", true, true, true)).toBe("none")
+    })
 
     it("an end counts again once the episode plays on from earlier (device run 06.11.: seek back, second end did nothing)", () => {
         expect(stillEnded(true, "playing")).toBe(false)
