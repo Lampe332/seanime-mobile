@@ -157,7 +157,7 @@ describe("the questions asked of AniList", () => {
         const cases: [string, string, unknown][] = [
             ["anime lists", queries.collectionQuery("ANIME"), recorded.animeCollection],
             ["manga lists", queries.collectionQuery("MANGA"), recorded.mangaCollection],
-            ["anime lists: main studios", queries.collectionQuery("ANIME"), { MediaListCollection: { lists: [{ entries: [{ media: { studios: { nodes: [{ id: 1, name: "Some Studio" }] } } }] }] } }],
+            ["anime lists: main studios", queries.collectionQuery("ANIME"), { MediaListCollection: { lists: [{ entries: [{ media: { studios: { nodes: [{ id: 1, name: "Some Studio", isAnimationStudio: true }] } } }] }] } }],
             ["anime details", queries.ANIME_DETAILS, { Media: recorded.details }],
             ["studio", queries.STUDIO_DETAILS, recorded.studio],
             ["staff", queries.STAFF_DETAILS, staffAnswer],
@@ -173,7 +173,8 @@ describe("the questions asked of AniList", () => {
     })
 
     it("ask for the main studios only with the user's anime lists", () => {
-        expect(queries.collectionQuery("ANIME")).toContain("studios(isMain: true) { nodes { id name } }")
+        expect(queries.collectionQuery("ANIME")).toContain("studios(isMain: true) { nodes { id name isAnimationStudio } }")
+        expect(queries.MEDIA_STUDIOS).toContain("media(id_in: $ids, type: ANIME) { id studios(isMain: true) { nodes { id name isAnimationStudio } } }")
         for (const document of [queries.collectionQuery("MANGA"), queries.LIST_ANIME, queries.LIST_RECENT_AIRING]) expect(document).not.toContain("studios")
     })
 

@@ -26,8 +26,11 @@ const pageInfo = "pageInfo { hasNextPage total perPage currentPage lastPage }"
 
 export const VIEWER_NAME = "query ViewerName { Viewer { name } }"
 
-/** The main studios of an anime; only the user's anime lists ask for them (the yearly review counts them) */
-const mainStudios = "studios(isMain: true) { nodes { id name } }"
+/** The main studios of an anime; only the user's anime lists ask for them (the yearly review counts the animation studios among them) */
+const mainStudios = "studios(isMain: true) { nodes { id name isAnimationStudio } }"
+
+/** The main studios of up to 50 anime at once (public, no token): the local account's lists get them this way (studios.ts) */
+export const MEDIA_STUDIOS = `query MediaStudios($ids: [Int]) { Page(perPage: 50) { media(id_in: $ids, type: ANIME) { id ${mainStudios} } } }`
 
 export function collectionQuery(kind: "ANIME" | "MANGA"): string {
     const media = kind === "ANIME" ? `${animeFields} ${nextEpisode} ${mainStudios}` : mangaFields

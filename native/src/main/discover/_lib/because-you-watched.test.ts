@@ -33,6 +33,19 @@ describe("pickSources", () => {
         expect(ids(picked)).toEqual([2, 1, 4])
     })
 
+    it("starts from the titles watched last: a completion date and a last change on one line of days", () => {
+        const at = (year: number, month: number, day: number, hour: number) => Math.floor(new Date(year, month - 1, day, hour).getTime() / 1000)
+        const picked = pickSources(lists(
+            // completed on 25.11., changed later that evening; titles without a date, changed on the same day before and after it
+            { id: 1, status: "COMPLETED", completed: [2026, 11, 25], updatedAt: at(2026, 11, 25, 20) },
+            { id: 2, status: "COMPLETED", updatedAt: at(2026, 11, 25, 22) },
+            { id: 3, status: "COMPLETED", updatedAt: at(2026, 11, 20, 12) },
+            { id: 4, status: "COMPLETED", completed: [2026, 11, 22], updatedAt: at(2026, 11, 26, 9) },
+            { id: 5, status: "COMPLETED", updatedAt: at(2026, 11, 26, 8) },
+        ), false)
+        expect(ids(picked)).toEqual([5, 1, 2, 4, 3])
+    })
+
     it("prefers liked or unscored titles, uses 50 to 69 only after them and never one below 50", () => {
         const picked = pickSources(lists(
             { id: 1, status: "COMPLETED", score: 60, completed: [2026, 9, 1] },

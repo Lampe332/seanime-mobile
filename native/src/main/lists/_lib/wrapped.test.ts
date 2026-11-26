@@ -20,14 +20,14 @@ function anime(id: number, media: Partial<WrappedAnime>, entry: Partial<Omit<Ent
     }
 }
 
-const a1 = anime(1, { episodes: 12, duration: 24, genres: ["Action", "Drama"], format: "TV", studios: { nodes: [{ id: 1, name: "Bones" }] } },
+const a1 = anime(1, { episodes: 12, duration: 24, genres: ["Action", "Drama"], format: "TV", studios: { nodes: [{ id: 1, name: "Bones", isAnimationStudio: true }] } },
     { progress: 12, score: 90, completedAt: { year: 2024, month: 3, day: 10 } })
 /** old saved format: no studios field, no duration */
 const a2 = anime(2, { episodes: 25, genres: ["Action"], format: "TV" }, { score: 90, completedAt: { year: 2024, month: 3, day: 20 } })
 /** no completion date: counted in no year, only as undated (updatedAt is no stand-in) */
-const a3 = anime(3, { episodes: 1, duration: 100, genres: ["Comedy"], format: "MOVIE", studios: { nodes: [{ id: 1, name: "Bones" }, { id: 2, name: "MAPPA" }] } },
+const a3 = anime(3, { episodes: 1, duration: 100, genres: ["Comedy"], format: "MOVIE", studios: { nodes: [{ id: 1, name: "Bones", isAnimationStudio: true }, { id: 2, name: "MAPPA", isAnimationStudio: true }] } },
     { progress: 1, updatedAt: IN_2024 })
-const a4 = anime(4, { episodes: 12, duration: 24, genres: ["Drama"], format: "TV", studios: { nodes: [null, { id: 2, name: "MAPPA" }] } },
+const a4 = anime(4, { episodes: 12, duration: 24, genres: ["Drama"], format: "TV", studios: { nodes: [null, { id: 2, name: "MAPPA", isAnimationStudio: true }] } },
     { status: "REPEATING", progress: 3, score: 70, completedAt: { year: 2024, month: 11, day: 5 } })
 const a5 = anime(5, { episodes: 10, format: "TV" }, { progress: 10, score: 60, completedAt: { year: 2023, month: 5, day: 1 } })
 const a6 = anime(6, { episodes: 2, isAdult: true, format: "OVA" }, { progress: 2, score: 100, completedAt: { year: 2024, month: 7, day: 1 } })
@@ -125,6 +125,12 @@ describe("getWrappedView", () => {
         expect(view.formats).toEqual([{ name: "TV", count: 3, share: 1 }])
         const many = [{ entries: [anime(40, { genres: ["F", "E", "D", "C", "B", "A", "A"] }, { completedAt: { year: 2024 } })] }] as WrappedAnimeList[]
         expect(getWrappedView(many, null, 2024, hideAdult).genres.map(g => g.name)).toEqual(["A", "B", "C", "D", "E"])
+    })
+
+    it("counts animation studios only, not the publishers and licensors among the main studios", () => {
+        const studios = { nodes: [{ id: 1, name: "Bones", isAnimationStudio: true }, { id: 3, name: "Shueisha", isAnimationStudio: false }, { id: 4, name: "Crunchyroll", isAnimationStudio: false }, { id: 5, name: "Toho" }] }
+        const lists = [{ entries: [anime(60, { studios }, { completedAt: { year: 2024, month: 2, day: 2 } }), anime(61, { studios: { nodes: [{ id: 3, name: "Shueisha", isAnimationStudio: false }] } }, { completedAt: { year: 2024, month: 2, day: 3 } })] }] as WrappedAnimeList[]
+        expect(getWrappedView(lists, null, 2024, hideAdult).studios).toEqual([{ name: "Bones", count: 1, share: 1 / 2 }])
     })
 
     it("lives with lists saved before the studios came", () => {

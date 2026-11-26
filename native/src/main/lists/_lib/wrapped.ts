@@ -8,8 +8,12 @@ import {
 
 /** Pure helpers of the yearly review ("Wrapped"): what the user finished in one year, counted from their own lists. */
 
-/** An anime of the user's lists; the main studios come with the lists since the collection query asks for them (older saved lists have none) */
-export type WrappedAnime = AL_BaseAnime & { studios?: Nullish<{ nodes?: Nullish<Nullish<{ id?: number, name?: string }>[]> }> }
+/**
+ * An anime of the user's lists; the main studios come with the lists since the collection query asks for them (the local
+ * account's from core/anilist/studios.ts; older saved lists have none). Only animation studios count, not the publishers
+ * and licensors AniList lists among the main studios too.
+ */
+export type WrappedAnime = AL_BaseAnime & { studios?: Nullish<{ nodes?: Nullish<Nullish<{ id?: number, name?: string, isAnimationStudio?: Nullish<boolean> }>[]> }> }
 export type WrappedAnimeList = AL_AnimeCollection_MediaListCollection_Lists
 export type WrappedMangaList = AL_MangaCollection_MediaListCollection_Lists
 export type WrappedOptions = { showAdult: boolean, titleOf?: (media: WrappedAnime) => string }
@@ -139,7 +143,7 @@ export function getWrappedView(
         minutes += minutesOf(media, count)
         if (score) scores.push(score)
         add(genres, media.genres ?? [])
-        add(studios, (media.studios?.nodes ?? []).map(node => node?.name))
+        add(studios, (media.studios?.nodes ?? []).map(node => (node?.isAnimationStudio === true ? node.name : null)))
         add(formats, [media.format])
         const month = entry.completedAt?.month
         if (entry.completedAt?.year && month && month >= 1 && month <= 12) months[month - 1]++

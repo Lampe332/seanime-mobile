@@ -448,7 +448,7 @@ export function getStatsView(type: ListType, stats: UserStats, thisYear: number,
             item => ({ minutes: item.minutesWatched, chapters: item.chaptersRead, meanScore: item.meanScore })),
         startYears: toRows([...startYears].sort((a, b) => b.startYear! - a.startYear!), item => String(item.startYear)),
         releaseYears: toRows([...releaseYears].sort(byCount).slice(0, 12).sort((a, b) => b.releaseYear! - a.releaseYear!), item => String(item.releaseYear)),
-        studios: anime ? toRows((anime.studios ?? []).filter(item => !!item.studio && item.count > 0).sort(byCount).slice(0, 10),
+        studios: anime ? toRows((anime.studios ?? []).filter(item => !!item.studio && item.studio.isAnimationStudio !== false && item.count > 0).sort(byCount).slice(0, 10),
             item => String(item.studio!.id), item => ({ label: item.studio!.name, meanScore: item.meanScore })) : [],
     }
 }

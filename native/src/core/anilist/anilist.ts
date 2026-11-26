@@ -34,6 +34,7 @@ import {
     storedDetails,
     withoutEmpty,
 } from "./store"
+import { withStudios } from "./studios"
 
 /*
  * The area `anilist`: what the app reads from AniList, answered by the core (docs/EIGENER-KERN.md §4d). What the app
@@ -120,7 +121,11 @@ async function userName(environment: CoreEnvironment): Promise<string> {
 
 async function rawCollection(kind: ListKind, environment: CoreEnvironment): Promise<ListCollection> {
     // the local account (no AniList account): its lists are the core's own, AniList has none to read
-    if (await withoutAnilistAccount(environment)) return localCollection(await environment.database(), kind, environment.now())
+    // (their finished anime get the studios the yearly review counts, asked of AniList without a token: studios.ts)
+    if (await withoutAnilistAccount(environment)) {
+        const local = await localCollection(await environment.database(), kind, environment.now())
+        return kind === "ANIME" ? withStudios(environment, local) : local
+    }
     // what waits to be sent goes first, so that the lists read are the lists with it (changes.ts)
     await sendWaitingChanges(environment).catch(() => undefined)
     const read = await readThrough(

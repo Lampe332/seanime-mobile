@@ -34,11 +34,21 @@ export function listedIds(lists: Lists): Set<number> {
     return new Set(entriesOf(lists).map(entry => entry.media!.id))
 }
 
-/** When the title was finished, in seconds: the completion date, else the entry's last change */
-function finishedAt(entry: Entry): number {
+/** A calendar day of the device as one number, so that a completion date and a last change compare on one line */
+function dayNumber(year: number, month: number, day: number): number {
+    return Date.UTC(year, month - 1, day) / 86_400_000
+}
+
+/**
+ * When the title was finished, as a day: the completion date, else the day of the entry's last change. A completion date
+ * has no time, so a day is the common measure (a change later that day is no later watching).
+ */
+function finishedDay(entry: Entry): number {
     const date = entry.completedAt
-    if (date?.year) return Date.UTC(date.year, (date.month || 1) - 1, date.day || 1) / 1000
-    return entry.updatedAt ?? 0
+    if (date?.year) return dayNumber(date.year, date.month || 1, date.day || 1)
+    if (!entry.updatedAt) return 0
+    const changed = new Date(entry.updatedAt * 1000)
+    return dayNumber(changed.getFullYear(), changed.getMonth() + 1, changed.getDate())
 }
 
 /**
@@ -53,7 +63,9 @@ export function pickSources(lists: Lists, allowAdult: boolean): AL_BaseAnime[] {
         const score = entry.score ?? 0
         return (score === 0 || score >= DISLIKED_SCORE) && (allowAdult || !entry.media!.isAdult)
     })
-    const newestFirst = (a: Entry, b: Entry) => finishedAt(b) - finishedAt(a) || (b.updatedAt ?? 0) - (a.updatedAt ?? 0)
+    // the same day: a title with its completion date first, then the later change
+    const dated = (entry: Entry) => (entry.completedAt?.year ? 1 : 0)
+    const newestFirst = (a: Entry, b: Entry) => finishedDay(b) - finishedDay(a) || dated(b) - dated(a) || (b.updatedAt ?? 0) - (a.updatedAt ?? 0)
     const liked = (entry: Entry) => !entry.score || entry.score >= LIKED_SCORE
     return [...completed.filter(liked).sort(newestFirst), ...completed.filter(entry => !liked(entry)).sort(newestFirst)]
         .slice(0, BECAUSE_MAX_SOURCES)

@@ -23,6 +23,8 @@ import { watchAnilistState } from "./cache-only"
 import { AnilistFailure, type HttpFetch, askAnilist, changeAnilist, rejectsSignIn } from "./client"
 import { VIEWER_ID, saveEntryMutation } from "./queries"
 import { keepAnswer } from "./store"
+import { forgetStudioQuestions } from "./studios"
+import { getWrappedView } from "@/main/lists/_lib/wrapped"
 import { listEntryPayload } from "@/main/_features/media/_lib/list-entry-form"
 
 /*
@@ -40,6 +42,7 @@ const ANIME = 105333
 const MANGA = 98416
 const KINDS: Record<number, "ANIME" | "MANGA"> = { [ANIME]: "ANIME", 1: "ANIME", 20: "ANIME", 21: "ANIME", [MANGA]: "MANGA" }
 const NO_DAY: Day = { year: null, month: null, day: null }
+const STUDIOS = [{ id: 1, name: "Bones", isAnimationStudio: true }, { id: 2, name: "Shueisha", isAnimationStudio: false }]
 const NAMES: Record<string, string> = { CURRENT: "Watching", PLANNING: "Planning", COMPLETED: "Completed", PAUSED: "Paused", DROPPED: "Dropped", REPEATING: "Rewatching" }
 
 let clock = 0
@@ -97,6 +100,8 @@ const anilist: HttpFetch = async (_url, init) => {
     }
     const seconds = Math.floor(clock / 1000)
     if (operation === "ViewerId") return ok({ Viewer: { id: viewer } })
+    // public: the main studios of the titles asked for, a publisher among them as AniList lists it
+    if (operation === "MediaStudios") return ok({ Page: { media: (variables.ids as number[]).map(id => ({ id, studios: { nodes: STUDIOS } })) } })
     if (operation === "LoginViewer") return ok({ Viewer: { id: viewer, name: "tester", avatar: null, isBlocked: false, options: null } })
     if (operation === "ViewerEntry") {
         const id = variables.id as number
@@ -195,6 +200,7 @@ afterAll(() => {
 beforeEach(async () => {
     forgetDatabases()
     forgetChanges()
+    forgetStudioQuestions()
     database = null
     // far apart, so that the rate limit all requests share never reaches from one test into the next
     clock = (clock || Date.parse("2026-11-13T09:00:00.000Z")) + 3_600_000
@@ -752,8 +758,36 @@ describe("the app without AniList", () => {
         await remove({ mediaId: ANIME, type: "anime" })
         expect(await entryInLists(ANIME)).toBeNull()
         expect(await rows()).toHaveLength(0)
-        expect(asked).toEqual([])
+        expect(asked.filter(item => item.operation !== "MediaStudios")).toEqual([])
         expect(await anilistSyncState(environment)).toMatchObject({ waiting: 0, localAccount: true })
+    })
+
+    it("gives the local account's finished anime their studios from AniList, once, and keeps the lists when AniList cannot be reached", async () => {
+        token = null
+        await (await environment.database()).delete(account)
+        await keepAnswer(await environment.database(), `library-media:${ANIME}`, titleOf(ANIME), clock)
+        await edit({ mediaId: ANIME, status: "COMPLETED", score: 80, progress: 24, type: "anime" })
+        const read = await lists()
+        expect((await entryInLists(ANIME))?.entry.media.studios).toEqual({ nodes: STUDIOS })
+        expect(sent("MediaStudios").map(item => item.variables)).toEqual([{ ids: [ANIME] }])
+        // kept with the title: the next read after a new start asks no more
+        forgetStudioQuestions()
+        asked = []
+        expect((await entryInLists(ANIME))?.entry.media.studios).toEqual({ nodes: STUDIOS })
+        expect(asked).toEqual([])
+        // the yearly review counts the animation studio only
+        const year = new Date(clock).getFullYear()
+        expect(getWrappedView(read.MediaListCollection.lists as never, null, year, { showAdult: false }).studios).toEqual([{ name: "Bones", count: 1, share: 1 }])
+
+        // offline: the lists come all the same, without studios, and the title is not asked again this session
+        const OTHER = 20
+        await keepAnswer(await environment.database(), `library-media:${OTHER}`, titleOf(OTHER), clock)
+        reach = "down"
+        asked = []
+        await edit({ mediaId: OTHER, status: "COMPLETED", score: 0, progress: 24, type: "anime" })
+        expect((await entryInLists(OTHER))?.entry.media.studios).toBeUndefined()
+        expect((await entryInLists(OTHER))?.entry).toMatchObject({ status: "COMPLETED" })
+        expect(sent("MediaStudios")).toHaveLength(1)
     })
 
     it("fills today's date like AniList when the local account completes or starts a title, never over a date of the user", async () => {
@@ -775,7 +809,7 @@ describe("the app without AniList", () => {
         expect(((await entryInLists(ANIME))?.entry as { completedAt?: { year?: number } }).completedAt?.year ?? null).toBeNull()
         expect(localEntryDates({ status: "PLANNING" }, { status: "COMPLETED", completedAt: null }, Date.UTC(2026, 10, 25, 12)).completedAt).toEqual({ year: 2026, month: 11, day: 25 })
         expect(localEntryDates({ status: "PLANNING", completedAt: user }, { status: "COMPLETED", completedAt: null }, clock).completedAt).toBeNull()
-        expect(asked).toEqual([])
+        expect(asked.filter(item => item.operation !== "MediaStudios")).toEqual([])
     })
 
     it("uploads the local account's lists to the AniList account signed in afterwards (Upload local lists)", async () => {

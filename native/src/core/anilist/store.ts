@@ -90,6 +90,17 @@ export async function keepCollection(database: CoreDatabase, kind: ListKind, col
     }))
 }
 
+/** Sets the studios of titles already kept (by AniList number), in place: their list entries stay as they are */
+export async function keepStudios(database: CoreDatabase, studios: Map<number, unknown>, now: number): Promise<void> {
+    if (studios.size === 0) return
+    await inOrder(database, () => database.transaction(async transaction => {
+        for (const [id, value] of studios) {
+            await transaction.run(sql`update anilist_media set content = json_set(content, '$.studios', json(${JSON.stringify(value)})), changed_at = ${now}
+                where anilist_id = ${id} and content is not null`)
+        }
+    }))
+}
+
 /** The list collection as it was last kept, or null when it was never read */
 export async function storedCollection(database: CoreDatabase, kind: ListKind): Promise<ListCollection | null> {
     const heads = await storedAnswer(database, collectionQuestion(kind))
