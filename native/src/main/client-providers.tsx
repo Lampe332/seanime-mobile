@@ -20,7 +20,7 @@ import { PortalHost } from "@rn-primitives/portal"
 import { focusManager, QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { getDefaultStore } from "jotai"
 import React from "react"
-import { AppState, View } from "react-native"
+import { AppState, Platform, View } from "react-native"
 
 /*
  * Port of seanime-web app/client-providers.tsx and the data part of app/(main)/server-data-wrapper.tsx: the query
@@ -118,8 +118,8 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
         <QueryClientProvider client={queryClient}>
             <WebsocketProvider>
                 <ServerStatusLoader />
-                {/* behind the app lock's cover the screen reader finds nothing either */}
-                <View style={{ flex: 1 }} {...appContentAccessibility(locked)}>
+                {/* behind the app lock's cover accessibility services find nothing either: hidden, on Android INVISIBLE (app-lock-rule.ts) */}
+                <View {...appContentAccessibility(locked, Platform.OS)}>
                     {children}
                     <PortalHost />
                     {/* toasts above sheets and dialogs (sonner's z-index): a tablet side sheet covered the top-right toasts,

@@ -61,9 +61,24 @@ export function appLockHidesRecents(enabled: boolean, locked: boolean): boolean 
     return enabled || locked
 }
 
-/** The app behind the cover (client-providers.tsx): nothing in it for the screen reader while locked (Android and iOS) */
-export function appContentAccessibility(locked: boolean) {
+/**
+ * The app behind the cover (client-providers.tsx): nothing in it for accessibility services while locked.
+ * - Android: "no-hide-descendants" only marks views unimportant; a service asking for those too (uiautomator dump's
+ *   default, many automation tools) still read the whole page through the opaque cover. `display: none` makes the views
+ *   INVISIBLE (Fabric SurfaceMountingManager: displayType 0), which takes them out of the tree, while they stay mounted
+ *   (useTraitHiddenOnAndroid is off), so the player, pages and their state are kept.
+ * - iOS: display none would unmount the native views there (Fabric's Hidden trait); hidden elements plus the cover's
+ *   accessibilityViewIsModal keep VoiceOver on the cover.
+ * - collapsable false: the wrapper is always a native view, so locking does not reparent the whole app into a new one
+ *   (a plain flex view is flattened away while unlocked).
+ */
+export function appContentAccessibility(locked: boolean, os: string) {
     return locked
-        ? { importantForAccessibility: "no-hide-descendants", accessibilityElementsHidden: true } as const
-        : { importantForAccessibility: "auto", accessibilityElementsHidden: false } as const
+        ? {
+            importantForAccessibility: "no-hide-descendants",
+            accessibilityElementsHidden: true,
+            collapsable: false,
+            style: { flex: 1, display: os === "android" ? "none" : "flex" },
+        } as const
+        : { importantForAccessibility: "auto", accessibilityElementsHidden: false, collapsable: false, style: { flex: 1, display: "flex" } } as const
 }

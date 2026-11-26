@@ -92,16 +92,57 @@ describe("app lock guards", () => {
         expect(appLockHidesRecents(false, true)).toBe(true)
     })
 
-    it("hides the app behind the cover from the screen reader only while locked", () => {
-        expect(appContentAccessibility(true)).toEqual({ importantForAccessibility: "no-hide-descendants", accessibilityElementsHidden: true })
-        expect(appContentAccessibility(false)).toEqual({ importantForAccessibility: "auto", accessibilityElementsHidden: false })
+    it("hides the app behind the cover from accessibility only while locked", () => {
+        expect(appContentAccessibility(true, "android")).toEqual({
+            importantForAccessibility: "no-hide-descendants", accessibilityElementsHidden: true, collapsable: false, style: { flex: 1, display: "none" },
+        })
+        expect(appContentAccessibility(true, "ios")).toEqual({
+            importantForAccessibility: "no-hide-descendants", accessibilityElementsHidden: true, collapsable: false, style: { flex: 1, display: "flex" },
+        })
+        for (const os of ["android", "ios"]) {
+            expect(appContentAccessibility(false, os)).toEqual({
+                importantForAccessibility: "auto", accessibilityElementsHidden: false, collapsable: false, style: { flex: 1, display: "flex" },
+            })
+        }
     })
 
-    it("follows the rule: the minute away locks and hides, unlocking shows the app to the screen reader again", () => {
+    it("keeps the wrapper a native view locked and unlocked, so locking never reparents the app", () => {
+        for (const os of ["android", "ios"]) {
+            expect(appContentAccessibility(true, os).collapsable).toBe(false)
+            expect(appContentAccessibility(false, os).collapsable).toBe(false)
+        }
+    })
+
+    // the cover shows exactly while `locked` (app-lock-screen.tsx); every way into the cover must hide the app on Android
+    const hiddenOnAndroid = (state: AppLockState) => {
+        const props = appContentAccessibility(state.locked, "android")
+        return props.style.display === "none" && props.importantForAccessibility === "no-hide-descendants"
+    }
+
+    it("hides the app in every state with the cover up: cold start, back after a minute, prompt open, prompt cancelled", () => {
+        expect(hiddenOnAndroid(initialAppLockState(true))).toBe(true)
         const away = run(unlocked, { type: "hidden", now: 0 }, { type: "shown", now: APP_LOCK_AFTER_MS + 1, enabled: true })
-        expect(appContentAccessibility(away.locked).importantForAccessibility).toBe("no-hide-descendants")
+        expect(away.locked).toBe(true)
+        expect(hiddenOnAndroid(away)).toBe(true)
+        // the prompt opens as the cover appears; on Android its PIN screen sends the app to background and back
+        const prompting = run(away, { type: "prompt", open: true, now: APP_LOCK_AFTER_MS + 2, appActive: true },
+            { type: "hidden", now: APP_LOCK_AFTER_MS + 3 })
+        expect(hiddenOnAndroid(prompting)).toBe(true)
+        // cancelled (Esc / back): the prompt closes while the app comes back, still locked
+        const cancelled = run(prompting, { type: "prompt", open: false, now: APP_LOCK_AFTER_MS + 4, appActive: false },
+            { type: "shown", now: APP_LOCK_AFTER_MS + 5, enabled: true })
+        expect(cancelled.locked).toBe(true)
+        expect(hiddenOnAndroid(cancelled)).toBe(true)
+        const cancelledInFront = run(prompting, { type: "shown", now: APP_LOCK_AFTER_MS + 4, enabled: true },
+            { type: "prompt", open: false, now: APP_LOCK_AFTER_MS + 5, appActive: true })
+        expect(hiddenOnAndroid(cancelledInFront)).toBe(true)
+    })
+
+    it("follows the rule: the minute away locks and hides, unlocking shows the app again", () => {
+        const away = run(unlocked, { type: "hidden", now: 0 }, { type: "shown", now: APP_LOCK_AFTER_MS + 1, enabled: true })
+        expect(appContentAccessibility(away.locked, "android").style.display).toBe("none")
         const open = run(away, { type: "unlock" })
-        expect(appContentAccessibility(open.locked).importantForAccessibility).toBe("auto")
+        expect(appContentAccessibility(open.locked, "android")).toMatchObject({ importantForAccessibility: "auto", style: { display: "flex" } })
         expect(appLockHidesRecents(true, open.locked)).toBe(true)
     })
 })

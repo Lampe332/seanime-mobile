@@ -55,6 +55,10 @@ function PrivacyGroup({ t }: { t: Translate }) {
                 defaultChecked={false} scope="device" disabled={hasLock === undefined || unavailable}
                 note={unavailable
                     ? t("Set up a screen lock or fingerprint on this device first.", "Richte zuerst eine Displaysperre oder einen Fingerabdruck auf diesem Gerät ein.")
+                    : hasLock === false
+                    // on, but the device lock was removed since: it asks for nothing until one is set up again
+                    ? t("This device has no screen lock any more, so the app lock asks for nothing. Set one up again, or turn it off.",
+                        "Dieses Gerät hat keine Displaysperre mehr, die App-Sperre fragt daher nichts ab. Richte wieder eine ein oder schalte sie aus.")
                     : t("Asks for your fingerprint, face or screen lock when the app starts and after a minute away.",
                         "Fragt nach Fingerabdruck, Gesicht oder Displaysperre, wenn die App startet und nach einer Minute im Hintergrund.")} />
             <LocalSwitch label={t("Send anonymous usage count", "Anonyme Nutzungszählung senden")} checked={usageCount} onCheckedChange={setUsageCount} defaultChecked

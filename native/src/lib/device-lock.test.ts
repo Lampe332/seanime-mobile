@@ -11,13 +11,25 @@ vi.mock("expo-local-authentication", () => ({
     },
 }))
 
-const { confirmWithDeviceLock, hasDeviceLock, onDeviceLockPrompt } = await import("./device-lock")
+const { confirmWithDeviceLock, hasDeviceLock, onDeviceLockChecked, onDeviceLockPrompt } = await import("./device-lock")
 
 describe("device lock", () => {
     beforeEach(() => {
         native.authenticate.mockClear()
         native.level = 1
         native.success = true
+    })
+
+    // the settings note follows a lock removed while the app stayed in front (pressing the switch asks again)
+    it("tells listeners every fresh answer, the one a prompt asks included", async () => {
+        const seen: boolean[] = []
+        const off = onDeviceLockChecked(has => seen.push(has))
+        await hasDeviceLock()
+        native.level = 0
+        await confirmWithDeviceLock("Turn off the app lock")
+        off()
+        await hasDeviceLock()
+        expect(seen).toEqual([true, false])
     })
 
     // (c) a device lock removed after the app lock was turned on: the app opens without asking, nobody is locked out
