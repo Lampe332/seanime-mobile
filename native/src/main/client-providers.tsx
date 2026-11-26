@@ -10,6 +10,7 @@ import { useSetServerStatus } from "@/main/_hooks/use-server-status"
 import { TourOverlay } from "@/main/_features/tour/tour-overlay"
 import { AppLockScreen } from "@/main/_features/app-lock/app-lock-screen"
 import { useAppLocked } from "@/lib/app-lock/app-lock"
+import { appContentAccessibility } from "@/lib/app-lock/app-lock-rule"
 import { WebsocketProvider } from "@/main/websocket-provider"
 import { initEntryPreloader } from "@/lib/entry-preloader"
 import { pingUsageIfDue } from "@/lib/account/usage-ping-app"
@@ -118,7 +119,7 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
             <WebsocketProvider>
                 <ServerStatusLoader />
                 {/* behind the app lock's cover the screen reader finds nothing either */}
-                <View style={{ flex: 1 }} importantForAccessibility={locked ? "no-hide-descendants" : "auto"}>
+                <View style={{ flex: 1 }} {...appContentAccessibility(locked)}>
                     {children}
                     <PortalHost />
                     {/* toasts above sheets and dialogs (sonner's z-index): a tablet side sheet covered the top-right toasts,

@@ -1,0 +1,16 @@
+// geschrieben nach: modules/core-download/android/build.gradle (lokales Expo-Modul ohne eigene Bibliotheken)
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'com.seanime.applockrecents'
+version = '0.1.0'
+
+android {
+  namespace "com.seanime.applockrecents"
+  defaultConfig {
+    versionCode 1
+    versionName "0.1.0"
+  }
+}

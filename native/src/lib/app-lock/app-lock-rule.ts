@@ -52,3 +52,18 @@ export function appLockReducer(state: AppLockState, event: AppLockEvent): AppLoc
             return { ...state, locked: false }
     }
 }
+
+/**
+ * Whether the recent apps screen may show no picture of the app (modules/app-lock-recents): for as long as the switch is
+ * on, not only while locked, because the picture is taken as the app leaves, a minute before the cover comes up.
+ */
+export function appLockHidesRecents(enabled: boolean, locked: boolean): boolean {
+    return enabled || locked
+}
+
+/** The app behind the cover (client-providers.tsx): nothing in it for the screen reader while locked (Android and iOS) */
+export function appContentAccessibility(locked: boolean) {
+    return locked
+        ? { importantForAccessibility: "no-hide-descendants", accessibilityElementsHidden: true } as const
+        : { importantForAccessibility: "auto", accessibilityElementsHidden: false } as const
+}

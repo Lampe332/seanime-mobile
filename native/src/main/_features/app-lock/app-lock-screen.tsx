@@ -7,7 +7,7 @@ import { useThemeColors } from "@/lib/theme/appearance"
 import * as Application from "expo-application"
 import Lock from "lucide-react-native/icons/lock"
 import React from "react"
-import { AppState, BackHandler, StyleSheet, View } from "react-native"
+import { AccessibilityInfo, AppState, BackHandler, StyleSheet, View } from "react-native"
 
 /*
  * The app lock's cover (lib/app-lock): opaque over the whole app, sheets, toasts, the tour and the player included
@@ -21,6 +21,9 @@ export function AppLockScreen() {
 }
 
 let prompting = false
+
+/** Lets the cover reach the screen before the screen reader is sent to it */
+const FOCUS_DELAY_MS = 150
 
 /** One device lock prompt at a time; true without a device lock, so a lock removed after the switch locks nobody out */
 async function askToUnlock(setBusy: (busy: boolean) => void) {
@@ -56,6 +59,17 @@ function LockCover() {
         return () => sub.remove()
     }, [])
 
+    // the screen reader's focus moves onto the cover as it appears and after a cancelled prompt: it may still sit on
+    // something behind it, which the screen reader would keep reading
+    const messageRef = React.useRef<React.ComponentRef<typeof View>>(null)
+    React.useEffect(() => {
+        if (busy) return
+        const timer = setTimeout(() => {
+            if (messageRef.current) AccessibilityInfo.sendAccessibilityEvent(messageRef.current, "focus")
+        }, FOCUS_DELAY_MS)
+        return () => clearTimeout(timer)
+    }, [busy])
+
     // registered last, so it runs before every screen's own handler: nothing behind the cover goes back
     React.useEffect(() => {
         const sub = BackHandler.addEventListener("hardwareBackPress", () => true)
@@ -66,14 +80,17 @@ function LockCover() {
         <View accessibilityViewIsModal style={[StyleSheet.absoluteFill, { backgroundColor: colors.background }]}
             className="items-center justify-center px-8">
             <View className="w-full max-w-[320px] items-center">
-                <View className="mb-6 h-16 w-16 items-center justify-center rounded-full bg-sm-surface-raised">
-                    <Lock size={28} color={colors.smAccent} />
+                {/* one stop for the screen reader: the app's name and that it is locked; the button is the next */}
+                <View ref={messageRef} accessible className="w-full items-center">
+                    <View className="mb-6 h-16 w-16 items-center justify-center rounded-full bg-sm-surface-raised">
+                        <Lock size={28} color={colors.smAccent} />
+                    </View>
+                    <Heading className="text-center">{appName}</Heading>
+                    <Text className="mt-2 text-center text-sm-text-muted">
+                        {t("Locked. Use your fingerprint, face or screen lock to open the app.",
+                            "Gesperrt. Öffne die App mit Fingerabdruck, Gesicht oder Displaysperre.")}
+                    </Text>
                 </View>
-                <Heading className="text-center">{appName}</Heading>
-                <Text className="mt-2 text-center text-sm-text-muted">
-                    {t("Locked. Use your fingerprint, face or screen lock to open the app.",
-                        "Gesperrt. Öffne die App mit Fingerabdruck, Gesicht oder Displaysperre.")}
-                </Text>
                 <Button className="mt-8" wrapperClassName="w-full" size="lg" loading={busy} onPress={() => void askToUnlock(setBusy)}>
                     {t("Unlock", "Entsperren")}
                 </Button>

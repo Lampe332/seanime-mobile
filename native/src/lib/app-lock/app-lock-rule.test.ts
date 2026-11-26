@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { APP_LOCK_AFTER_MS, appLockReducer, type AppLockEvent, type AppLockState, initialAppLockState } from "./app-lock-rule"
+import { APP_LOCK_AFTER_MS, appContentAccessibility, appLockHidesRecents, appLockReducer, type AppLockEvent, type AppLockState, initialAppLockState } from "./app-lock-rule"
 
 const run = (state: AppLockState, ...events: AppLockEvent[]) => events.reduce(appLockReducer, state)
 const unlocked = initialAppLockState(false)
@@ -78,5 +78,30 @@ describe("app lock rule", () => {
             { type: "pictureInPicture", active: false, now: 5 * APP_LOCK_AFTER_MS, appActive: false })
         expect(appLockReducer(state, { type: "shown", now: 5 * APP_LOCK_AFTER_MS + 1_000, enabled: true }).locked).toBe(false)
         expect(appLockReducer(state, { type: "shown", now: 6 * APP_LOCK_AFTER_MS + 1, enabled: true }).locked).toBe(true)
+    })
+})
+
+describe("app lock guards", () => {
+    it("keeps the app out of recents for as long as the switch is on, locked or not", () => {
+        expect(appLockHidesRecents(true, false)).toBe(true)
+        expect(appLockHidesRecents(true, true)).toBe(true)
+        expect(appLockHidesRecents(false, false)).toBe(false)
+    })
+
+    it("still hides recents while the cover is up, even before the switch is read", () => {
+        expect(appLockHidesRecents(false, true)).toBe(true)
+    })
+
+    it("hides the app behind the cover from the screen reader only while locked", () => {
+        expect(appContentAccessibility(true)).toEqual({ importantForAccessibility: "no-hide-descendants", accessibilityElementsHidden: true })
+        expect(appContentAccessibility(false)).toEqual({ importantForAccessibility: "auto", accessibilityElementsHidden: false })
+    })
+
+    it("follows the rule: the minute away locks and hides, unlocking shows the app to the screen reader again", () => {
+        const away = run(unlocked, { type: "hidden", now: 0 }, { type: "shown", now: APP_LOCK_AFTER_MS + 1, enabled: true })
+        expect(appContentAccessibility(away.locked).importantForAccessibility).toBe("no-hide-descendants")
+        const open = run(away, { type: "unlock" })
+        expect(appContentAccessibility(open.locked).importantForAccessibility).toBe("auto")
+        expect(appLockHidesRecents(true, open.locked)).toBe(true)
     })
 })

@@ -1,4 +1,5 @@
-import { appLockReducer, initialAppLockState, type AppLockEvent } from "@/lib/app-lock/app-lock-rule"
+import recents from "../../../modules/app-lock-recents"
+import { appLockHidesRecents, appLockReducer, initialAppLockState, type AppLockEvent } from "@/lib/app-lock/app-lock-rule"
 import { onDeviceLockPrompt } from "@/lib/device-lock"
 import { atomWithStorage } from "@/lib/storage"
 import { getDefaultStore } from "jotai"
@@ -20,12 +21,27 @@ const isActive = () => AppState.currentState === "active"
 let state = initialAppLockState(isEnabled())
 const listeners = new Set<() => void>()
 
+// Android: recents shows no picture of the app while the switch is on (modules/app-lock-recents; missing elsewhere)
+let recentsHidden: boolean | null = null
+function syncRecents() {
+    const hidden = appLockHidesRecents(isEnabled(), state.locked)
+    if (!recents || hidden === recentsHidden) return
+    recentsHidden = hidden
+    recents.setRecentsHidden(hidden).catch(() => { recentsHidden = null })
+}
+
 function dispatch(event: AppLockEvent) {
     const next = appLockReducer(state, event)
     const changed = next.locked !== state.locked
     state = next
-    if (changed) listeners.forEach(listener => listener())
+    if (changed) {
+        syncRecents()
+        listeners.forEach(listener => listener())
+    }
 }
+
+syncRecents()
+store.sub(appLockEnabledAtom, syncRecents)
 
 // "inactive" (iOS: control centre, the Face ID sheet) is not leaving the app
 AppState.addEventListener("change", next => {
