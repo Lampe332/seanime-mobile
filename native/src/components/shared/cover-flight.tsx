@@ -56,10 +56,21 @@ function coverWaitDelay(now: number, tappedAt: number, builtAt: number | null, i
     return due.length ? Math.min(...due) - now : 16
 }
 
+/** Longest wait for a measurement before the step goes on without a flight */
+const MEASURE_TIMEOUT_MS = 150
+
+/*
+ * Fabric never calls measureInWindow's callback for a view that left the screen meanwhile (a recycled cell, a page taken
+ * down): open() and Back waited on it forever, the cover tap opened nothing and Back did nothing. A late answer is dropped.
+ */
 function measureBox(view: ViewRef | null): Promise<Box | null> {
     return new Promise(resolve => {
         if (!view) return resolve(null)
-        view.measureInWindow((x, y, width, height) => resolve(width > 0 && height > 0 ? { x, y, width, height } : null))
+        const timer = setTimeout(() => resolve(null), MEASURE_TIMEOUT_MS)
+        view.measureInWindow((x, y, width, height) => {
+            clearTimeout(timer)
+            resolve(width > 0 && height > 0 ? { x, y, width, height } : null)
+        })
     })
 }
 

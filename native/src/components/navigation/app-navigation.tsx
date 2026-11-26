@@ -1,5 +1,5 @@
 import { useIncognito, useSetAppSwitches } from "@/api/hooks/app-switches.hooks"
-import { menuIn, menuOut, scrimIn, scrimOut } from "@/components/ui/core/animations"
+import { scrimIn, scrimOut } from "@/components/ui/core/animations"
 import { useCloseOnBack } from "@/components/ui/core/back-handler"
 import { GlidePill, GlideStandIn, useGlide } from "@/components/ui/core/glide"
 import { cn } from "@/components/ui/core/styling"
@@ -26,7 +26,8 @@ import { Image } from "expo-image"
 import { useAtomValue } from "jotai"
 import React from "react"
 import { type LayoutChangeEvent, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from "react-native"
-import Animated from "react-native-reanimated"
+import Animated, { Easing, ReduceMotion, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated"
+import { DISTANCE, DRAWER_EASE, DURATION, MOTION_EASE_OUT, PHONE_EASE, SCALE } from "@/lib/motion"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 /*
@@ -183,6 +184,7 @@ export function NavRail({ items, pathname, menuOpen, onNavigate, onMenu, short }
             className="border-r border-nav-rail-line"
         >
             <ScrollView
+                keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{
                     alignItems: "center",
@@ -317,6 +319,48 @@ function SupportRow({ label, onPress }: { label: string, onPress: () => void }) 
 /** A menu row that runs an action instead of opening a page (the sidebar's buttons, e.g. "Sign in") */
 export type NavMenuAction = { id: string, label: string, icon: MobileIconName, onPress: () => void }
 
+/** The panel's unfold and fold, as menuIn/menuOut (animations.ts) did on mount and unmount */
+const MENU_OUT_MS = 160
+const MENU_PREBUILD_MS = 2500
+const MENU_RISE = DISTANCE.menuRise
+const MENU_ENTER_SCALE = SCALE.menuEnter
+const menuEase = { tablet: Easing.bezier(...DRAWER_EASE), phone: Easing.bezier(...PHONE_EASE), out: Easing.bezier(...MOTION_EASE_OUT) }
+
+function useMenuPanelMotion(open: boolean, rail: boolean) {
+    // built once the app has settled (or at the first open), then only shown and hidden
+    const [built, setBuilt] = React.useState(open)
+    if (open && !built) setBuilt(true)
+    React.useEffect(() => {
+        const timer = setTimeout(() => setBuilt(true), MENU_PREBUILD_MS)
+        return () => clearTimeout(timer)
+    }, [])
+    const shown = useSharedValue(open ? 1 : 0)
+    const leaving = useSharedValue(false)
+    const scrollRef = React.useRef<React.ComponentRef<typeof ScrollView>>(null)
+    // the state the last move ended in; while it differs from `open` the panel moves (and is one GPU layer)
+    const [settled, setSettled] = React.useState(open)
+    React.useEffect(() => {
+        const ms = open ? (rail ? DURATION.menuInTablet : DURATION.menuInPhone) : MENU_OUT_MS
+        // every open starts at the profile head, as the panel built anew did
+        if (open) scrollRef.current?.scrollTo({ y: 0, animated: false })
+        leaving.value = !open
+        shown.value = withTiming(open ? 1 : 0,
+            { duration: ms, easing: open ? (rail ? menuEase.tablet : menuEase.phone) : menuEase.out, reduceMotion: ReduceMotion.System })
+        const timer = setTimeout(() => setSettled(open), ms + 32)
+        return () => clearTimeout(timer)
+    }, [open, rail, shown, leaving])
+    const panelMotion = useAnimatedStyle(() => {
+        const rest = 1 - shown.value
+        return {
+            opacity: shown.value,
+            transform: leaving.value
+                ? [{ translateY: 8 * rest }, { scale: 1 - 0.02 * rest }]
+                : [{ translateY: MENU_RISE * rest }, { scale: 1 - (1 - MENU_ENTER_SCALE) * rest }],
+        }
+    })
+    return { scrollRef, panelMotion, built, layer: open !== settled }
+}
+
 export function NavMenu({ open, onClose, pathname, onOpen, onSignIn, rail, barItems, actions = [], header }: {
     open: boolean
     onClose: () => void
@@ -346,7 +390,8 @@ export function NavMenu({ open, onClose, pathname, onOpen, onSignIn, rail, barIt
     const { mutate: setSwitches } = useSetAppSwitches()
     useCloseOnBack(open, onClose)
     const panelBackground = menuPanelBackground(usePalette())
-    if (!open) return null
+    const { scrollRef, panelMotion, built, layer } = useMenuPanelMotion(open, rail)
+    if (!built) return null
 
     // Bar entries given back to the Menu (Customize navigation) and the ready screens that are not in the bar
     const support = moreSupportRow((en, de) => translate(language, en, de))
@@ -358,20 +403,23 @@ export function NavMenu({ open, onClose, pathname, onOpen, onSignIn, rail, barIt
         : { left: 8, right: 8, bottom: insets.bottom + barHeight + 12, maxHeight: height - insets.top - insets.bottom - 144, transformOrigin: "50% 100%" }
 
     return (
-        <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
+        <View pointerEvents={open ? "box-none" : "none"} style={StyleSheet.absoluteFill}>
             {/* next to the rail the panel floats over the page: the page dims as under the sheets (sheet.tsx bg-black/80, the
                 rail stays lit); the phone's panel keeps its undimmed page */}
-            <Pressable accessibilityLabel={navLabel("More", language)} onPress={onClose} style={StyleSheet.absoluteFill}>
+            {open && <Pressable accessibilityLabel={navLabel("More", language)} onPress={onClose} style={StyleSheet.absoluteFill}>
                 {rail && <Animated.View pointerEvents="none" entering={scrimIn} exiting={scrimOut}
                     style={[StyleSheet.absoluteFill, { left: sizes.tabletRail }]} className="bg-black/80" />}
-            </Pressable>
+            </Pressable>}
+            {/* The panel stays built once opened and only fades out: building every row anew on each open cost the S22
+                11 % late frames (framestats 26.11.). Hidden it takes no touches and is left out for screen readers. */}
             <Animated.View
-                entering={menuIn(rail)}
-                exiting={menuOut}
+                accessibilityElementsHidden={!open}
+                importantForAccessibility={open ? "auto" : "no-hide-descendants"}
                 // The panel fades and scales as one GPU layer: without it Android drew all rows into a fresh offscreen
-                // buffer for every frame of the fade (S22 framestats 09.11.: GPU 9–11 ms a frame, half the frames late)
-                renderToHardwareTextureAndroid
-                style={[panelStyle, {
+                // buffer for every frame of the fade (S22 framestats 09.11.: GPU 9–11 ms a frame, half the frames late);
+                // only while it moves, so a press on a row does not redraw the whole layer
+                renderToHardwareTextureAndroid={layer}
+                style={[panelStyle, panelMotion, {
                     position: "absolute",
                     // The old panel was a blurred glass (backdrop-filter); without a blur the same colours are made
                     // nearly opaque so the page under it does not show through (at .97/.98 its text still read through)
@@ -387,7 +435,7 @@ export function NavMenu({ open, onClose, pathname, onOpen, onSignIn, rail, barIt
                 // the clip keeps rows and the scroll edge inside the rounded corners
                 className="overflow-hidden rounded-menu border-menu-border p-2"
             >
-                <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+                <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false} bounces={false}>
                     {/* who is signed in (AniList, the Seanime account); opens Settings › Account, without AniList its sign-in */}
                     <MoreProfileHead onPress={() => onOpen(settingsHref("account"))} onSignIn={() => {
                         onClose()
