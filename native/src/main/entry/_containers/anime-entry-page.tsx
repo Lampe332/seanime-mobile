@@ -27,6 +27,7 @@ import { EntryFacts } from "@/main/entry/_components/entry-facts"
 import { EntryCredits } from "@/main/entry/_components/entry-credits"
 import type { TagInput } from "@/main/entry/_lib/entry-credits"
 import { airingPeriod } from "@/main/entry/_lib/anime-meta"
+import { useStagedCount } from "@/main/entry/_lib/staged-count"
 import { isMediaServerEntry } from "@/main/entry/_lib/media-server-play"
 import { useMediaServerMapping, useMediaServerStatus } from "@/api/hooks/mediaserver.hooks"
 import { isTvmazeId } from "@/core/tvmaze/tvmaze"
@@ -48,6 +49,8 @@ import {
     __anime_entryPageViewAtom,
     __anime_hiddenEntryViewsAtom,
     type AnimeEntryView,
+    builtAnimeEntryViews,
+    type BuiltAnimeEntryViews,
     getAnimeEntryTabs,
     getAutomaticAnimeEntryView,
     getInitialAnimeEntryView,
@@ -55,6 +58,7 @@ import {
     keptAnimeEntryView,
     NOT_READY_VIEWS,
     shownAnimeEntryView,
+    VIEW_BOTTOM_GAP,
 } from "@/main/entry/_lib/anime-entry-view"
 import { OnlinestreamPage } from "@/main/onlinestream/_containers/onlinestream-page"
 import { player_onlineAtom } from "@/main/onlinestream/_lib/onlinestream-player.atoms"
@@ -152,6 +156,9 @@ function pageTint(top: number, palette: Palette) {
 
 /** How often the scrolling page tells the long online list where it is (windowed-rows.tsx) */
 const SCROLL_SIGNAL_MS = 50
+/** Frames after the page came in (or the tab switched) until the characters, and until the relations follow */
+const CHARACTERS_STAGE = 4
+const MORE_STAGES = 6
 
 export function AnimeEntryPage() {
     const colors = useThemeColors()
@@ -268,6 +275,13 @@ export function AnimeEntryPage() {
 
     // characters and relations (below the screen) come once the page has come in
     const moreReady = useAfterPageEnter(mediaId)
+    // ...and a few frames after the episode rows (staged-count.ts), characters first, relations then, each in a frame of
+    // their own. They sit under the views, not in them (P4): a tab switch does not build them again.
+    const moreStage = useStagedCount(MORE_STAGES, { first: 0, step: 1, active: moreReady, key: mediaId })
+    // P4: the views shown once stay built and hidden, a tab switch only shows them again (anime-entry-view.ts)
+    const [storedBuilt, setBuilt] = React.useState<BuiltAnimeEntryViews>({ mediaId, views: [] })
+    const built = builtAnimeEntryViews(storedBuilt, mediaId, view)
+    if (built !== storedBuilt) setBuilt(built)
 
     if (isLoading) return <View className="flex-1 items-center justify-center"><ActivityIndicator color={colors.smAccent} size="large" /></View>
     if (!entry && isError) return <View className="flex-1 items-center justify-center gap-4 px-6">
@@ -280,9 +294,9 @@ export function AnimeEntryPage() {
     const tabs = getAnimeEntryTabs(t, entry, serverStatus, hidden)
     const tabsRow = tabs.length > 0 && <Tabs value={view} onValueChange={value => pickView(value as AnimeEntryView)} items={tabs} />
     // gap-6 as on the manga page, so "Relations" does not sit right under the last character
-    const moreSection = foreign || !moreReady ? null : <View className="gap-6">
+    const moreSection = foreign || !moreReady || moreStage < CHARACTERS_STAGE ? null : <View className="gap-6">
         <MediaEntryCharactersSection details={details} loading={detailsLoading} />
-        <RelationsRecommendationsSection entry={entry} details={details} loading={detailsLoading} />
+        {moreStage >= MORE_STAGES && <RelationsRecommendationsSection entry={entry} details={details} loading={detailsLoading} />}
     </View>
     // The tablet edition shows characters and relations across the whole page, under the anime and its episodes
     const bottomSection = rail ? undefined : moreSection
@@ -290,10 +304,19 @@ export function AnimeEntryPage() {
         {/* r22: a library file, torrent, debrid or saved episode of this anime plays on in a box here when made small */}
         <PlayerMediaBox mediaId={entry.mediaId} />
         <PluginWebviewSlot slot="before-anime-entry-episode-list" />
-        {pageView === "library" && <EpisodeSection entry={entry} bottomSection={bottomSection} />}
-        {pageView === "torrentstream" && <TorrentStreamPage entry={entry} bottomSection={bottomSection} />}
-        {pageView === "debridstream" && <DebridStreamPage entry={entry} bottomSection={bottomSection} />}
-        {pageView === "onlinestream" && <OnlinestreamPage entry={entry} bottomSection={bottomSection} />}
+        {built.views.includes("library") && <React.Activity mode={pageView === "library" ? "visible" : "hidden"}>
+            <EpisodeSection entry={entry} />
+        </React.Activity>}
+        {built.views.includes("torrentstream") && <React.Activity mode={pageView === "torrentstream" ? "visible" : "hidden"}>
+            <TorrentStreamPage entry={entry} />
+        </React.Activity>}
+        {built.views.includes("debridstream") && <React.Activity mode={pageView === "debridstream" ? "visible" : "hidden"}>
+            <DebridStreamPage entry={entry} />
+        </React.Activity>}
+        {built.views.includes("onlinestream") && <React.Activity mode={pageView === "onlinestream" ? "visible" : "hidden"}>
+            <OnlinestreamPage entry={entry} />
+        </React.Activity>}
+        {!!bottomSection && <View style={{ marginTop: VIEW_BOTTOM_GAP[pageView] }}>{bottomSection}</View>}
         <PluginWebviewSlot slot="after-anime-entry-episode-list" />
     </View>
 

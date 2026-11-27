@@ -1,4 +1,4 @@
-import { type ChunkSize, chunkRange, holdRange, rowEstimate } from "@/main/entry/_lib/chunk-window"
+import { type ChunkSize, chunkRange, growRange, holdRange, rowEstimate } from "@/main/entry/_lib/chunk-window"
 import React from "react"
 import { useWindowDimensions, View } from "react-native"
 
@@ -74,27 +74,38 @@ export function WindowedRows<T>({ items, keyOf, renderItem, estimate }: {
         return out
     }, [items, keyOf])
     const [measured, setMeasured] = React.useState<Record<string, ChunkSize>>({})
-    // before the first measurement: the first chunks, enough for a tall screen
-    const [range, setRange] = React.useState<[number, number]>([0, 2])
+    // before the first measurement: the first chunk, more than a screen of rows (P2: three chunks made the tab switch's
+    // frame long); the window then fills a chunk per frame (growRange)
+    const [range, setRange] = React.useState<[number, number]>([0, 0])
     const average = rowEstimate(Object.values(measured), estimate)
     const heights = chunks.map(chunk => measured[chunk.key]?.height ?? chunk.rows.length * average)
 
-    const latest = React.useRef({ heights, screen })
+    const latest = React.useRef({ heights, screen, range })
     React.useEffect(() => {
-        latest.current = { heights, screen }
+        latest.current = { heights, screen, range }
     })
+    const frame = React.useRef<number | null>(null)
+    React.useEffect(() => () => {
+        if (frame.current !== null) cancelAnimationFrame(frame.current)
+    }, [])
 
-    const update = React.useCallback(() => {
+    const update = React.useCallback(function update() {
         ref.current?.measureInWindow((_x, y, _width, height) => {
             // a hidden page (another tab in front) measures 0: keep what is drawn
             if (!height) return
-            const { heights: now, screen: tall } = latest.current
+            const { heights: now, screen: tall, range: drawn } = latest.current
             const want = chunkRange(now, -y - DRAW_ABOVE * tall, -y + (1 + DRAW_BELOW) * tall)
             const keep = chunkRange(now, -y - KEEP * tall, -y + (1 + KEEP) * tall)
-            setRange(prev => {
-                const next = holdRange(prev, want, keep)
-                return prev[0] === next[0] && prev[1] === next[1] ? prev : next
-            })
+            const held = holdRange(drawn, want, keep)
+            const next = growRange(drawn, held, chunkRange(now, -y, -y + tall))
+            setRange(prev => prev[0] === next[0] && prev[1] === next[1] ? prev : next)
+            // not there yet: the next chunk in the next frame
+            if ((next[0] !== held[0] || next[1] !== held[1]) && frame.current === null) {
+                frame.current = requestAnimationFrame(() => {
+                    frame.current = null
+                    update()
+                })
+            }
         })
     }, [])
 

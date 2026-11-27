@@ -5,6 +5,7 @@ import {
     getEntryTabSettings,
     getInitialAnimeEntryView,
     isBuiltInAnimeEntryViewAvailable,
+    builtAnimeEntryViews,
     keptAnimeEntryView,
     NATIVE_VIEW_READY,
     NOT_READY_VIEWS,
@@ -105,5 +106,23 @@ describe("keptAnimeEntryView (the tab picked last comes back)", () => {
         expect(keptAnimeEntryView({ mediaId: "21", view: "torrentstream" }, "21", true, all)).toBeNull()
         expect(keptAnimeEntryView({ mediaId: "21", view: "torrentstream" }, "21", false, view => view !== "torrentstream")).toBeNull()
         expect(keptAnimeEntryView(null, "21", false, all)).toBeNull()
+    })
+})
+
+describe("builtAnimeEntryViews (shown views stay built, a tab switch only shows them again)", () => {
+    it("adds a shown view once and keeps the same object when nothing changes", () => {
+        const first = builtAnimeEntryViews({ mediaId: null, views: [] }, "21", "library")
+        expect(first).toEqual({ mediaId: "21", views: ["library"] })
+        const second = builtAnimeEntryViews(first, "21", "torrentstream")
+        expect(second.views).toEqual(["library", "torrentstream"])
+        expect(builtAnimeEntryViews(second, "21", "library")).toBe(second)
+    })
+    it("keeps the online view too and starts over for another anime", () => {
+        const built = { mediaId: "21", views: ["library" as const] }
+        const online = builtAnimeEntryViews(built, "21", "onlinestream")
+        expect(online.views).toEqual(["library", "onlinestream"])
+        expect(builtAnimeEntryViews(online, "21", "library")).toBe(online)
+        expect(builtAnimeEntryViews(built, "22", "onlinestream")).toEqual({ mediaId: "22", views: ["onlinestream"] })
+        expect(builtAnimeEntryViews(built, "22", "debridstream")).toEqual({ mediaId: "22", views: ["debridstream"] })
     })
 })

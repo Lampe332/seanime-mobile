@@ -34,7 +34,9 @@ export function StudioPhone({ id, name }: { id: number, name?: string }) {
     const windowWidth = useWindowDimensions().width
 
     const gutter = 16
-    const [contentWidth, setContentWidth] = React.useState(0)
+    // P2: the phone's width from the start (as onLayout will measure it), so the grid is not first laid out at 0 and
+    // then every cell again; the rail's width is only known after layout
+    const [contentWidth, setContentWidth] = React.useState(() => rail ? 0 : Math.min(windowWidth, 1152) - gutter * 2)
     const grid = useGridColumns(contentWidth)
     const items = React.useMemo(() => (data?.Studio?.media?.nodes ?? []).filter((m): m is AL_BaseAnime => !!m?.id), [data])
     const title = data?.Studio?.name || name || t("Studio", "Studio")

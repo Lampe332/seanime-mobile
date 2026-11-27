@@ -87,6 +87,24 @@ export function keptAnimeEntryView(kept: { mediaId: string, view: AnimeEntryView
     return kept.view
 }
 
+/**
+ * The views of this anime's page that stay built once shown (P4, S22: every tab switch removed ~900 native views and
+ * created ~560, 250 ms of mounting over 7 frames). The page hides them (React's Activity: their effects stop, the native
+ * views stay) and a switch back only shows them again. The online view too (P5): hidden, it lets go of its stream as
+ * when the page is left (onlinestream-page.tsx). Another anime starts over.
+ */
+export const KEPT_VIEWS: readonly AnimeEntryView[] = ["library", "torrentstream", "debridstream", "onlinestream"]
+export type BuiltAnimeEntryViews = { mediaId: string | null, views: AnimeEntryView[] }
+export function builtAnimeEntryViews(built: BuiltAnimeEntryViews, mediaId: string | null, view: AnimeEntryView): BuiltAnimeEntryViews {
+    const keeps = KEPT_VIEWS.includes(view)
+    if (built.mediaId !== mediaId) return { mediaId, views: keeps ? [view] : [] }
+    if (!keeps || built.views.includes(view)) return built
+    return { mediaId, views: [...built.views, view] }
+}
+
+/** The room over characters and relations under each view: its own gap before they moved out of it (gap-10, gap-6, none) */
+export const VIEW_BOTTOM_GAP: Record<AnimeEntryView, number> = { library: 40, torrentstream: 24, debridstream: 24, onlinestream: 0 }
+
 /** The source tabs over the episodes; none when only the library is there (EntrySectionTabs) */
 export function getAnimeEntryTabs(t: Translate, entry: Pick<Anime_Entry, "media"> | undefined, serverStatus: StatusLike, hidden: string[]) {
     if (!entry || entry.media?.status === "NOT_YET_RELEASED") return []

@@ -52,3 +52,14 @@ export function holdRange(prev: readonly [number, number], want: readonly [numbe
     if (prev[1] < prev[0]) return [want[0], want[1]]
     return [Math.max(keep[0], Math.min(prev[0], want[0])), Math.min(keep[1], Math.max(prev[1], want[1]))]
 }
+
+/**
+ * The step from `prev` towards `next` (P2): the chunks on screen (`visible`) come at once, the ones ahead of it one per
+ * side and frame, so filling the window does not build several chunks in one long frame. Shrinking is never held back.
+ */
+export function growRange(prev: readonly [number, number], next: readonly [number, number], visible: readonly [number, number]): [number, number] {
+    if (next[1] < next[0] || prev[1] < prev[0] || visible[1] < visible[0]) return [next[0], next[1]]
+    const first = next[0] >= prev[0] ? next[0] : Math.max(next[0], Math.min(prev[0] - 1, visible[0]))
+    const last = next[1] <= prev[1] ? next[1] : Math.min(next[1], Math.max(prev[1] + 1, visible[1]))
+    return [first, last]
+}

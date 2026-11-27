@@ -33,7 +33,7 @@ import { OnlinestreamManualMappingSheet } from "@/main/onlinestream/_containers/
 import { useHandleOnlinestreamProviderExtensions } from "@/main/onlinestream/_lib/handle-onlinestream-providers"
 import { providerForMedia, withMediaProvider } from "@/main/onlinestream/_lib/onlinestream-provider-choice"
 import { getMobileInitialEpisode, neighbourEpisode, rememberMobileEpisode } from "@/main/onlinestream/_lib/mobile-episode-selection"
-import { type OnlinePlayerEvents, player_onlineAtom } from "@/main/onlinestream/_lib/onlinestream-player.atoms"
+import { detachedOnline, type OnlinePlayerEvents, player_onlineAtom, useKeptEpisodeList } from "@/main/onlinestream/_lib/onlinestream-player.atoms"
 import {
     buildOnlineStream,
     chooseVideoSource,
@@ -172,7 +172,7 @@ export function OnlinestreamPage({ entry, bottomSection }: { entry: Anime_Entry,
     const lastTimeRef = React.useRef(0)
 
     const {
-        data: episodeListResponse,
+        data: fetchedEpisodeList,
         isFetching: fetchingEpisodeList,
         isLoading: loadingEpisodeList,
         isSuccess: episodeListFetched,
@@ -180,6 +180,11 @@ export function OnlinestreamPage({ entry, bottomSection }: { entry: Anime_Entry,
         error: episodeListFailure,
         refetch: retryEpisodeList,
     } = useGetOnlineStreamEpisodeList(mediaId, provider, dubbed)
+    // The list goes with its last reader (gcTime 0) and the hidden Online tab does not read (P5): shown again, the page
+    // keeps the list it had for this anime, provider and audio while the list is fetched again, instead of building its
+    // skeleton and then all rows anew
+    const listKey = `${mediaId}|${provider}|${dubbed}`
+    const episodeListResponse = useKeptEpisodeList(fetchedEpisodeList, listKey)
     // no entry at this provider is an empty list, not a provider error
     const episodeListError = episodeListFailed && !isNoEntryFound(episodeListFailure)
     const episodes = episodeListResponse?.episodes
@@ -210,7 +215,7 @@ export function OnlinestreamPage({ entry, bottomSection }: { entry: Anime_Entry,
         provider,
         currentEpisodeNumber,
         sourceDubbed,
-        !!mediaId && currentEpisodeNumber !== null && episodeListFetched
+        !!mediaId && currentEpisodeNumber !== null && (episodeListFetched || (!!episodes && !episodeListFailed))
             && initializedMedia === mediaId && !!episodes?.some(e => e.number === currentEpisodeNumber),
     )
     const { mutateAsync: refreshEpisodeSource } = useRefreshOnlineStreamEpisodeSource()
@@ -513,13 +518,24 @@ export function OnlinestreamPage({ entry, bottomSection }: { entry: Anime_Entry,
     React.useEffect(() => {
         if (attachedMedia.current === mediaId) return
         attachedMedia.current = mediaId
-        setOnline(current => current?.events === eventsRef ? { ...current, hasNext: false, hasPrevious: false, events: { current: null } } : current)
+        setOnline(current => detachedOnline(current, eventsRef))
     }, [mediaId, setOnline])
-    // Leaving the anime page: the same, the stream plays on (mini player) without previous/next
+    // Leaving the anime page or its Online tab: the same, the stream plays on (mini player) without previous/next. The tab
+    // stays built while hidden (P5, React's Activity runs this cleanup then too), so the page lets go of the stream as a
+    // closed player leaves it: shown again it waits for a tap like a newly built one, with its episode and source kept
+    const letGo = useLatestFunction(() => {
+        setActive(false)
+        setBuilt(null)
+        setStartSeconds(undefined)
+        setStartWhenClosed(false)
+        setErrorState(null)
+        if (cycler.isTrying) cycler.cancel()
+    })
     React.useEffect(() => () => {
         eventsRef.current = null
-        setOnline(current => current?.events === eventsRef ? { ...current, hasNext: false, hasPrevious: false } : current)
-    }, [setOnline])
+        setOnline(current => detachedOnline(current, eventsRef))
+        letGo()
+    }, [setOnline, letGo])
 
     // Rows draw again only when what they show changes, not with every fetch state of the page (provider switch + scrolling)
     const selectEpisodeStable = useLatestFunction(selectEpisode)

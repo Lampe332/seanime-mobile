@@ -44,6 +44,7 @@ import Unlink from "lucide-react-native/icons/unlink"
 import { successFeedback } from "@/lib/feedback"
 import React from "react"
 import { useAfterPageEnter } from "@/components/shared/cover-flight"
+import { FIRST_ROWS, ROW_STEP, useStagedCount } from "@/main/entry/_lib/staged-count"
 import { PixelRatio, Pressable, TextInput, useWindowDimensions, View } from "react-native"
 import { snapRow } from "@/components/shared/cover-layout"
 import { formatDate } from "@/lib/i18n/format"
@@ -63,8 +64,6 @@ const PAGE = 24
 const libraryEpisodeItems = forEpisodeType("library")
 const PAGINATE_FROM = 29
 const UNDOWNLOADED_MAX = 28
-/** Rows built in the frame of the tap (more than fit on a tablet's right column) */
-const FIRST_ROWS = 10
 
 export function EpisodeSection({ entry, bottomSection }: { entry: Anime_Entry, bottomSection?: React.ReactNode }) {
     const t = useTr()
@@ -72,9 +71,12 @@ export function EpisodeSection({ entry, bottomSection }: { entry: Anime_Entry, b
     const { playMediaFile } = useHandlePlayMedia()
     const { data: watchHistory } = useGetContinuityWatchHistory()
     const [page, setPage] = React.useState(1)
-    // the tap's frame builds only the rows on screen; the rest (below the fold) follows once the page has come in
+    // the tap's frame builds only the rows on screen; the rest (below the fold) follows once the page has come in, a few
+    // rows per frame (staged-count.ts), then the specials and others. Both lists hold at most UNDOWNLOADED_MAX rows
+    // (a page of PAGE, or fewer than PAGINATE_FROM).
     const ready = useAfterPageEnter(entry.mediaId)
-    const rows = ready ? UNDOWNLOADED_MAX : FIRST_ROWS
+    const rows = useStagedCount(UNDOWNLOADED_MAX + 1, { first: FIRST_ROWS, step: ROW_STEP, active: ready, key: entry.mediaId })
+    const rest = rows > UNDOWNLOADED_MAX
 
     if (!media) return null
 
@@ -104,7 +106,7 @@ export function EpisodeSection({ entry, bottomSection }: { entry: Anime_Entry, b
     const paginate = mainEpisodes.length >= PAGINATE_FROM
     const pages = paginate ? Math.ceil(mainEpisodes.length / PAGE) : 1
     const pageEpisodes = paginate ? mainEpisodes.slice((page - 1) * PAGE, page * PAGE) : mainEpisodes
-    const shown = ready ? pageEpisodes : pageEpisodes.slice(0, FIRST_ROWS)
+    const shown = pageEpisodes.slice(0, rows)
 
     return <View className="gap-6">
         <PhoneDownloadedEpisodes mediaId={entry.mediaId} />
@@ -130,13 +132,13 @@ export function EpisodeSection({ entry, bottomSection }: { entry: Anime_Entry, b
 
             {!entry._isNakamaEntry && <UndownloadedEpisodeList downloadInfo={entry.downloadInfo} media={media} watchedProgress={entry.listData?.progress} rows={rows} />}
 
-            {ready && specialEpisodes.length > 0 && <View className="gap-2">
+            {rest && specialEpisodes.length > 0 &&<View className="gap-2">
                 <SectionTitle>{t("Specials", "Specials")}</SectionTitle>
                 <View>{specialEpisodes.map(episode => <EpisodeItem key={episode.localFile?.path || episode.displayTitle} episode={episode} media={media}
                     watchedProgress={entry.listData?.progress} onPlay={play} />)}</View>
             </View>}
 
-            {ready && ncEpisodes.length > 0 && <View className="gap-2">
+            {rest && ncEpisodes.length > 0 &&<View className="gap-2">
                 <SectionTitle>{t("Others", "Sonstiges")}</SectionTitle>
                 <View>{ncEpisodes.map(episode => <EpisodeItem key={episode.localFile?.path} episode={episode} media={media}
                     watchedProgress={entry.listData?.progress} onPlay={play} />)}</View>
@@ -256,13 +258,14 @@ export function PluginEpisodeMenu({ type, episode, title }: { type: keyof typeof
     if (!items.length) return null
     return <>
         <IconAction icon={Ellipsis} label={t("Episode options", "Optionen der Folge")} onPress={setMenuAt} />
-        <CardMenu anchor={menuAt} title={title} onClose={close} items={items.map(item => ({ id: `plugin:${item.extensionId}:${item.id}`,
-            label: item.label || "???", icon: Puzzle, onPress: () => run(item, { episode, type }) }))} />
+        {!!menuAt && <CardMenu anchor={menuAt} title={title} onClose={close} items={items.map(item => ({ id: `plugin:${item.extensionId}:${item.id}`,
+            label: item.label || "???", icon: Puzzle, onPress: () => run(item, { episode, type }) }))} />}
     </>
 }
 
 /** A library episode: lock toggle and its menu (Mark as watched, File info, Update metadata, Copy stream URL, Unmatch) */
-function EpisodeItem({ episode, media, isWatched, watchedProgress, onPlay, percentageComplete, mobileEntry }: {
+/** memo: a stage of more rows (staged-count.ts) leaves the rows already built alone */
+const EpisodeItem = React.memo(function EpisodeItem({ episode, media, isWatched, watchedProgress, onPlay, percentageComplete, mobileEntry }: {
     episode: Anime_Episode
     media: AL_BaseAnime
     isWatched?: boolean
@@ -321,11 +324,12 @@ function EpisodeItem({ episode, media, isWatched, watchedProgress, onPlay, perce
                     onPress={() => episode.localFile && updateLocalFile(episode.localFile, { locked: !episode.localFile.locked })} />}
                 <IconAction icon={Ellipsis} label={t("Episode options", "Optionen der Folge")} onPress={setMenuAt} />
             </>} />
-        <CardMenu anchor={menuAt} title={episode.displayTitle} items={items} onClose={closeMenu} />
+        {/* only while open: closed it renders nothing, but its window, inset and bar hooks ran in every row */}
+        {!!menuAt && <CardMenu anchor={menuAt} title={episode.displayTitle} items={items} onClose={closeMenu} />}
         {sheet === "info" && <EpisodeInfoDialog episode={episode} onClose={() => setSheet(null)} />}
         {sheet === "metadata" && <MetadataSheet episode={episode} onClose={() => setSheet(null)} />}
     </>
-}
+})
 
 /** "File info": the file name and the episode's details, instead of the name under every title */
 export function EpisodeInfoDialog({ episode, onClose }: { episode: Anime_Episode, onClose: () => void }) {

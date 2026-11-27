@@ -5,6 +5,7 @@ import { Text } from "@/components/ui/text/text"
 import { useTr } from "@/lib/app-language"
 import { EpisodeInfoDialog, EpisodeRow, IconAction, PluginEpisodeMenu, UpNextRow } from "@/main/entry/_containers/episode-list/episode-section"
 import { usePlayNextVideoOnMount } from "@/main/entry/_lib/handle-play-on-mount"
+import { FIRST_ROWS, ROW_STEP, useStagedCount } from "@/main/entry/_lib/staged-count"
 import Info from "lucide-react-native/icons/info"
 import React from "react"
 import { Pressable, View } from "react-native"
@@ -50,7 +51,11 @@ export function TorrentStreamEpisodeSection({ entry, episodeCollection, onEpisod
         setPageFor(startPage)
         setPage(startPage)
     }
-    const shown = paginate ? (episodes ?? []).slice((page - 1) * PAGE, page * PAGE) : episodes ?? []
+    const pageEpisodes = paginate ? (episodes ?? []).slice((page - 1) * PAGE, page * PAGE) : episodes ?? []
+    // a tab switch builds the rows on screen in its frame, the rest a few per frame (staged-count.ts); another page of
+    // the list shows whole, so the scroll position by the page buttons stays
+    const rows = useStagedCount(pageEpisodes.length, { first: FIRST_ROWS, step: ROW_STEP, key: entry.mediaId })
+    const shown = pageEpisodes.slice(0, rows)
     const [info, setInfo] = React.useState<Anime_Episode | null>(null)
 
     if (!episodeCollection || !entry.media) return null

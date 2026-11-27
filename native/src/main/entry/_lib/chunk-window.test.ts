@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { chunkRange, holdRange, rowEstimate } from "./chunk-window"
+import { chunkRange, growRange, holdRange, rowEstimate } from "./chunk-window"
 
 describe("chunkRange", () => {
     const heights = [100, 100, 100, 100, 100]
@@ -52,5 +52,22 @@ describe("rowEstimate", () => {
     })
     it("uses the fallback before any row was drawn", () => {
         expect(rowEstimate([], 79)).toBe(79)
+    })
+})
+
+describe("growRange", () => {
+    it("adds one chunk ahead of the screen per step", () => {
+        expect(growRange([0, 0], [0, 4], [0, 1])).toEqual([0, 1])
+        expect(growRange([0, 1], [0, 4], [0, 1])).toEqual([0, 2])
+        expect(growRange([0, 3], [0, 4], [0, 1])).toEqual([0, 4])
+    })
+    it("draws the chunks on screen at once", () => {
+        expect(growRange([0, 0], [0, 9], [5, 6])).toEqual([0, 6])
+        expect(growRange([5, 8], [2, 8], [3, 4])).toEqual([3, 8])
+    })
+    it("never holds back shrinking or an empty list", () => {
+        expect(growRange([0, 5], [2, 4], [2, 3])).toEqual([2, 4])
+        expect(growRange([0, 5], [0, -1], [0, -1])).toEqual([0, -1])
+        expect(growRange([0, -1], [0, 3], [0, 1])).toEqual([0, 3])
     })
 })
