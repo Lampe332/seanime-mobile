@@ -35,6 +35,11 @@ Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lamp
 - ⚡️ Edit sheet and search: Both open without a hitch. Typing no longer redraws the whole page, the sheet fills in its fields right after it slides in, and the first search results come in a couple of rows at a time
 - ⚡️ Anime page: Opens lighter. The parts below the screen wait and the first ten episode rows come first
 - ⚡️ Discover and More menu: Open lighter. The More menu stays ready and only fades in and out
+- ⚡️ Anime page: Switching between Library, Torrent, Debrid and Online is smooth. Tabs you opened stay ready, and Online keeps its episodes and chosen source
+- ⚡️ Search: Sorting, filtering and typing swap the results in without a stutter
+- ⚡️ My Lists, Discover and the pages in More: Open smoothly the first time after start. Their data loads quietly in the background, and Discover's rows come in one after another
+- ⚡️ Manga page: The chapter list appears without a hitch
+- ⚡️ Your year: Opens right away and counts in the background
 - ⚡️ Translations: The new texts are translated into Spanish, French, Japanese, Brazilian Portuguese, Russian and Simplified Chinese
 - 🦺 Player: Play on the last frame of a finished episode starts it again. Before, it did nothing until you seeked back
 - 🦺 Edit sheet: Saving closes the sheet. If saving fails, it stays open with a note
