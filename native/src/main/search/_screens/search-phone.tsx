@@ -281,7 +281,7 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
         setSeen({ key: shownKey, items: gridItems, type: cellType })
         if (shownKey !== seen.key) {
             setSwap(wasShowing && showing && !stale && seen.items.length
-                ? { from: nextSwapFrom(0, grid.columns * FIRST_ROWS, gridItems.length), before: seen.items, type: seen.type }
+                ? { from: nextSwapFrom(0, grid.columns * SWAP_ROWS, gridItems.length), before: seen.items, type: seen.type }
                 : NO_SWAP)
         }
     }
@@ -393,7 +393,7 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
                 <FlashList
                     ref={list}
                     data={listItems}
-                    keyExtractor={media => String(media.id)}
+                    keyExtractor={cellKey}
                     numColumns={grid.columns}
                     renderItem={renderItem}
                     ListHeaderComponent={<View style={{ paddingHorizontal: grid.gap / 2 }}>{header}</View>}
@@ -437,7 +437,10 @@ const EMPTY: Media[] = []
 /** rows of cards in the first commit of new results: what a phone shows under the search head (S22: about 1.5 rows) */
 const FIRST_ROWS = 2
 /** rows of cells per frame that take their new card when new results replace shown ones */
-const SWAP_ROWS = 2
+const SWAP_ROWS = 1
+/** A cell is its place in the grid (results are only appended): keyed by title, FlashList handed the mounted cells to other
+ * places when new results came, so every cell rendered another card in the first commit (S22 27.11.: 38–43 ms frame per sort chip) */
+const cellKey = (_media: Media, index: number) => String(index)
 
 /** AniList pages of the search, 48 at a time; the server caches each page for ten minutes. */
 function useSearchResults(type: SearchType, variables: ReturnType<typeof searchVariables>) {
