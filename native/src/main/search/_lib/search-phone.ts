@@ -601,3 +601,12 @@ export function withoutAnilistMatches<T extends TitledMedia>(others: T[], anilis
             && [...titles].some(title => media.titles.has(title)))
     })
 }
+
+/**
+ * The switch of new results over shown cards (search-phone.tsx `swapFrom`): the cells from this index on still show their
+ * card before; each frame `step` more take their new one, and once all have, the switch ends (Infinity).
+ */
+export function nextSwapFrom(from: number, step: number, length: number): number {
+    const next = from + step
+    return next >= length ? Infinity : next
+}

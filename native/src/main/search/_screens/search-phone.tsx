@@ -33,6 +33,7 @@ import {
     activeSearchSort,
     clearSearchFilters,
     nextSearchPage,
+    nextSwapFrom,
     removeSearchFilter,
     resultCardFacts,
     SEARCH_DEFAULTS,
@@ -237,10 +238,8 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
     }, [height])
     const cellType = shown?.type ?? state.type
     // the dimming of stale results comes from a context: a new sort or filter redraws only the cells' wrappers, not the cards
-    const renderItem = React.useCallback(({ item }: { item: Media }) => (
-        <StaleDim paddingHorizontal={grid.gap / 2} paddingBottom={grid.rowGap}>
-            <ResultCell media={item} type={cellType} width={grid.width} />
-        </StaleDim>
+    const renderItem = React.useCallback(({ item, index }: { item: Media, index: number }) => (
+        <ResultSlot media={item} index={index} type={cellType} width={grid.width} paddingHorizontal={grid.gap / 2} paddingBottom={grid.rowGap} />
     ), [grid.gap, grid.rowGap, grid.width, cellType])
 
     let body: React.ReactNode = null
@@ -270,6 +269,32 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
     const showing = gridItems.length > 0
     const [wasShowing, setWasShowing] = React.useState(showing)
     const [firstBatch, setFirstBatch] = React.useState(false)
+    // New results over shown cards (a sort chip, a filter, a typed title) reach the mounted cells a few rows per frame: the
+    // rows under the head first, the cells further down keep their dimmed card until their turn (S22 26.11., sort chip:
+    // every cell's new card in one commit, 37–48 ms on the UI thread)
+    // The cards before come from here, not from each cell: a cell keeping its card in state set it again on every recycle
+    // while scrolling (a second render per cell, S22 27.11.: Search's first open 36–46 % janky)
+    const shownKey = shown?.key
+    const [seen, setSeen] = React.useState({ key: shownKey, items: gridItems, type: cellType })
+    const [swap, setSwap] = React.useState<Swap>(NO_SWAP)
+    if (shownKey !== seen.key || gridItems !== seen.items || cellType !== seen.type) {
+        setSeen({ key: shownKey, items: gridItems, type: cellType })
+        if (shownKey !== seen.key) {
+            setSwap(wasShowing && showing && !stale && seen.items.length
+                ? { from: nextSwapFrom(0, grid.columns * FIRST_ROWS, gridItems.length), before: seen.items, type: seen.type }
+                : NO_SWAP)
+        }
+    }
+    const swapping = swap.from !== Infinity
+    const swapLength = gridItems.length
+    React.useEffect(() => {
+        if (!swapping) return
+        const frame = requestAnimationFrame(() => setSwap(current => {
+            const from = nextSwapFrom(current.from, grid.columns * SWAP_ROWS, swapLength)
+            return from === Infinity ? NO_SWAP : { ...current, from }
+        }))
+        return () => cancelAnimationFrame(frame)
+    }, [swapping, swap.from, swapLength, grid.columns])
     if (showing !== wasShowing) {
         setWasShowing(showing)
         setFirstBatch(showing)
@@ -364,6 +389,7 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
             <View className={cn("w-full flex-1", !rail && "max-w-[1152px] self-center")} style={{ paddingHorizontal: gutter }}
                 onLayout={event => setContentWidth(event.nativeEvent.layout.width - gutter * 2)}>
                 <StaleContext value={stale}>
+                <SwapContext value={swap}>
                 <FlashList
                     ref={list}
                     data={listItems}
@@ -389,6 +415,7 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
                     style={{ marginHorizontal: -grid.gap / 2 }}
                     contentContainerStyle={{ paddingTop: top, paddingBottom: pageBottom }}
                 />
+                </SwapContext>
                 </StaleContext>
             </View>
             {/* After two screens of results, a button above the bottom bar goes back to the field, sort and filters */}
@@ -409,6 +436,8 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
 const EMPTY: Media[] = []
 /** rows of cards in the first commit of new results: what a phone shows under the search head (S22: about 1.5 rows) */
 const FIRST_ROWS = 2
+/** rows of cells per frame that take their new card when new results replace shown ones */
+const SWAP_ROWS = 2
 
 /** AniList pages of the search, 48 at a time; the server caches each page for ten minutes. */
 function useSearchResults(type: SearchType, variables: ReturnType<typeof searchVariables>) {
@@ -513,9 +542,28 @@ function RecentSearches({ t, terms, onSearch, onRemove, onClear }: {
 /** Whether the shown results belong to the search before (a new one loads): their cells are dimmed. */
 const StaleContext = React.createContext(false)
 
-function StaleDim({ paddingHorizontal, paddingBottom, children }: { paddingHorizontal: number, paddingBottom: number, children: React.ReactNode }) {
+/** A switch of new results over shown cards: from index `from` on, the cells still show their card of `before` */
+type Swap = { from: number, before: readonly Media[], type: SearchType }
+const NO_SWAP: Swap = { from: Infinity, before: [], type: "anime" }
+/** From which cell index on the cells still show their card before (new results reach them a few rows per frame) */
+const SwapContext = React.createContext<Swap>(NO_SWAP)
+
+/** A grid cell: dimmed while its results are stale, and until its turn in a switch it keeps its card before, dimmed too */
+function ResultSlot({ media, index, type, width, paddingHorizontal, paddingBottom }: {
+    media: Media
+    index: number
+    type: SearchType
+    width: number
+    paddingHorizontal: number
+    paddingBottom: number
+}) {
     const stale = React.use(StaleContext)
-    return <View style={{ paddingHorizontal, paddingBottom, opacity: stale ? 0.45 : 1 }}>{children}</View>
+    const swap = React.use(SwapContext)
+    const before = index >= swap.from ? swap.before[index] : undefined
+    const waiting = !!before && before.id !== media.id
+    return <View style={{ paddingHorizontal, paddingBottom, opacity: stale || waiting ? 0.45 : 1 }}>
+        <ResultCell media={waiting ? before : media} type={waiting ? swap.type : type} width={width} />
+    </View>
 }
 
 export const ResultCell = React.memo(function ResultCell({ media, type, width }: { media: Media, type: SearchType, width: number }) {

@@ -96,17 +96,23 @@ export function SettingsSearch({ t, sections, query, onQuery, onOpen, compact, t
     const conditions = useSearchConditions(tablet)
     const hits = React.useMemo(() => searching ? searchSettings(searchDocs(language, sections), word, undefined, conditions) : NO_HITS,
         [conditions, language, searching, sections, word])
+    const showHits = searching && text.trim() !== ""
     return (
         <View className="gap-4">
             <SearchField value={text} onChangeText={onText} placeholder={t("Search settings", "Einstellungen durchsuchen")} />
-            {text.trim() === "" || !searching ? children : <SearchHits t={t} hits={hits} sections={sections} onOpen={openHit} compact={compact} />}
+            {/* the areas stay mounted under the hits (hidden), so emptying the field shows them without building them again */}
+            <View style={showHits ? HIDDEN : undefined}>{children}</View>
+            {showHits && <SearchHits t={t} hits={hits} sections={sections} onOpen={openHit} compact={compact} />}
         </View>
     )
 }
 
 const NO_HITS: SettingsSearchDoc[] = []
-/** about a phone screen of hits */
-const FIRST_HITS = 8
+const HIDDEN = { display: "none" } as const
+/** the hits above the open keyboard (S22: about four); the rest follow a few per frame */
+const FIRST_HITS = 5
+/** hits mounted per further frame: eight with their three-line notes in one frame were too much (S22 26.11., typing "player" 27 % janky) */
+const HITS_PER_FRAME = 4
 
 const SearchHits = React.memo(function SearchHits({ t, hits, sections, onOpen, compact }: {
     t: Translate
@@ -118,7 +124,7 @@ const SearchHits = React.memo(function SearchHits({ t, hits, sections, onOpen, c
     const colors = useThemeColors()
     const icons = React.useMemo(() => Object.fromEntries(sections.map(section => [section.id, section.icon])) as Record<SettingsSectionId, LucideIcon>, [sections])
     // the first hits fill the screen in the first frame, the rest follow a few per frame (all of them at once was 75 ms)
-    const shown = useStaggeredCount(hits.length, FIRST_HITS, FIRST_HITS)
+    const shown = useStaggeredCount(hits.length, FIRST_HITS, HITS_PER_FRAME)
     if (hits.length === 0) {
         return (
             <View accessible accessibilityLiveRegion="polite" className="items-center gap-1 px-4 py-10">

@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest"
 import {
     activeSearchSort,
     clearSearchFilters,
+    nextSwapFrom,
     searchSortChips,
     selectSearchSort,
     withSearchTitle,
@@ -323,5 +324,13 @@ describe("withoutAnilistMatches", () => {
         expect(withoutAnilistMatches([tvmaze("Naruto", 2002)], [])).toHaveLength(1)
         // no year on one side: the title alone decides
         expect(withoutAnilistMatches([tvmaze("Naruto")], anilist)).toHaveLength(0)
+    })
+})
+
+describe("nextSwapFrom", () => {
+    it("moves the switch on by a step per frame and ends it once every cell has its new card", () => {
+        expect(nextSwapFrom(6, 6, 48)).toBe(12)
+        expect(nextSwapFrom(42, 6, 48)).toBe(Infinity)
+        expect(nextSwapFrom(6, 6, 10)).toBe(Infinity)
     })
 })
