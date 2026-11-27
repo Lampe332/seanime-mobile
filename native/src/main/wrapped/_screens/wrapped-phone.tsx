@@ -144,7 +144,7 @@ function WrappedContent({ t, view }: { t: Translate, view: WrappedView }) {
         !!view.longest && view.titles > 1 && view.longest.episodes > 1 && <WrappedLongest key="longest" t={t} item={view.longest} />,
         !!view.manga && <WrappedManga key="manga" t={t} manga={view.manga} />,
     ].filter(Boolean) as React.ReactElement[]
-    // the cards below the first screen and the share image (its 1080 x 1350 capture) are built once the page has come in
+    // the cards below the first screen and the share image's section are built once the page has come in
     const entered = useAfterPageEnter()
     const shown = entered ? cards : cards.slice(0, columns * 2)
 

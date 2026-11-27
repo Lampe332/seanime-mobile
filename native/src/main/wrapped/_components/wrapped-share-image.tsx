@@ -23,9 +23,13 @@ const COLUMN = 576
 /**
  * The shareable picture of the year, drawn in 1080 x 1350 units: the accent glows out of a dark ground, the year's three
  * numbers as a ledger, then the best rated titles, the top genres and the top studio. Only parts with data are drawn.
- * Fills the parent; WrappedShareSection turns it into a PNG with toDataURL.
+ * Fills the parent; WrappedShareSection shows it and turns it into a PNG with toDataURL.
+ * `parts` draws it step by step (ground and head, numbers, top rated, lists and foot): its first draw in one frame took
+ * 42 ms on the UI thread (S22 27.11.), mostly the text.
  */
-export function WrappedShareImage({ card, t, ref }: { card: ShareCard, t: Translate, ref: React.Ref<Svg> }) {
+export const SHARE_PARTS = 4
+
+export function WrappedShareImage({ card, t, ref, parts = SHARE_PARTS }: { card: ShareCard, t: Translate, ref: React.Ref<Svg>, parts?: number }) {
     const palette = usePalette()
     const colors = useThemeColors()
     const ramp = palette.ramp
@@ -60,7 +64,7 @@ export function WrappedShareImage({ card, t, ref }: { card: ShareCard, t: Transl
             <Text x={SHARE_PAD} y={236} fill={text} fontFamily={FONT} fontWeight="800" letterSpacing={-1.5}
                 fontSize={fitFontSize(card.heading.length, INNER, 76)}>{card.heading}</Text>
 
-            {card.stats.map((stat, index) => {
+            {parts >= 2 && card.stats.map((stat, index) => {
                 const top = layout.stats + index * SHARE_SIZES.statRow
                 return (
                     <React.Fragment key={stat.key}>
@@ -73,9 +77,9 @@ export function WrappedShareImage({ card, t, ref }: { card: ShareCard, t: Transl
                     </React.Fragment>
                 )
             })}
-            <Line x1={SHARE_PAD} x2={RIGHT} y1={statsEnd} y2={statsEnd} stroke={colors.smLineStrong} strokeWidth={2} />
+            {parts >= 2 && <Line x1={SHARE_PAD} x2={RIGHT} y1={statsEnd} y2={statsEnd} stroke={colors.smLineStrong} strokeWidth={2} />}
 
-            {rated !== null && (
+            {parts >= 3 && rated !== null && (
                 <>
                     <Text x={SHARE_PAD} y={rated + 40} fill={accent} fontFamily={FONT} fontSize={30} fontWeight="600">
                         {t("Top rated", "Am besten bewertet")}
@@ -93,7 +97,7 @@ export function WrappedShareImage({ card, t, ref }: { card: ShareCard, t: Transl
                 </>
             )}
 
-            {lists !== null && (
+            {parts >= 4 && lists !== null && (
                 <>
                     {card.genres.length > 0 && (
                         <>
@@ -119,7 +123,7 @@ export function WrappedShareImage({ card, t, ref }: { card: ShareCard, t: Transl
                 </>
             )}
 
-            <Text x={SHARE_PAD} y={SHARE_HEIGHT - 88} fill={colors.smTextSubtle} fontFamily={FONT} fontSize={26} fontWeight="400">{card.footer}</Text>
+            {parts >= 4 && <Text x={SHARE_PAD} y={SHARE_HEIGHT - 88} fill={colors.smTextSubtle} fontFamily={FONT} fontSize={26} fontWeight="400">{card.footer}</Text>}
         </Svg>
     )
 }
