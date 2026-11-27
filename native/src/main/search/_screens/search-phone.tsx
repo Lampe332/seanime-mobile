@@ -263,12 +263,13 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
         </PhoneEmpty>
     }
     const gridItems = body ? EMPTY : items
-    // The first results of a search come in two frames: the rows the screen shows under the head first, the rest of the
-    // list's draw range one frame later (S22 trace 26.11., "naruto": all cells in one commit, 114–133 ms JS, a 34 ms frame).
+    // The first results of a search come in over a few frames: the rows the screen shows under the head first, then one
+    // more row per frame (S22 trace 26.11., "naruto": all cells in one commit, 114–133 ms JS, a 34 ms frame; 27.11., first
+    // open: the rest of the draw range in the second frame, 38–40 ms on the UI thread).
     // Only when the grid had no cards before; new results over dimmed ones reuse the mounted cells.
     const showing = gridItems.length > 0
     const [wasShowing, setWasShowing] = React.useState(showing)
-    const [firstBatch, setFirstBatch] = React.useState(false)
+    const [stagedRows, setStagedRows] = React.useState(0)
     // New results over shown cards (a sort chip, a filter, a typed title) reach the mounted cells a few rows per frame: the
     // rows under the head first, the cells further down keep their dimmed card until their turn (S22 26.11., sort chip:
     // every cell's new card in one commit, 37–48 ms on the UI thread)
@@ -297,14 +298,16 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
     }, [swapping, swap.from, swapLength, grid.columns])
     if (showing !== wasShowing) {
         setWasShowing(showing)
-        setFirstBatch(showing)
+        setStagedRows(showing ? FIRST_ROWS : 0)
     }
+    const firstBatch = stagedRows > 0 && stagedRows * grid.columns < gridItems.length
+    if (stagedRows && !firstBatch) setStagedRows(0)
     React.useEffect(() => {
         if (!firstBatch) return
-        const frame = requestAnimationFrame(() => setFirstBatch(false))
+        const frame = requestAnimationFrame(() => setStagedRows(rows => rows && rows < STAGED_ROWS ? rows + 1 : 0))
         return () => cancelAnimationFrame(frame)
-    }, [firstBatch])
-    const listItems = firstBatch ? gridItems.slice(0, grid.columns * FIRST_ROWS) : gridItems
+    }, [stagedRows, firstBatch])
+    const listItems = firstBatch ? gridItems.slice(0, grid.columns * stagedRows) : gridItems
 
     const header = (
         <View className="gap-6 pb-3">
@@ -436,6 +439,8 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
 const EMPTY: Media[] = []
 /** rows of cards in the first commit of new results: what a phone shows under the search head (S22: about 1.5 rows) */
 const FIRST_ROWS = 2
+/** Rows that come in one per frame after them; past these the list's draw range is full and the rest costs no views */
+const STAGED_ROWS = 8
 /** rows of cells per frame that take their new card when new results replace shown ones */
 const SWAP_ROWS = 1
 /** A cell is its place in the grid (results are only appended): keyed by title, FlashList handed the mounted cells to other
