@@ -41,7 +41,6 @@ import ArrowRight from "lucide-react-native/icons/arrow-right"
 import ArrowUpNarrowWide from "lucide-react-native/icons/arrow-up-narrow-wide"
 import BookOpen from "lucide-react-native/icons/book-open"
 import ChevronDown from "lucide-react-native/icons/chevron-down"
-import CircleCheck from "lucide-react-native/icons/circle-check"
 import Download from "lucide-react-native/icons/download"
 import EllipsisVertical from "lucide-react-native/icons/ellipsis-vertical"
 import Hash from "lucide-react-native/icons/hash"
@@ -67,6 +66,41 @@ import { ActivityIndicator, Pressable, TextInput, type TextInputInstance, useWin
 const MOBILE_PAGE_SIZE = 30
 /** a chapter row's least height (`min-h-14`): a window holds at most its height over this many rows */
 const ROW_MIN_HEIGHT = 56
+// rows arrive a few per frame: the list landing at once was one 68 ms frame on the S22 (37 ms of it drawing the icons)
+const ROWS_FIRST = 5
+const ROWS_PER_FRAME = 5
+
+function useStagedRows(target: number, key: unknown) {
+    const [staged, setStaged] = React.useState({ key, steps: 0 })
+    const steps = Object.is(staged.key, key) ? staged.steps : 0
+    const count = Math.min(target, ROWS_FIRST + steps * ROWS_PER_FRAME)
+    React.useEffect(() => {
+        if (count >= target) return
+        const frame = requestAnimationFrame(() => setStaged({ key, steps: steps + 1 }))
+        return () => cancelAnimationFrame(frame)
+    }, [count, target, key, steps])
+    return count
+}
+
+/** The row's download arrow (lucide `download`, 20) from three plain views: an SVG per row cost five native views each */
+const RowDownloadIcon = React.memo(function RowDownloadIcon({ color }: { color: string }) {
+    return <View style={{ width: 20, height: 20 }}>
+        <View style={{ position: "absolute", left: 9.17, top: 2.5, width: 1.67, height: 10, borderRadius: 1, backgroundColor: color }} />
+        <View style={{ position: "absolute", left: 7.05, top: 5.39, width: 5.9, height: 5.9, borderRightWidth: 1.67, borderBottomWidth: 1.67,
+            borderColor: color, transform: [{ rotate: "45deg" }] }} />
+        <View style={{ position: "absolute", left: 1.67, top: 12.5, width: 16.67, height: 5.83, borderLeftWidth: 1.67, borderRightWidth: 1.67,
+            borderBottomWidth: 1.67, borderBottomLeftRadius: 2.5, borderBottomRightRadius: 2.5, borderColor: color }} />
+    </View>
+})
+
+/** The row's "downloaded" mark (lucide `circle-check`, 22), drawn the same way */
+const RowCheckIcon = React.memo(function RowCheckIcon({ color }: { color: string }) {
+    return <View style={{ width: 22, height: 22, alignItems: "center", justifyContent: "center" }}>
+        <View style={{ width: 20.17, height: 20.17, borderRadius: 10.09, borderWidth: 1.83, borderColor: color }} />
+        <View style={{ position: "absolute", left: 9.25, top: 7.04, width: 3.5, height: 6.1, borderRightWidth: 1.83, borderBottomWidth: 1.83,
+            borderColor: color, transform: [{ rotate: "45deg" }] }} />
+    </View>
+})
 
 const __manga_chapterListOrderAtom = atomWithStorage(CHAPTER_ORDER_STORAGE.all.key, CHAPTER_ORDER_STORAGE.all.initial as "newest" | "oldest")
 const __manga_unreadChapterListOrderAtom = atomWithStorage(CHAPTER_ORDER_STORAGE.unread.key, CHAPTER_ORDER_STORAGE.unread.initial as "newest" | "oldest")
@@ -145,6 +179,7 @@ export function ChapterList({ mediaId, entry, downloadData, downloadDataLoading,
     const setChapterOrder = showUnreadChapter ? setUnreadOrder : setAllOrder
     const chapters = React.useMemo(() => showUnreadChapter ? orderChapters(unreadChapters, chapterOrder) : allChapters,
         [showUnreadChapter, unreadChapters, allChapters, chapterOrder])
+    const shownRows = useStagedRows(Math.min(rowCount, chapters.length), mediaId)
     const downloadableUnreadChapters = React.useMemo(() => unreadChapters.filter(chapter => !isChapterLocal(chapter) && !isChapterDownloaded(chapter) && !isChapterQueued(chapter)),
         [unreadChapters, isChapterDownloaded, isChapterLocal, isChapterQueued])
     const [confirmUnread, setConfirmUnread] = React.useState(false)
@@ -315,7 +350,7 @@ export function ChapterList({ mediaId, entry, downloadData, downloadDataLoading,
                         {/* `.mobile-chapter-list`: plain rows on the page with a hairline under each, no cards */}
                         <View accessibilityLabel={t("Chapters", "Kapitel")}
                             onLayout={event => { rowsY.current = event.nativeEvent.layout.y }}>
-                            {chapters.slice(0, rowCount).map(chapter => {
+                            {chapters.slice(0, shownRows).map(chapter => {
                                 const downloaded = isChapterDownloaded(chapter)
                                 const queued = isChapterQueued(chapter)
                                 const canDownload = !isChapterLocal(chapter) && !downloaded && !queued
@@ -334,11 +369,11 @@ export function ChapterList({ mediaId, entry, downloadData, downloadDataLoading,
                                     {canDownload && <Pressable accessibilityRole="button" disabled={isSendingDownloadRequest} onPress={() => downloadChapters([chapter])}
                                         accessibilityLabel={t(`Download chapter ${chapter.chapter}`, `Kapitel ${chapter.chapter} laden`)}
                                         className="h-12 w-12 items-center justify-center rounded-full active:bg-sm-surface-control">
-                                        <Download size={20} color={colors.smTextMuted} />
+                                        <RowDownloadIcon color={colors.smTextMuted} />
                                     </Pressable>}
                                     {queued && <Text className="px-3 text-xs text-sm-text-subtle">{t("Queued", "Eingeplant")}</Text>}
                                     {downloaded && <View accessibilityLabel={t("Downloaded", "Geladen")} className="h-12 w-12 items-center justify-center">
-                                        <CircleCheck size={22} color={colors.smAccent} />
+                                        <RowCheckIcon color={colors.smAccent} />
                                     </View>}
                                 </View>
                             })}
