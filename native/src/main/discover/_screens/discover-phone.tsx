@@ -20,6 +20,8 @@ import {
 } from "@/components/shared/phone-cards"
 import { PhoneScreen } from "@/components/shared/phone-screen"
 import { Button } from "@/components/ui/button/button"
+import { PageFocusContext } from "@/components/ui/core/page-focus"
+import { whenPagesQuiet } from "@/components/ui/core/page-transition"
 import { useSwapStyle } from "@/components/ui/core/swap"
 import { useImageFade } from "@/components/ui/core/image-fade"
 import { cn } from "@/components/ui/core/styling"
@@ -97,6 +99,9 @@ const ALL = "all"
  * lead to their screens. Rows load at once (a ScrollView has no
  * IntersectionObserver, as Home's carousels); the tab stays mounted, so Back from an entry page lands where it was left.
  */
+/** after the shown tab came in, before the next one is built ahead */
+const TAB_AHEAD_MS = 1500
+
 export function DiscoverPhone() {
     const t = useTr()
     const serverStatus = useServerStatus()
@@ -135,6 +140,22 @@ export function DiscoverPhone() {
         { value: "schedule", label: t("Schedule", "Sendeplan") },
         ...(mangaEnabled ? [{ value: "manga", label: t("Manga", "Manga") }] : []),
     ]
+    // a tab not seen yet is built ahead, hidden, one at a time while the page is in front and idle: the first switch to it
+    // only fades it in (S22: 7 frames over 50 ms on a first switch); never under a finger or a scroll (whenPagesQuiet), and
+    // a hidden page built ahead (page-warmup.ts) waits
+    const inFront = React.useContext(PageFocusContext)
+    const ahead = tabs.map(item => item.value as DiscoverTab).find(value => !visited.has(value))
+    React.useEffect(() => {
+        if (!inFront || !ahead) return
+        let cancel: (() => void) | undefined
+        const timer = setTimeout(() => {
+            cancel = whenPagesQuiet(() => setVisited(prev => new Set([...prev, ahead])))
+        }, TAB_AHEAD_MS)
+        return () => {
+            clearTimeout(timer)
+            cancel?.()
+        }
+    }, [inFront, ahead])
 
     return (
         // Search left the default bar (4.2.0): its magnifier sits in the head, on the Manga tab for manga. No calendar

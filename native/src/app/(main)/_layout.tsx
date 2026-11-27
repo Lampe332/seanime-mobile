@@ -10,6 +10,7 @@ import { isLoginModalOpenAtom } from "@/main/_atoms/server-status.atoms"
 import { LibraryStatus } from "@/main/_features/anime-library/_containers/library-status"
 import { LibraryExplorerPhone } from "@/main/_features/library-explorer/library-explorer-phone"
 import { ContentGate } from "@/main/_features/content-gate/content-gate"
+import { PageWarmData } from "@/main/_hooks/page-warm-data"
 import { MediaPreviewModal } from "@/main/_features/media/_containers/media-preview-phone"
 import { MobileAnilistLogin } from "@/main/_features/navigation/anilist-login-mobile"
 import { AnilistSignInAgain } from "@/main/_features/anilist-sync/anilist-sync"
@@ -140,6 +141,7 @@ function MainFrame() {
                         {/* every page rises in once as it comes; a left page stays mounted and lets go of its native
                             views after the switch (renderPage, page-transition.tsx) */}
                         <TabSlot renderFn={renderPage} detachInactiveScreens={false} />
+                        <PageWarmData />
                     </ContentGate>
                 </View>
             </View>

@@ -3,6 +3,7 @@
 import { PhoneEmpty, PhoneSection, useOfflineAware } from "@/components/shared/phone-cards"
 import { LoadingRows, Notice, TextAction } from "@/components/shared/phone-kit"
 import { PhoneScreen } from "@/components/shared/phone-screen"
+import { PageFocusContext } from "@/components/ui/core/page-focus"
 import { Text } from "@/components/ui/text/text"
 import { appLanguageAtom, type Translate, useTr } from "@/lib/app-language"
 import { useRouter } from "@/lib/navigation"
@@ -50,11 +51,15 @@ export function UpdatesPhone() {
     const [lastVisit, setLastVisit] = useAtom(updatesLastVisitAtom)
     // the dots compare with the visit before this one; opening the page is the new visit
     const [since, setSince] = React.useState(() => sinceOf(lastVisit, Date.now()))
+    // the page may be built ahead, hidden (page-warmup.ts): the visit and its check start when it first comes to the front
+    const inFront = React.useContext(PageFocusContext)
+    const [opened, setOpened] = React.useState(inFront)
+    if (inFront && !opened) setOpened(true)
     React.useEffect(() => {
-        setLastVisit(Date.now())
+        if (opened) setLastVisit(Date.now())
         // only on opening
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
+    }, [opened])
     // the check of this visit runs from the start; without manga it never shows. A check that could not start (the
     // manga list did not load) counts as a failed part of the page; one source that fails is only skipped.
     const [checking, setChecking] = React.useState(true)
@@ -64,8 +69,8 @@ export function UpdatesPhone() {
             .then(() => setCheckFailed(false), () => setCheckFailed(true))
             .finally(() => setChecking(false)), [mangaEnabled])
     React.useEffect(() => {
-        void check()
-    }, [check])
+        if (opened) void check()
+    }, [check, opened])
     // pull to refresh and "Try again": the schedule and the list again (read only) and the chapter check
     const reload = React.useCallback(() => {
         setChecking(true)

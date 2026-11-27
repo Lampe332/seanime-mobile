@@ -1,6 +1,7 @@
 import { PhoneSection } from "@/components/shared/phone-cards"
 import { Notice, TextAction } from "@/components/shared/phone-kit"
 import { Button } from "@/components/ui/button/button"
+import { whenPagesQuiet } from "@/components/ui/core/page-transition"
 import { Muted } from "@/components/ui/text/text"
 import { useTr } from "@/lib/app-language"
 import { saveExport } from "@/lib/file-transfer"
@@ -62,22 +63,28 @@ export function WrappedShareSection({ view }: { view: WrappedView }) {
             if (data) remember(image, data)
             setResult({ key, png: data })
         }
+        // toDataURL draws and PNG-encodes the 1080 x 1350 image on the UI thread (S22 27.11.: a 181 ms frame on the first
+        // open of "Your year"): it waits until no finger is on the page and no page is coming in (whenPagesQuiet)
+        let cancelQuiet: (() => void) | undefined
         const wait = setTimeout(() => {
-            const svg = svgRef.current
-            if (!svg) return finish(null)
-            try {
-                svg.toDataURL(data => finish(typeof data === "string" && data.startsWith(PNG_START) ? data : null),
-                    { width: SHARE_WIDTH, height: SHARE_HEIGHT })
-            }
-            catch {
-                finish(null)
-            }
+            cancelQuiet = whenPagesQuiet(() => {
+                const svg = svgRef.current
+                if (!svg) return finish(null)
+                limit = setTimeout(() => finish(null), CAPTURE_TIMEOUT)
+                try {
+                    svg.toDataURL(data => finish(typeof data === "string" && data.startsWith(PNG_START) ? data : null),
+                        { width: SHARE_WIDTH, height: SHARE_HEIGHT })
+                }
+                catch {
+                    finish(null)
+                }
+            })
         }, CAPTURE_DELAY)
-        limit = setTimeout(() => finish(null), CAPTURE_TIMEOUT)
         return () => {
             settled = true
             clearTimeout(wait)
             clearTimeout(limit)
+            cancelQuiet?.()
         }
     }, [key, image])
 

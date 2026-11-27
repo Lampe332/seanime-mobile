@@ -44,8 +44,13 @@ export function WrappedPhone() {
     const showAdult = !!serverStatus?.settings?.anilist?.enableAdultContent
     const animeQuery = useGetRawAnimeCollection()
     const mangaQuery = useGetRawAnilistMangaCollection()
-    const animeLists = animeQuery.data?.MediaListCollection?.lists
-    const mangaLists = enableManga ? mangaQuery.data?.MediaListCollection?.lists : undefined
+    const animeData = animeQuery.data?.MediaListCollection?.lists
+    const mangaData = enableManga ? mangaQuery.data?.MediaListCollection?.lists : undefined
+    // the first frame is the page with its placeholder; the counting over the whole lists (years, the year's view) follows
+    // in a background render (S22 27.11.: first open 99th 200 ms, all of it in the frame of the tap)
+    const animeLists = React.useDeferredValue(animeData, undefined)
+    const mangaLists = React.useDeferredValue(mangaData, undefined)
+    const counting = !!animeData && !animeLists
 
     const years = React.useMemo(() => wrappedYears(animeLists, mangaLists, { showAdult }), [animeLists, mangaLists, showAdult])
     const [chosen, setChosen] = React.useState<number | null>(null)
@@ -72,7 +77,7 @@ export function WrappedPhone() {
     // low priority: the rebuild must not take frames from the page being opened (S22: jank leaving "Your year")
     useFocusEffect(React.useCallback(() => () => React.startTransition(() => setVisit(value => value + 1)), []))
 
-    const loading = hasUser && animeQuery.isPending
+    const loading = hasUser && (animeQuery.isPending || counting)
     const failed = hasUser && animeQuery.isError && !animeQuery.data
     const refresh = () => Promise.all([animeQuery.refetch(), enableManga ? mangaQuery.refetch() : null])
 

@@ -50,8 +50,9 @@ import RefreshCw from "lucide-react-native/icons/refresh-cw"
 import RotateCw from "lucide-react-native/icons/rotate-cw"
 import Search from "lucide-react-native/icons/search"
 import Trash2 from "lucide-react-native/icons/trash"
+import { useAfterPageEnter } from "@/components/shared/cover-flight"
 import React from "react"
-import { ActivityIndicator, Pressable, TextInput, type TextInputInstance, View } from "react-native"
+import { ActivityIndicator, Pressable, TextInput, type TextInputInstance, useWindowDimensions, View } from "react-native"
 
 /*
  * The manga page's chapters (chapter-list.tsx + downloaded-chapter-list.tsx, mobile-anime.css `.mobile-chapter*`):
@@ -64,6 +65,8 @@ import { ActivityIndicator, Pressable, TextInput, type TextInputInstance, View }
  */
 
 const MOBILE_PAGE_SIZE = 30
+/** a chapter row's least height (`min-h-14`): a window holds at most its height over this many rows */
+const ROW_MIN_HEIGHT = 56
 
 const __manga_chapterListOrderAtom = atomWithStorage(CHAPTER_ORDER_STORAGE.all.key, CHAPTER_ORDER_STORAGE.all.initial as "newest" | "oldest")
 const __manga_unreadChapterListOrderAtom = atomWithStorage(CHAPTER_ORDER_STORAGE.unread.key, CHAPTER_ORDER_STORAGE.unread.initial as "newest" | "oldest")
@@ -106,6 +109,10 @@ export function ChapterList({ mediaId, entry, downloadData, downloadDataLoading,
     const { isChapterQueued, isChapterDownloaded, isChapterLocal } = useMangaDownloadDataUtils(downloadData, downloadDataLoading)
 
     const [mobileVisible, setMobileVisible] = React.useState(MOBILE_PAGE_SIZE)
+    // the first screen of rows comes with the page, the rest of the step once it has come in (S22: 97 ms frame on opening)
+    const rowsReady = useAfterPageEnter(mediaId)
+    const windowHeight = useWindowDimensions().height
+    const rowCount = rowsReady ? mobileVisible : Math.min(mobileVisible, Math.ceil(windowHeight / ROW_MIN_HEIGHT))
     const [allOrder, setAllOrder] = useAtom(__manga_chapterListOrderAtom)
     const [unreadOrder, setUnreadOrder] = useAtom(__manga_unreadChapterListOrderAtom)
     const [jumpText, setJumpText] = React.useState("")
@@ -308,7 +315,7 @@ export function ChapterList({ mediaId, entry, downloadData, downloadDataLoading,
                         {/* `.mobile-chapter-list`: plain rows on the page with a hairline under each, no cards */}
                         <View accessibilityLabel={t("Chapters", "Kapitel")}
                             onLayout={event => { rowsY.current = event.nativeEvent.layout.y }}>
-                            {chapters.slice(0, mobileVisible).map(chapter => {
+                            {chapters.slice(0, rowCount).map(chapter => {
                                 const downloaded = isChapterDownloaded(chapter)
                                 const queued = isChapterQueued(chapter)
                                 const canDownload = !isChapterLocal(chapter) && !downloaded && !queued
@@ -337,7 +344,7 @@ export function ChapterList({ mediaId, entry, downloadData, downloadDataLoading,
                             })}
                         </View>
                         {/* `.mobile-chapter-more` (a raised block, radius sm) and `.mobile-chapter-download-unread` (the same, plain, in the accent) */}
-                        {chapters.length > mobileVisible && <Pressable accessibilityRole="button" onPress={() => setMobileVisible(v => v + MOBILE_PAGE_SIZE)}
+                        {rowsReady && chapters.length > mobileVisible && <Pressable accessibilityRole="button" onPress={() => setMobileVisible(v => v + MOBILE_PAGE_SIZE)}
                             className="min-h-12 flex-row items-center justify-center gap-2 rounded-surface-sm bg-sm-surface-raised active:bg-sm-surface-control">
                             <ChevronDown size={18} color={colors.smText} />
                             <Text className="text-sm font-semibold">{t(`Show more (${chapters.length - mobileVisible})`, `Mehr anzeigen (${chapters.length - mobileVisible})`)}</Text>

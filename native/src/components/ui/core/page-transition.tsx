@@ -2,9 +2,10 @@ import { DISTANCE, pageRiseFrom, swapTiming } from "@/lib/motion"
 import { useIsTabletScreen } from "@/lib/use-tablet-ui"
 import { coverFlightRunning } from "@/components/shared/cover-flight-store"
 import { PageFocusContext } from "@/components/ui/core/page-focus"
+import { createPageWarmup, WARM_DATA } from "@/components/ui/core/page-warmup"
 import { type TabSlotProps } from "expo-router/ui"
 import React from "react"
-import { StyleSheet, View } from "react-native"
+import { type GestureResponderEvent, StyleSheet, View } from "react-native"
 import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withSequence, withTiming } from "react-native-reanimated"
 import { Screen, ScreenContainer } from "react-native-screens"
 import { scheduleOnRN } from "react-native-worklets"
@@ -89,27 +90,69 @@ function PageViews({ focused, children }: { focused: boolean, children: React.Re
     )
 }
 
+/** The main pages' data loaded and two pages built ahead while the app is idle (page-warmup.ts) */
+const warmup = createPageWarmup({
+    now: () => Date.now(),
+    after: (ms, run) => { setTimeout(run, ms) },
+    idle: run => { requestIdleCallback(run, { timeout: 2000 }) },
+})
+
+/** Runs `run` once no page is coming in and no finger is on a page, nor was for a while (page-warmup.ts whenQuiet) */
+export const whenPagesQuiet = warmup.whenQuiet
+
+/** Whether the main pages' data is loaded ahead (WARM_DATA, PageWarmData in the main layout) */
+export function usePageDataWarm() {
+    return React.useSyncExternalStore(warmup.subscribe, () => warmup.isWarm(WARM_DATA))
+}
+
+const noteTouchDown = () => warmup.noteTouch("down")
+const noteTouchEnd = (event: GestureResponderEvent) => warmup.noteTouch(event.nativeEvent.touches.length > 0 ? "down" : "up")
+// a touch cancelled by the page's own views: a scroll took it over and goes on without JS touches
+const noteTouchCancel = () => warmup.noteTouch("scroll")
+
+type PageDescriptor = Parameters<NonNullable<TabSlotProps["renderFn"]>>[0]
+
 /**
  * TabSlot's renderFn (with `detachInactiveScreens={false}`: the slot's own container stays a plain view): a visited page
  * stays mounted under the current one, invisible (opacity 0), untouchable and hidden from accessibility, and its native
  * views are taken off the window shortly after it is left (PageViews). The slot's default detached a left page in the
  * frame of the switch and drew the returning one there too (S22 gfxinfo: slow UI-thread frames on every tab change), so
- * the switch only flips the opacity and runs PageEnter; the detach waits for the animation. Pages are still mounted on
- * their first visit only (lazy, like the default).
+ * the switch only flips the opacity and runs PageEnter; the detach waits for the animation. Pages are mounted on their
+ * first visit (lazy, like the default), My lists and Discover (page-warmup.ts) before it, hidden and detached, while
+ * idle; one of them not visited lets go of its views again. A touch on a page holds building ahead back.
  */
-export const renderPage: NonNullable<TabSlotProps["renderFn"]> = (descriptor, { isFocused, loaded }) => {
+export const renderPage: NonNullable<TabSlotProps["renderFn"]> = (descriptor, { isFocused, loaded }) => (
+    <PageSlot key={descriptor.route.key} descriptor={descriptor} isFocused={isFocused} loaded={!!loaded} />
+)
+
+function PageSlot({ descriptor, isFocused, loaded }: { descriptor: PageDescriptor, isFocused: boolean, loaded: boolean }) {
     const { lazy = true, unmountOnBlur } = descriptor.options
+    const name = descriptor.route.name
+    // a page built ahead (or let go) renders in a transition: time-sliced, a tap in between goes first
+    const [warm, setWarm] = React.useState(() => warmup.isWarm(name))
+    React.useEffect(() => {
+        const sync = () => React.startTransition(() => setWarm(warmup.isWarm(name)))
+        sync()
+        return warmup.subscribe(sync)
+    }, [name])
+    React.useEffect(() => {
+        if (!isFocused) return
+        warmup.noteSwitch(name)
+        warmup.start()
+    }, [isFocused, name])
     if (unmountOnBlur && !isFocused) return null
-    if (lazy && !loaded && !isFocused) return null
+    if (lazy && !loaded && !isFocused && !warm) return null
     return (
         <View
-            key={descriptor.route.key}
             // no zIndex: Fabric flattens this view, a zIndex then lifted the page over the nav bar (S22: bar untouchable)
             collapsable={false}
             style={[StyleSheet.absoluteFill, { opacity: isFocused ? 1 : 0 }]}
             pointerEvents={isFocused ? "auto" : "none"}
             importantForAccessibility={isFocused ? "auto" : "no-hide-descendants"}
             accessibilityElementsHidden={!isFocused}
+            onTouchStart={noteTouchDown}
+            onTouchEnd={noteTouchEnd}
+            onTouchCancel={noteTouchCancel}
         >
             {/* a text field on a page left behind lets go of the keyboard (page-focus.ts) */}
             <PageViews focused={isFocused}>
