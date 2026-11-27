@@ -2,7 +2,7 @@ import type { AnilistListAnime_Variables } from "@/api/generated/endpoint.types"
 import type { AL_BaseAnime, AL_BaseManga, AL_ListAnime, AL_ListManga, AL_ListRecentAnime } from "@/api/generated/types"
 import { CardMenu, type CardMenuAnchor } from "@/components/shared/card-menu"
 import { useCardListItems } from "@/main/_features/media/_containers/use-card-list-items"
-import { useCoverFlightSource } from "@/components/shared/cover-flight"
+import { useAfterPageEnter, useCoverFlightSource } from "@/components/shared/cover-flight"
 import { FORMAT_LABELS, Notice, TextAction } from "@/components/shared/phone-kit"
 import { PluginWebviewSlot } from "@/main/_features/plugin/plugin-webview"
 import {
@@ -37,6 +37,7 @@ import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { useMediaPreviewModal } from "@/main/_features/media/_containers/media-preview-phone"
 import { SearchHeadAction } from "@/main/_features/home/home-mobile-header"
 import { mediaEntryHref } from "@/main/_features/media/_lib/media-card"
+import { useStagedCount } from "@/main/entry/_lib/staged-count"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
 import {
     airedAgoLabel,
@@ -141,8 +142,7 @@ export function DiscoverPhone() {
         ...(mangaEnabled ? [{ value: "manga", label: t("Manga", "Manga") }] : []),
     ]
     // a tab not seen yet is built ahead, hidden, one at a time while the page is in front and idle: the first switch to it
-    // only fades it in (S22: 7 frames over 50 ms on a first switch); never under a finger or a scroll (whenPagesQuiet), and
-    // a hidden page built ahead (page-warmup.ts) waits
+    // only fades it in (S22: 7 frames over 50 ms on a first switch); never under a finger or a scroll (whenPagesQuiet)
     const inFront = React.useContext(PageFocusContext)
     const ahead = tabs.map(item => item.value as DiscoverTab).find(value => !visited.has(value))
     React.useEffect(() => {
@@ -279,6 +279,10 @@ const AnimeTab = React.memo(function AnimeTab() {
     const rest = React.useMemo(() => withoutFeatured(trending.items, spotlight), [trending.items, spotlight])
     const qualifier = genre ? genreLabel(t, genre) : undefined
     const clearGenre = () => setGenre(null)
+    // the first screen (chips, spotlight, trending) comes with the page; the rows under it one per frame once the page has
+    // risen in (S22: the first open built 543–715 views in the frame of the tap, 26–31 % janky); built once, the tab stays
+    const entered = useAfterPageEnter()
+    const below = useStagedCount(BELOW_ROWS, { first: 0, step: 1, active: entered })
 
     // AniList, the server or the connection is down when both rows of the first screen fail: one notice, not a wall of them.
     // With a genre chosen the chips stay, so "All" (often still cached) is one tap away.
@@ -296,19 +300,22 @@ const AnimeTab = React.memo(function AnimeTab() {
         <DiscoverRow title={t("Trending now", "Gerade angesagt")} qualifier={qualifier} seeAll={seeAllLinks.trending(genre)} row={{ ...trending, items: rest }}
             genre={genre} onClearGenre={clearGenre} empty={t("Nothing is trending right now.", "Gerade ist nichts angesagt.")}
             renderCard={(media, width) => <DiscoverCover media={media} type="anime" width={width} />} />
-        <BecauseYouWatchedBlocks />
-        <SeasonBlock season={seasons.current} genre={genre} onClearGenre={clearGenre}
-            title={seasonTitle(t, "top", seasons.current)} />
-        <SeasonBlock season={seasons.previous} genre={genre} onClearGenre={clearGenre}
-            title={seasonTitle(t, "best", seasons.previous)} />
-        <RecentBlock row={recent} />
-        <MissedBlock />
-        <AnimeBlock title={t("Coming soon", "Demnächst")} seeAll={seeAllLinks.upcoming()} variables={UPCOMING} releaseMark={false}
-            empty={t("No announced anime right now.", "Gerade sind keine Anime angekündigt.")} />
-        <AnimeBlock title={t("Trending movies", "Angesagte Filme")} seeAll={seeAllLinks.movies()} variables={MOVIES}
-            empty={t("No movies are trending right now.", "Gerade sind keine Filme angesagt.")} />
+        {below > 0 && <BecauseYouWatchedBlocks />}
+        {below > 1 && <SeasonBlock season={seasons.current} genre={genre} onClearGenre={clearGenre}
+            title={seasonTitle(t, "top", seasons.current)} />}
+        {below > 2 && <SeasonBlock season={seasons.previous} genre={genre} onClearGenre={clearGenre}
+            title={seasonTitle(t, "best", seasons.previous)} />}
+        {below > 3 && <RecentBlock row={recent} />}
+        {below > 4 && <MissedBlock />}
+        {below > 5 && <AnimeBlock title={t("Coming soon", "Demnächst")} seeAll={seeAllLinks.upcoming()} variables={UPCOMING} releaseMark={false}
+            empty={t("No announced anime right now.", "Gerade sind keine Anime angekündigt.")} />}
+        {below > 6 && <AnimeBlock title={t("Trending movies", "Angesagte Filme")} seeAll={seeAllLinks.movies()} variables={MOVIES}
+            empty={t("No movies are trending right now.", "Gerade sind keine Filme angesagt.")} />}
     </>
 })
+
+/** The anime rows under the first screen, staged in AnimeTab */
+const BELOW_ROWS = 7
 
 const UPCOMING: AnilistListAnime_Variables = { page: 1, perPage: 20, sort: ["TRENDING_DESC"], status: ["NOT_YET_RELEASED"] }
 const MOVIES: AnilistListAnime_Variables = { page: 1, perPage: 20, format: "MOVIE", sort: ["TRENDING_DESC"], status: ["RELEASING", "FINISHED"] }
