@@ -90,7 +90,7 @@ function PageViews({ focused, children }: { focused: boolean, children: React.Re
     )
 }
 
-/** The main pages' data loaded and two pages built ahead while the app is idle (page-warmup.ts) */
+/** The main pages' data loaded ahead while the app is idle (page-warmup.ts) */
 const warmup = createPageWarmup({
     now: () => Date.now(),
     after: (ms, run) => { setTimeout(run, ms) },
@@ -118,8 +118,7 @@ type PageDescriptor = Parameters<NonNullable<TabSlotProps["renderFn"]>>[0]
  * views are taken off the window shortly after it is left (PageViews). The slot's default detached a left page in the
  * frame of the switch and drew the returning one there too (S22 gfxinfo: slow UI-thread frames on every tab change), so
  * the switch only flips the opacity and runs PageEnter; the detach waits for the animation. Pages are mounted on their
- * first visit (lazy, like the default), My lists and Discover (page-warmup.ts) before it, hidden and detached, while
- * idle; one of them not visited lets go of its views again. A touch on a page holds building ahead back.
+ * first visit (lazy, like the default). A touch on a page holds loading ahead back (page-warmup.ts).
  */
 export const renderPage: NonNullable<TabSlotProps["renderFn"]> = (descriptor, { isFocused, loaded }) => (
     <PageSlot key={descriptor.route.key} descriptor={descriptor} isFocused={isFocused} loaded={!!loaded} />
@@ -127,21 +126,13 @@ export const renderPage: NonNullable<TabSlotProps["renderFn"]> = (descriptor, { 
 
 function PageSlot({ descriptor, isFocused, loaded }: { descriptor: PageDescriptor, isFocused: boolean, loaded: boolean }) {
     const { lazy = true, unmountOnBlur } = descriptor.options
-    const name = descriptor.route.name
-    // a page built ahead (or let go) renders in a transition: time-sliced, a tap in between goes first
-    const [warm, setWarm] = React.useState(() => warmup.isWarm(name))
-    React.useEffect(() => {
-        const sync = () => React.startTransition(() => setWarm(warmup.isWarm(name)))
-        sync()
-        return warmup.subscribe(sync)
-    }, [name])
     React.useEffect(() => {
         if (!isFocused) return
-        warmup.noteSwitch(name)
+        warmup.noteSwitch()
         warmup.start()
-    }, [isFocused, name])
+    }, [isFocused])
     if (unmountOnBlur && !isFocused) return null
-    if (lazy && !loaded && !isFocused && !warm) return null
+    if (lazy && !loaded && !isFocused) return null
     return (
         <View
             // no zIndex: Fabric flattens this view, a zIndex then lifted the page over the nav bar (S22: bar untouchable)

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { createPageWarmup, WARM_DATA, WARM_GAP_MS, WARM_HOLD_MS, WARM_QUIET_MS, WARM_SCROLL_QUIET_MS, WARM_START_MS } from "./page-warmup"
+import { createPageWarmup, WARM_DATA, WARM_GAP_MS, WARM_QUIET_MS, WARM_SCROLL_QUIET_MS, WARM_START_MS } from "./page-warmup"
 
 function fakeClock() {
     let time = 0
@@ -69,26 +69,14 @@ describe("page warmup", () => {
         expect(warmup.isWarm("a")).toBe(true)
     })
 
-    it("lets go of a page not visited, keeps a visited one and the data", () => {
+    it("loads only the data by default and keeps it", () => {
         const { clock, advance } = fakeClock()
-        const warmup = createPageWarmup(clock, [WARM_DATA, "a", "b"])
+        const warmup = createPageWarmup(clock)
         warmup.start()
-        advance(WARM_START_MS + WARM_GAP_MS * 2)
-        expect([WARM_DATA, "a", "b"].every(warmup.isWarm)).toBe(true)
-        warmup.noteSwitch("b")
-        advance(WARM_HOLD_MS + WARM_QUIET_MS)
+        advance(WARM_START_MS + 60_000)
         expect(warmup.isWarm(WARM_DATA)).toBe(true)
-        expect(warmup.isWarm("a")).toBe(false)
-        expect(warmup.isWarm("b")).toBe(true)
-    })
-
-    it("skips a page visited before its turn", () => {
-        const { clock, advance } = fakeClock()
-        const warmup = createPageWarmup(clock, ["a"])
-        warmup.noteSwitch("a")
-        warmup.start()
-        advance(60_000)
-        expect(warmup.isWarm("a")).toBe(false)
+        expect(warmup.isWarm("lists")).toBe(false)
+        expect(warmup.isWarm("discover")).toBe(false)
     })
 
     it("does nothing before start", () => {

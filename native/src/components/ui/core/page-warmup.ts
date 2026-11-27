@@ -1,24 +1,21 @@
 /*
  * The main pages' first visit built the whole page in the frame of the tap (S22 4.4 gfxinfo: My lists 99th 81 ms,
- * Discover 53 % janky). While the app is idle after the start, page-transition.tsx first loads the data of the other main
- * pages (WARM_DATA: their queries, reads only, no views), then builds My lists and Discover ahead, hidden (renderPage).
- * Seven pages built ahead and kept cost 180 MB PSS and every page switch's commits (S22 27.11.: 560 → 739 MB, Search's
- * first open 36–46 % janky), so only these two are built, and one that is not visited lets go of its views after
- * WARM_HOLD_MS (its data stays cached). Nothing runs while a page comes in or a finger is on the screen, nor for a while
- * after (a scroll goes on after the finger: its start cancels the JS touch, so a cancel waits longer).
+ * Discover 53 % janky). While the app is idle after the start, page-transition.tsx loads the data of the other main pages
+ * ahead (WARM_DATA: their queries, reads only, no views): My lists' 99th fell to 25 ms. Building My lists and Discover
+ * ahead, hidden, built no views at all (S22 atrace 27.11.: 0 in the idle time, 543–715 on the tap) and was taken out;
+ * Discover stages its rows instead (discover-phone.tsx). Nothing runs while a page comes in or a finger is on the screen,
+ * nor for a while after (a scroll goes on after the finger: its start cancels the JS touch, so a cancel waits longer).
  */
 export const WARM_DATA = "page-data"
-export const WARM_PAGES = [WARM_DATA, "lists", "discover"] as const
+export const WARM_PAGES = [WARM_DATA] as const
 /** after the start: past Home's first loads and its carousels' first frames */
 export const WARM_START_MS = 2500
 /** between two steps */
 export const WARM_GAP_MS = 700
-/** nothing is built this soon after a page switch or a touch */
+/** nothing is loaded this soon after a page switch or a touch */
 export const WARM_QUIET_MS = 1200
 /** after a touch taken over by a scroll (touchcancel): the drag and its fling */
 export const WARM_SCROLL_QUIET_MS = 3000
-/** a page built ahead and not visited lets go of its views after this */
-export const WARM_HOLD_MS = 120_000
 
 export type WarmupClock = {
     now: () => number
@@ -28,9 +25,8 @@ export type WarmupClock = {
 
 export type TouchPhase = "down" | "up" | "scroll"
 
-export function createPageWarmup(clock: WarmupClock, pages: readonly string[] = WARM_PAGES, hold = WARM_HOLD_MS) {
+export function createPageWarmup(clock: WarmupClock, pages: readonly string[] = WARM_PAGES) {
     const warm = new Set<string>()
-    const visited = new Set<string>()
     const listeners = new Set<() => void>()
     let started = false
     let touching = false
@@ -58,20 +54,11 @@ export function createPageWarmup(clock: WarmupClock, pages: readonly string[] = 
         return () => { live = false }
     }
 
-    const release = (name: string) => whenQuiet(() => {
-        if (visited.has(name) || !warm.delete(name)) return
-        notify()
-    })
-
     const step = (index: number) => {
         if (index >= pages.length) return
         whenQuiet(() => {
-            const name = pages[index]
-            if (!visited.has(name)) {
-                warm.add(name)
-                notify()
-                if (name !== WARM_DATA) clock.after(hold, () => release(name))
-            }
+            warm.add(pages[index])
+            notify()
             clock.after(WARM_GAP_MS, () => step(index + 1))
         })
     }
@@ -82,12 +69,9 @@ export function createPageWarmup(clock: WarmupClock, pages: readonly string[] = 
             listeners.add(listener)
             return () => { listeners.delete(listener) }
         },
-        /** a page came to the front: building ahead waits; a visited page is kept like any visited one */
-        noteSwitch: (name?: string) => {
-            if (name) visited.add(name)
-            hush(WARM_QUIET_MS)
-        },
-        /** a touch on a page: building ahead waits while it lasts and for a while after */
+        /** a page came to the front: loading ahead waits */
+        noteSwitch: () => hush(WARM_QUIET_MS),
+        /** a touch on a page: loading ahead waits while it lasts and for a while after */
         noteTouch: (phase: TouchPhase) => {
             touching = phase === "down"
             hush(phase === "scroll" ? WARM_SCROLL_QUIET_MS : WARM_QUIET_MS)
