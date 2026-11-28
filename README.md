@@ -258,6 +258,14 @@ You only need it to sync between devices, for example to keep watching on your t
 </details>
 
 <details>
+<summary>Is there a version for iPhone, Windows or TV?</summary>
+<br>
+
+Not right now. On a PC, use the original [Seanime](https://github.com/5rahim/seanime), it was made for that. An iPhone version isn't planned: building for iOS needs a Mac, and getting an app like this onto iPhones is a lot of hassle. If you have a Mac, know iOS and want to help, say hi on [Discord](https://discord.gg/dxJdj5Dqt9). Android TV might come later. Other TV systems, LG's webOS for example, would mean rewriting the whole app, so they won't happen.
+
+</details>
+
+<details>
 <summary>Where do I find more help?</summary>
 <br>
 
